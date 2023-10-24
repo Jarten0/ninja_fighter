@@ -1,0 +1,43 @@
+{
+    "rust-analyzer.linkedProjects": [
+        ".\\Cargo.toml",
+        ".\\Cargo.toml"
+    ],
+    "rust-analyzer.showUnlinkedFileNotification": false,
+    "files.exclude": {
+        "**/.git": true,
+        "**/.svn": true,
+        "**/.hg": true,
+        "**/CVS": true,
+        "**/.DS_Store": true,
+        "**/Thumbs.db": true,
+        ".config": true,
+        ".gitattributes": true,
+        ".gitignore": true,
+        ".vscode": true,
+        "**.csproj": true,
+        "**.sln": true,
+        "**/.gdignore": true,
+        "**/.godot": true,
+        "**/.vs": true,
+        "**/*.dll": true,
+        "**/*.dylib": true,
+        "**/*.exe": true,
+        "**/*.godot": true,
+        "**/*.import": true,
+        "**/*.meta": true,
+        "**/*.png": true,
+        "**/*.so": true,
+        "**/*.zip": true,
+        "icon.svg": true,
+        "Cargo.lock": true,
+        ".rustc_info.json": true,
+        "CACHEDIR.TAG": true,
+        "target/.rustc_info.json": true,
+        "target/CACHEDIR.TAG": true,
+        "**/CACHEDIR.TAG": true,
+        "**/.rustc_info.json": true,
+        "target/debug": true
+    },
+    "explorerExclude.backup": {}
+}
