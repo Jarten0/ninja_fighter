@@ -1,5 +1,10 @@
-mod beans;
+pub mod bean_types;
+pub mod bean;
+pub mod cup;
 
+use bean_types::transform::Transform;
+use cup::Cup;
+use bean::{Bean, Protag};
 use coffee::graphics::{Color, Frame, Window, WindowSettings};
 use coffee::load::Task;
 use coffee::{Game, Result, Timer};
@@ -7,30 +12,51 @@ use coffee::{Game, Result, Timer};
 fn main() -> Result<()> {
     MyGame::run(WindowSettings {
         title: String::from("Ninja Fighter [PROTOTYPE]"),
-        size: (1920, 1080),
+        size: (100 * 16, 100 * 9),
         resizable: true,
         fullscreen: false,
-        maximized: true,
+        maximized: false,
     })
 }
 
+#[allow(dead_code)]
 struct MyGame {
-    // Your game state and assets go here...
+    // bean_grinder: BeanGrinder,
+    cup: Cup
 }
+
 
 impl Game for MyGame {
     type Input = (); // No input data
     type LoadingScreen = (); // No loading screen
-
+    
     fn load(_window: &Window) -> Task<MyGame> {
-        // Load your game assets here. Check out the `load` module!
-        Task::succeed(|| MyGame { /* ... */ })
+        
+        
+        Task::succeed(|| MyGame { 
+            // bean_grinder: BeanGrinder { 
+                 
+            // },
+            cup: Cup { 
+                beans: { 
+                    let mut default = Vec::new(); 
+                    let protag = Protag { transform: Transform::new()};
+                    let boxx: Box<dyn Bean> = Box::new(protag);
+                    default.push(boxx);
+
+                    default
+                } 
+            }
+
+        })
     }
 
     fn draw(&mut self, frame: &mut Frame, _timer: &Timer) {
-        // Clear the current frame
-        frame.clear(Color::BLACK);
+        frame.clear(Color::WHITE);
 
-        // Draw your game here. Check out the `graphics` module!
+        for bean in &self.cup.beans {
+            bean.update();
+        }
     }
 }
+

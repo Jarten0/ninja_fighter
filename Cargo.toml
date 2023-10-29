@@ -7,3 +7,7 @@ edition = "2021"
 
 [dependencies]
 coffee = { version = "0.4", features = ["opengl"] }
+serde = { version = "1.0.189", features = ["derive"] }
+erased-serde = "0.3"
+serde_json = "1"
+typetag = "0.2"
