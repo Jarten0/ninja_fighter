@@ -1,16 +1,22 @@
-pub mod bean_types;
+pub mod assets;
 pub mod bean;
+pub mod bean_types;
 pub mod cup;
 
-use bean_types::transform::Transform;
-use cup::Cup;
-use bean::{Bean, Protag};
+use std::collections::HashMap;
+
+use assets::Assets;
+use coffee::input::keyboard::KeyCode;
+use coffee::input::KeyboardAndMouse;
+use coffee::load::loading_screen::ProgressBar;
+use cup::{BeanGrinder, Cup};
+
 use coffee::graphics::{Color, Frame, Window, WindowSettings};
 use coffee::load::Task;
 use coffee::{Game, Result, Timer};
 
 fn main() -> Result<()> {
-    MyGame::run(WindowSettings {
+    GameRoot::run(WindowSettings {
         title: String::from("Ninja Fighter [PROTOTYPE]"),
         size: (100 * 16, 100 * 9),
         resizable: true,
@@ -20,43 +26,57 @@ fn main() -> Result<()> {
 }
 
 #[allow(dead_code)]
-struct MyGame {
-    // bean_grinder: BeanGrinder,
-    cup: Cup
+pub struct GameRoot {
+    pub cup: Cup,
+    pub assets: Assets,
 }
 
+impl Game for GameRoot {
+    type Input = KeyboardAndMouse;
+    type LoadingScreen = ProgressBar; // No loading screen
 
-impl Game for MyGame {
-    type Input = (); // No input data
-    type LoadingScreen = (); // No loading screen
-    
-    fn load(_window: &Window) -> Task<MyGame> {
-        
-        
-        Task::succeed(|| MyGame { 
-            // bean_grinder: BeanGrinder { 
-                 
-            // },
-            cup: Cup { 
-                beans: { 
-                    let mut default = Vec::new(); 
-                    let protag = Protag { transform: Transform::new()};
-                    let boxx: Box<dyn Bean> = Box::new(protag);
-                    default.push(boxx);
+    const TICKS_PER_SECOND: u16 = 1;
+    const DEBUG_KEY: Option<KeyCode> = Some(KeyCode::F12);
 
-                    default
-                } 
-            }
+    fn load(_window: &Window) -> Task<GameRoot> {
+        let assets: Assets = Assets {
+            internal_assets: HashMap::new(),
+        };
 
-        })
+        let cup: Cup = BeanGrinder::brew_default_cup();
+
+        Task::succeed(|| GameRoot { cup, assets })
     }
 
     fn draw(&mut self, frame: &mut Frame, _timer: &Timer) {
         frame.clear(Color::WHITE);
 
-        for bean in &self.cup.beans {
-            bean.update();
+        for _bean in &self.cup.beans {
+            _bean._draw_calls(frame, _timer);
         }
     }
-}
 
+    fn interact(&mut self, _input: &mut Self::Input, _window: &mut Window) {}
+
+    fn update(&mut self, _window: &Window) {
+        for bean in &self.cup.beans {
+            bean._update_calls(self, _window);
+        }
+    }
+
+    fn cursor_icon(&self) -> coffee::graphics::CursorIcon {
+        coffee::graphics::CursorIcon::Default
+    }
+
+    fn debug(&self, _input: &Self::Input, frame: &mut Frame<'_>, debug: &mut coffee::Debug) {
+        debug.draw(frame);
+    }
+
+    fn on_close_request(&mut self) -> bool {
+        true
+    }
+
+    fn is_finished(&self) -> bool {
+        false
+    }
+}

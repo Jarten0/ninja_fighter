@@ -385,6 +385,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "dict"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "39fbb71fba1e2c935f51b056de0d812d9b625b8165b2d7f8848902080fbdffb4"
+
+[[package]]
 name = "discard"
 version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1153,6 +1159,7 @@ name = "ninja_fighter"
 version = "0.1.0"
 dependencies = [
  "coffee",
+ "dict",
  "erased-serde",
  "serde",
  "serde_json",

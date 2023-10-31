@@ -1,12 +1,13 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
-use crate::bean_types::vector::Vector2;
+use crate::{bean::Bean, bean_types::vector::Vector2};
 
 #[allow(dead_code)]
 #[derive(Serialize, Deserialize)]
 pub struct Transform {
     pub position: Vector2,
     pub velocity: Vector2,
+    pub dependencies: Vec<Box<dyn Bean>>,
 }
 
 #[allow(dead_code)]
@@ -18,14 +19,16 @@ impl Transform {
 
     pub fn new() -> Self {
         Self {
-            position: Vector2 {
-                x: 0.0,
-                y: 0.0,
-            },
-            velocity: Vector2 {
-                x: 0.0,
-                y: 0.0,
-            }
+            position: Vector2 { x: 0.0, y: 0.0 },
+            velocity: Vector2 { x: 0.0, y: 0.0 },
+            dependencies: Vec::new(),
         }
+    }
+}
+
+#[typetag::serde]
+impl Bean for Transform {
+    fn return_dependencies(&self) -> &Vec<Box<dyn Bean>> {
+        &self.dependencies
     }
 }
