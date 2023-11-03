@@ -17,11 +17,11 @@ impl Default for Protag {
 
 #[typetag::serde]
 impl Bean for Protag {
-    fn return_dependencies(&self) -> &Vec<Box<dyn Bean>> {
-        &self.dependencies
+    fn return_dependencies(&mut self) -> &mut Vec<Box<dyn Bean>> {
+        &mut self.dependencies
     }
 
     fn ready(&self, _game_root: &GameRoot) {}
 
-    fn update(&self, _game_root: &GameRoot) {}
+    fn update(&mut self, _game_root: &GameRoot) {}
 }

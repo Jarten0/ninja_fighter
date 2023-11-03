@@ -29,6 +29,7 @@ fn main() -> Result<()> {
 pub struct GameRoot {
     pub cup: Cup,
     pub assets: Assets,
+    pub delta: f32,
 }
 
 impl Game for GameRoot {
@@ -45,13 +46,15 @@ impl Game for GameRoot {
 
         let cup: Cup = BeanGrinder::brew_default_cup();
 
-        Task::succeed(|| GameRoot { cup, assets })
+        let delta: f32 = 1.0 / GameRoot::TICKS_PER_SECOND as f32;
+
+        Task::succeed(move || GameRoot { cup, assets, delta })
     }
 
     fn draw(&mut self, frame: &mut Frame, _timer: &Timer) {
         frame.clear(Color::WHITE);
 
-        for _bean in &self.cup.beans {
+        for _bean in self.cup.pour_beans() {
             _bean._draw_calls(frame, _timer);
         }
     }
@@ -59,7 +62,7 @@ impl Game for GameRoot {
     fn interact(&mut self, _input: &mut Self::Input, _window: &mut Window) {}
 
     fn update(&mut self, _window: &Window) {
-        for bean in &self.cup.beans {
+        for bean in self.cup.pour_beans() {
             bean._update_calls(self, _window);
         }
     }

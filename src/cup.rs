@@ -9,6 +9,12 @@ pub struct Cup {
     pub beans: Vec<Box<dyn Bean>>,
 }
 
+impl Cup {
+    pub fn pour_beans(&mut self) -> &mut Vec<Box<dyn Bean>> {
+        &mut self.beans
+    }
+}
+
 pub struct BeanGrinder;
 
 impl BeanGrinder {
@@ -30,6 +36,8 @@ impl BeanGrinder {
     pub fn package_cup(cup: Cup, container: &mut Container) {
         container.beans = cup.beans;
     }
+
+    
 }
 
 #[derive(Serialize, Deserialize)]

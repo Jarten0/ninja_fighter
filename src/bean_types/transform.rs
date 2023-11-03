@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{bean::Bean, bean_types::vector::Vector2};
+use crate::{bean::Bean, bean_types::vector::Vector2, GameRoot};
 
 #[allow(dead_code)]
 #[derive(Serialize, Deserialize)]
@@ -13,7 +13,7 @@ pub struct Transform {
 #[allow(dead_code)]
 impl Transform {
     pub fn apply_force(&mut self, force: &Vector2) {
-        self.velocity.translate_self(force, &1.0);
+        self.velocity.translate_instantaneous(force);
         todo!();
     }
 
@@ -28,7 +28,11 @@ impl Transform {
 
 #[typetag::serde]
 impl Bean for Transform {
-    fn return_dependencies(&self) -> &Vec<Box<dyn Bean>> {
-        &self.dependencies
+    fn return_dependencies(&mut self) -> &mut Vec<Box<dyn Bean>> {
+        &mut self.dependencies
+    }
+
+    fn update(&mut self, _game_root: &GameRoot) {
+        self.position.translate(&self.velocity, &_game_root.delta);
     }
 }

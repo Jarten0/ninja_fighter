@@ -14,10 +14,10 @@ pub trait Script {
 #[typetag::serde(tag = "type")]
 pub trait Bean {
     /// If your bean depends on other child beans to operate, then feed them in through here. Otherwise, it's fine to return an empty vec
-    fn return_dependencies(&self) -> &Vec<Box<dyn Bean>>;
+    fn return_dependencies(&mut self) -> &mut Vec<Box<dyn Bean>>;
 
     /// Calls all of the initiation methods on a bean to reduce boilerplate. Override to change the functionality and remove unneeded calls on your per case basis to improve performance.
-    fn _init_calls(&self, _game_root: &GameRoot, _window: &Window) {
+    fn _init_calls(&mut self, _game_root: &GameRoot, _window: &Window) {
         self.init(_game_root);
 
         for dep in self.return_dependencies() {
@@ -32,7 +32,7 @@ pub trait Bean {
     }
 
     /// Calls all of the update methods on a bean to reduce boilerplate. Override to change the functionality and remove unneeded calls on your per case basis to improve performance.
-    fn _update_calls(&self, _game_root: &GameRoot, _window: &Window) {
+    fn _update_calls(&mut self, _game_root: &GameRoot, _window: &Window) {
         self.early_update(_game_root);
 
         for dep in self.return_dependencies() {
@@ -47,7 +47,7 @@ pub trait Bean {
     }
 
     /// Calls all of the draw methods on a bean to reduce boilerplate. Override to change functionality and remove unneeded calls on your per case basis to improve performance.
-    fn _draw_calls(&self, frame: &mut Frame, timer: &Timer) {
+    fn _draw_calls(&mut self, frame: &mut Frame, timer: &Timer) {
         for bean in self.return_dependencies() {
             bean._draw_calls(frame, timer);
 
@@ -67,7 +67,7 @@ pub trait Bean {
     fn early_update(&self, _game_root: &GameRoot) {}
 
     /// Will be called once per frame, is called after all children have run update()
-    fn update(&self, _game_root: &GameRoot) {}
+    fn update(&mut self, _game_root: &GameRoot) {}
 
     fn draw(&self, _frame: &mut Frame, _timer: &Timer) {}
 
@@ -81,7 +81,7 @@ struct MinBean {
 
 #[typetag::serde]
 impl Bean for MinBean {
-    fn return_dependencies(&self) -> &Vec<Box<dyn Bean>> {
-        &self.dependencies
+    fn return_dependencies(&mut self) -> &mut Vec<Box<dyn Bean>> {
+        &mut self.dependencies
     }
 }

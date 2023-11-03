@@ -8,9 +8,9 @@ pub struct Renderer {
 
 #[typetag::serde]
 impl Bean for Renderer {
-    fn return_dependencies(&self) -> &Vec<Box<dyn Bean>> {
-        &self.dependencies
+    fn return_dependencies(&mut self) -> &mut Vec<Box<dyn Bean>> {
+        &mut self.dependencies
     }
 
-    fn update(&self, _game_root: &GameRoot) {}
+    fn update(&mut self, _game_root: &GameRoot) {}
 }
