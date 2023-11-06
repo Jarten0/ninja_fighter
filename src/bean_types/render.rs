@@ -1,4 +1,4 @@
-use crate::{bean::Bean, GameRoot};
+use crate::{bean::Bean, GameInfo};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
@@ -12,5 +12,6 @@ impl Bean for Renderer {
         &mut self.dependencies
     }
 
-    fn update(&mut self, _game_root: &GameRoot) {}
+    #[allow(unused_variables)]
+    fn update(&mut self, game_info: &GameInfo) {}
 }

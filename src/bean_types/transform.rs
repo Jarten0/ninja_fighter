@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{bean::Bean, bean_types::vector::Vector2, GameRoot};
+use crate::{bean::Bean, bean_types::vector::Vector2, GameInfo};
 
 #[allow(dead_code)]
 #[derive(Serialize, Deserialize)]
@@ -32,7 +32,7 @@ impl Bean for Transform {
         &mut self.dependencies
     }
 
-    fn update(&mut self, _game_root: &GameRoot) {
-        self.position.translate(&self.velocity, &_game_root.delta);
+    fn update(&mut self, game_info: &GameInfo) {
+        self.position.translate(&self.velocity, &game_info.delta);
     }
 }

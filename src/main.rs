@@ -28,6 +28,10 @@ fn main() -> Result<()> {
 #[allow(dead_code)]
 pub struct GameRoot {
     pub cup: Cup,
+    pub game_info: GameInfo,
+}
+
+pub struct GameInfo {
     pub assets: Assets,
     pub delta: f32,
 }
@@ -36,7 +40,7 @@ impl Game for GameRoot {
     type Input = KeyboardAndMouse;
     type LoadingScreen = ProgressBar; // No loading screen
 
-    const TICKS_PER_SECOND: u16 = 1;
+    const TICKS_PER_SECOND: u16 = 60;
     const DEBUG_KEY: Option<KeyCode> = Some(KeyCode::F12);
 
     fn load(_window: &Window) -> Task<GameRoot> {
@@ -45,25 +49,25 @@ impl Game for GameRoot {
         };
 
         let cup: Cup = BeanGrinder::brew_default_cup();
-
         let delta: f32 = 1.0 / GameRoot::TICKS_PER_SECOND as f32;
+        let game_info: GameInfo = GameInfo { assets, delta };
 
-        Task::succeed(move || GameRoot { cup, assets, delta })
+        Task::succeed(move || GameRoot { cup, game_info })
     }
 
-    fn draw(&mut self, frame: &mut Frame, _timer: &Timer) {
+    fn draw(&mut self, frame: &mut Frame, timer: &Timer) {
         frame.clear(Color::WHITE);
 
-        for _bean in self.cup.pour_beans() {
-            _bean._draw_calls(frame, _timer);
+        for bean in self.cup.pour_beans() {
+            bean._draw_calls(frame, timer);
         }
     }
 
     fn interact(&mut self, _input: &mut Self::Input, _window: &mut Window) {}
 
     fn update(&mut self, _window: &Window) {
-        for bean in self.cup.pour_beans() {
-            bean._update_calls(self, _window);
+        for bean in &mut self.cup.beans {
+            bean._update_calls(_window, &self.game_info);
         }
     }
 
