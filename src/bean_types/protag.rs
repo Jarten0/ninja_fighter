@@ -21,7 +21,8 @@ impl Bean for Protag {
         &mut self.dependencies
     }
 
-    fn ready(&self) {}
+    #[allow(unused_variables)]
+    fn ready(&self, game_info: &GameInfo) {}
 
     #[allow(unused_variables)]
     fn update(&mut self, game_info: &GameInfo) {}

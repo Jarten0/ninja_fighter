@@ -59,7 +59,7 @@ impl Game for GameRoot {
         frame.clear(Color::WHITE);
 
         for bean in self.cup.pour_beans() {
-            bean._draw_calls(frame, timer);
+            bean._draw_calls(&self.game_info, frame, timer);
         }
     }
 

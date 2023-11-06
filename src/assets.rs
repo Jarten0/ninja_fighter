@@ -33,7 +33,7 @@ impl Assets {
     /// Inserts a new asset inside of the specified module at the specified path, and returns the old value
     /// if there is one. Returns [`None`] if the [`AssetModule`] doesn't exist, or if there was no previous
     /// [`Image`] stored.
-    fn new_asset(&mut self, module_name: &String, path: &String, val: Image) -> Option<Image> {
+    pub fn new_asset(&mut self, module_name: &String, path: &String, val: Image) -> Option<Image> {
         let module_dict = self.internal_assets.get_mut(module_name);
         let module = module_dict?;
         Some(module.insert(String::clone(&path), val)?)
@@ -41,13 +41,13 @@ impl Assets {
 
     /// Returns the asset from the given [`AssetModule`] at the given path. Returns [`None`] if no
     /// [`Image`] was found.
-    fn get_asset(&mut self, module_name: &String, path: &String) -> Option<&Image> {
+    pub fn get_asset(&self, module_name: &String, path: &String) -> Option<&Image> {
         Some(self.internal_assets.get(module_name)?.get(path)?)
     }
 
     /// Inserts a new module. If no module exists, this returns [`None`]. If one already exists, this
     /// returns the old [`AssetModule`].
-    fn new_module(&mut self, module_name: &String) -> Option<&AssetModule> {
+    pub fn new_module(&mut self, module_name: &String) -> Option<&AssetModule> {
         self.internal_assets
             .insert(String::clone(module_name), HashMap::new())?;
         self.internal_assets.get(module_name)
