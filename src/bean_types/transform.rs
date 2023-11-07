@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     math::vector::Vector2, 
     bean::Bean, 
-    GameRoot
+    GameInfo
 };
 
 
