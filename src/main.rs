@@ -2,6 +2,7 @@ pub mod assets;
 pub mod bean;
 pub mod bean_types;
 pub mod cup;
+pub mod math;
 
 use std::collections::HashMap;
 

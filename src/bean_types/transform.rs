@@ -1,6 +1,11 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{bean::Bean, bean_types::vector::Vector2, GameInfo};
+use crate::{
+    math::vector::Vector2, 
+    bean::Bean, 
+    GameRoot
+};
+
 
 #[allow(dead_code)]
 #[derive(Serialize, Deserialize)]
