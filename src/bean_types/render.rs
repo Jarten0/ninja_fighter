@@ -7,6 +7,7 @@ pub struct Renderer {
     pub dependencies: Vec<Box<dyn Bean>>,
     pub module_name: String,
     pub path: String,
+    pub quad: Que,
 }
 
 #[typetag::serde]
@@ -32,12 +33,15 @@ impl Bean for Renderer {
             Some(img) => img,
         };
 
-        // img.draw(quad, target);
+        let mut targ = frame.as_target();
+
+        img.draw(self.quad, &mut targ);
         
     }
 }
 
-pub struct Que {}
+#[derive(Serialize, Deserialize, Clone, Copy)]
+pub struct Que;
 
 impl IntoQuad for Que {
     fn into_quad(self, x_unit: f32, y_unit: f32) -> Quad {
