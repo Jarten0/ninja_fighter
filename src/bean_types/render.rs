@@ -1,6 +1,7 @@
-use crate::{bean::Bean, GameInfo};
-use coffee::{graphics::{Image, Window, Frame, Quad, IntoQuad}, Timer};
+use crate::{bean::Bean, GameInfo, math::vector::Vector2};
+use coffee::{graphics::{self, Rectangle, Point}, Timer};
 use serde::{Deserialize, Serialize};
+
 
 #[derive(Serialize, Deserialize)]
 pub struct Renderer {
@@ -12,13 +13,16 @@ pub struct Renderer {
 
 #[typetag::serde]
 impl Bean for Renderer {
+    
     fn return_dependencies(&mut self) -> &mut Vec<Box<dyn Bean>> {
         &mut self.dependencies
     }
     
     #[allow(unused_variables)]
     fn init(&mut self, game_info: &GameInfo) {
-        
+        self.quad = Que {
+            position:Vector2::zero(), 
+            size: (100.0, 100.0) };
     }
 
     #[allow(unused_variables)]
@@ -27,7 +31,7 @@ impl Bean for Renderer {
     }
     
     #[allow(unused_variables)]
-    fn draw(&self, game_info: &GameInfo, frame: &mut Frame, timer: &Timer) {
+    fn draw(&self, game_info: &GameInfo, frame: &mut graphics::Frame, timer: &Timer) {
         let img = match game_info.assets.get_asset(&self.module_name, &self.path) {
             None => return,
             Some(img) => img,
@@ -35,16 +39,28 @@ impl Bean for Renderer {
 
         let mut targ = frame.as_target();
 
-        img.draw(self.quad, &mut targ);
+        graphics::Image::draw(&img, self.quad.clone(), &mut targ);
         
     }
 }
 
 #[derive(Serialize, Deserialize, Clone, Copy)]
-pub struct Que;
+pub struct Que {
+    pub position: Vector2,
+    pub size: (f32, f32),
+}
 
-impl IntoQuad for Que {
-    fn into_quad(self, x_unit: f32, y_unit: f32) -> Quad {
-        todo!()
+impl graphics::IntoQuad for Que {
+    fn into_quad(self, _x_unit: f32, _y_unit: f32) -> graphics::Quad {
+        graphics::Quad { 
+            source: Rectangle { 
+                x: self.position.x, 
+                y: self.position.y, 
+                width: self.size.0, 
+                height: self.size.1, 
+            }, 
+            position: Point::new(0.0, 0.0),
+            size: (0.0, 0.0)
+        }
     }
 }

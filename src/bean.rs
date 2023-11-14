@@ -13,6 +13,8 @@ pub trait Script {
 
 #[typetag::serde(tag = "type")]
 pub trait Bean {
+    fn new() -> Self where Self : Sized;
+
     /// If your bean depends on other child beans to operate, then feed them in through here. Otherwise, it's fine to return an empty vec
     fn return_dependencies(&mut self) -> &mut Vec<Box<dyn Bean>>;
 
@@ -84,4 +86,17 @@ impl Bean for MinBean {
     fn return_dependencies(&mut self) -> &mut Vec<Box<dyn Bean>> {
         &mut self.dependencies
     }
+
+    fn new() -> Self where Self: Sized {
+        Self {
+            dependencies: Vec::new()
+        }
+    }
+}
+
+#[macro_export] 
+macro_rules! BeanProps {
+    () => {
+        
+    };
 }
