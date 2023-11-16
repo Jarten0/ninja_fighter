@@ -40,7 +40,7 @@ impl Bean for Protag {
     }
 
     #[allow(unused_variables)]
-    fn ready(&self, game_info: &GameInfo) {
+    fn ready(&mut self, game_info: &GameInfo) {
         println!("Ran the funny thingy!")
     }
 

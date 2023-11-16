@@ -19,13 +19,13 @@ pub trait Bean {
 
     /// Calls all of the initiation methods on a bean to reduce boilerplate. Override to change the functionality and remove unneeded calls on your per case basis to improve performance.
     fn _init_calls(&mut self, game_info: &GameInfo, window: &Window) {
-        Bean::init(self, game_info);
+        Bean::init(self, game_info, window);
 
         for dep in Bean::return_dependencies(self) {
             dep._init_calls(game_info, window);
         }
 
-        Bean::ready(self, game_info);
+        Bean::ready(self, game_info, window);
     }
 
     /// Calls all of the update methods on a bean to reduce boilerplate. Override to change the functionality and remove unneeded calls on your per case basis to improve performance.
@@ -53,15 +53,15 @@ pub trait Bean {
 
     /// Runs once when the bean enters the scope, will be called before all of it's scripts are finished
     #[allow(unused_variables)]
-    fn init(&mut self, game_info: &GameInfo) {}
+    fn init(&mut self, game_info: &GameInfo, window: &Window) {}
 
     /// Runs once after the bean enters the scope, but unlike init(), it will only be called after all the children have run their init and ready functions
     #[allow(unused_variables)]
-    fn ready(&self, game_info: &GameInfo) {}
+    fn ready(&mut self, game_info: &GameInfo, window: &Window) {}
 
     /// Will be called once per frame, but is called before all children have run update() and earlyUpdate()
     #[allow(unused_variables)]
-    fn early_update(&self, game_info: &GameInfo) {}
+    fn early_update(&mut self, game_info: &GameInfo) {}
 
     /// Will be called once per frame, is called after all children have run update()
     #[allow(unused_variables)]

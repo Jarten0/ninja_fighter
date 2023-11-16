@@ -1,7 +1,7 @@
 use crate::{bean::Bean, math::vector::Vector2, GameInfo};
 use coffee::{
-    graphics::{self, Point, Rectangle},
-    Timer,
+    graphics::{self, Image, Point, Rectangle, Window},
+    Error, Timer,
 };
 use serde::{Deserialize, Serialize};
 
@@ -14,6 +14,11 @@ pub struct Renderer {
 }
 
 impl Renderer {
+    pub fn set(&mut self, image: Image, module: &String, path: &String, game_info: &GameInfo) {
+        game_info.assets.new_module(module);
+        game_info.assets.new_asset(module, path, image);
+    }
+
     pub fn set_path(&mut self, module: &String, path: &String) {
         self.path = Some(path.to_owned());
         self.module_name = Some(module.to_owned());
@@ -63,11 +68,35 @@ impl Bean for Renderer {
     }
 
     #[allow(unused_variables)]
-    fn init(&mut self, game_info: &GameInfo) {
+    fn init(&mut self, game_info: &GameInfo, window: &Window) {
         self.quad = Que {
             position: Vector2::zero(),
             size: (100.0, 100.0),
         };
+    }
+
+    fn ready(&mut self, game_info: &GameInfo, window: &Window) {
+        let path = match self.path {
+            None => String::from("Teehee"),
+            Some(path) => path,
+        };
+        let module = match self.module_name {
+            None => String::from("Teehee"),
+            Some(path) => path,
+        };
+        let image = Image::new(window.gpu(), path.to_owned());
+        let image = match image {
+            Ok(img) => img,
+            Err(..) => {
+                match Image::new(window.gpu(), String::from("Teehee")) {
+                    Result::Ok(img) => img,
+                    Result::Err(..) => return (),
+                }
+            
+            
+            },
+        }
+        self.set(image, &module, &path, game_info);
     }
 
     #[allow(unused_variables)]
