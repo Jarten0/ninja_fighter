@@ -23,8 +23,7 @@ impl Bean for Protag {
     fn new() -> Self {
         let mut dependencies: Vec<Box<dyn Bean>> = Vec::new();
 
-        let mut transf = Transform::new();
-        transf.
+        let transf = Transform::new();
 
         let mut rend = Renderer::new();
         rend.set_path(&String::from("Peep"), &String::from("Pap"));
@@ -32,7 +31,7 @@ impl Bean for Protag {
 
         dependencies.push(Box::new(transf));
         dependencies.push(Box::new(rend));
-
+        println!("Created the protag!");
         Self { dependencies }
     }
 
@@ -41,7 +40,9 @@ impl Bean for Protag {
     }
 
     #[allow(unused_variables)]
-    fn ready(&self, game_info: &GameInfo) {}
+    fn ready(&self, game_info: &GameInfo) {
+        println!("Ran the funny thingy!")
+    }
 
     #[allow(unused_variables)]
     fn update(&mut self, game_info: &GameInfo) {}

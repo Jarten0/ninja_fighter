@@ -49,9 +49,13 @@ impl Game for GameRoot {
             internal_assets: HashMap::new(),
         };
 
-        let cup: Cup = BeanGrinder::brew_default_cup();
+        let mut cup: Cup = BeanGrinder::brew_default_cup();
         let delta: f32 = 1.0 / GameRoot::TICKS_PER_SECOND as f32;
         let game_info: GameInfo = GameInfo { assets, delta };
+
+        for bn in &mut cup.beans {
+            bn._init_calls(&game_info, _window)
+        }
 
         Task::succeed(move || GameRoot { cup, game_info })
     }

@@ -27,7 +27,7 @@ impl BeanGrinder {
     pub fn brew_default_cup() -> Cup {
         let mut cup = Cup { beans: Vec::new() };
 
-        let protag: Box<Protag> = Box::new(Protag::default());
+        let protag: Box<Protag> = Box::new(Protag::new());
         cup.beans.push(protag);
 
         cup
@@ -36,8 +36,6 @@ impl BeanGrinder {
     pub fn package_cup(cup: Cup, container: &mut Container) {
         container.beans = cup.beans;
     }
-
-    
 }
 
 #[derive(Serialize, Deserialize)]
