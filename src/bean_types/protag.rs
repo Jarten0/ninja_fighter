@@ -20,6 +20,22 @@ impl Default for Protag {
 
 #[typetag::serde]
 impl Bean for Protag {
+    fn new() -> Self {
+        let mut dependencies: Vec<Box<dyn Bean>> = Vec::new();
+
+        let mut transf = Transform::new();
+        transf.
+
+        let mut rend = Renderer::new();
+        rend.set_path(&String::from("Peep"), &String::from("Pap"));
+        rend.set_size(100.0, 100.0);
+
+        dependencies.push(Box::new(transf));
+        dependencies.push(Box::new(rend));
+
+        Self { dependencies }
+    }
+
     fn return_dependencies(&mut self) -> &mut Vec<Box<dyn Bean>> {
         &mut self.dependencies
     }

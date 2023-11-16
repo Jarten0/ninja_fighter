@@ -1,11 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    math::vector::Vector2, 
-    bean::Bean, 
-    GameInfo
-};
-
+use crate::{bean::Bean, math::vector::Vector2, GameInfo};
 
 #[allow(dead_code)]
 #[derive(Serialize, Deserialize)]
@@ -21,18 +16,18 @@ impl Transform {
         self.velocity.translate_instantaneous(force);
         todo!();
     }
+}
 
-    pub fn new() -> Self {
+#[typetag::serde]
+impl Bean for Transform {
+    fn new() -> Self {
         Self {
             position: Vector2 { x: 0.0, y: 0.0 },
             velocity: Vector2 { x: 0.0, y: 0.0 },
             dependencies: Vec::new(),
         }
     }
-}
 
-#[typetag::serde]
-impl Bean for Transform {
     fn return_dependencies(&mut self) -> &mut Vec<Box<dyn Bean>> {
         &mut self.dependencies
     }
