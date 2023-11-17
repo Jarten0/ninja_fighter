@@ -12,7 +12,8 @@ use coffee::input::KeyboardAndMouse;
 use coffee::load::loading_screen::ProgressBar;
 use cup::{BeanGrinder, Cup};
 
-use coffee::graphics::{Color, Frame, Window, WindowSettings};
+use coffee::graphics::{Color, Frame, Image, Window, WindowSettings};
+use coffee::load;
 use coffee::load::Task;
 use coffee::{Game, Result, Timer};
 
@@ -49,12 +50,22 @@ impl Game for GameRoot {
             internal_assets: HashMap::new(),
         };
 
+        Image::load(String::from("ee"));
+
         let mut cup: Cup = BeanGrinder::brew_default_cup();
         let delta: f32 = 1.0 / GameRoot::TICKS_PER_SECOND as f32;
         let game_info: GameInfo = GameInfo { assets, delta };
 
         for bn in &mut cup.beans {
             bn._init_calls(&game_info, _window)
+        }
+
+        let mut tasks: Vec<Task<Image>> = Vec::new();
+        for bn in &mut cup.beans_and_dependencies {
+            match bn.load() {
+                None => (),
+                Some(mut tasksFromBean) => tasks.append(&mut tasksFromBean),
+            }
         }
 
         Task::succeed(move || GameRoot { cup, game_info })

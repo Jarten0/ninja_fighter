@@ -1,5 +1,6 @@
 use coffee::{
-    graphics::{Frame, Window},
+    graphics::{Frame, Image, Window},
+    load::Task,
     Timer,
 };
 use serde::{self, Deserialize, Serialize};
@@ -16,6 +17,10 @@ pub trait Bean {
     fn new() -> Self
     where
         Self: Sized;
+
+    fn load(&mut self) -> Option<Vec<Task<Image>>> {
+        None
+    }
 
     /// Calls all of the initiation methods on a bean to reduce boilerplate. Override to change the functionality and remove unneeded calls on your per case basis to improve performance.
     fn _init_calls(&mut self, game_info: &GameInfo, window: &Window) {

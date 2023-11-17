@@ -1,5 +1,6 @@
 use crate::bean_types::transform::Transform;
 use crate::{bean::Bean, GameInfo};
+use coffee::graphics::Window;
 use serde::{Deserialize, Serialize};
 
 use super::render::Renderer;
@@ -40,7 +41,7 @@ impl Bean for Protag {
     }
 
     #[allow(unused_variables)]
-    fn ready(&mut self, game_info: &GameInfo) {
+    fn ready(&mut self, game_info: &GameInfo, _window: &Window) {
         println!("Ran the funny thingy!")
     }
 

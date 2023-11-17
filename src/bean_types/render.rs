@@ -1,6 +1,9 @@
+use std::path::Path;
+
 use crate::{bean::Bean, math::vector::Vector2, GameInfo};
 use coffee::{
     graphics::{self, Image, Point, Rectangle, Window},
+    load::Task,
     Error, Timer,
 };
 use serde::{Deserialize, Serialize};
@@ -9,7 +12,7 @@ use serde::{Deserialize, Serialize};
 pub struct Renderer {
     pub dependencies: Vec<Box<dyn Bean>>,
     module_name: Option<String>,
-    path: Option<String>,
+    path: Option<Box<Path>>,
     quad: Que,
 }
 
@@ -19,7 +22,7 @@ impl Renderer {
         game_info.assets.new_asset(module, path, image);
     }
 
-    pub fn set_path(&mut self, module: &String, path: &String) {
+    pub fn set_path(&mut self, module: &String, path: &Path) {
         self.path = Some(path.to_owned());
         self.module_name = Some(module.to_owned());
     }
@@ -76,27 +79,30 @@ impl Bean for Renderer {
     }
 
     fn ready(&mut self, game_info: &GameInfo, window: &Window) {
-        let path = match self.path {
+        let path = match self.path.to_owned() {
             None => String::from("Teehee"),
             Some(path) => path,
         };
-        let module = match self.module_name {
+        let module = match self.module_name.to_owned() {
             None => String::from("Teehee"),
             Some(path) => path,
         };
         let image = Image::new(window.gpu(), path.to_owned());
         let image = match image {
             Ok(img) => img,
-            Err(..) => {
-                match Image::new(window.gpu(), String::from("Teehee")) {
-                    Result::Ok(img) => img,
-                    Result::Err(..) => return (),
-                }
-            
-            
+            Err(..) => match Image::new(window.gpu(), String::from("Teehee")) {
+                Result::Ok(img) => img,
+                Result::Err(..) => return (),
             },
-        }
+        };
         self.set(image, &module, &path, game_info);
+    }
+
+    fn load(&mut self) -> Option<Vec<Task<Image>>> {
+        let tasks = Vec::new();
+        tasks.push(Image::load());
+
+        Some(tasks)
     }
 
     #[allow(unused_variables)]
