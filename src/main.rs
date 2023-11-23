@@ -7,13 +7,13 @@ pub mod math;
 use std::collections::HashMap;
 
 use assets::Assets;
+use bean_types::render::RendererTask;
 use coffee::input::keyboard::KeyCode;
 use coffee::input::KeyboardAndMouse;
 use coffee::load::loading_screen::ProgressBar;
 use cup::{BeanGrinder, Cup};
 
 use coffee::graphics::{Color, Frame, Image, Window, WindowSettings};
-use coffee::load;
 use coffee::load::Task;
 use coffee::{Game, Result, Timer};
 
@@ -31,6 +31,7 @@ fn main() -> Result<()> {
 pub struct GameRoot {
     pub cup: Cup,
     pub game_info: GameInfo,
+    pub load_tasks: Vec<RendererTask>,
 }
 
 pub struct GameInfo {
@@ -54,36 +55,52 @@ impl Game for GameRoot {
 
         let mut cup: Cup = BeanGrinder::brew_default_cup();
         let delta: f32 = 1.0 / GameRoot::TICKS_PER_SECOND as f32;
-        let game_info: GameInfo = GameInfo { assets, delta };
+        let mut load_tasks: Vec<RendererTask> = Vec::new();
+        let mut game_info: GameInfo = GameInfo { assets, delta };
 
         for bn in &mut cup.beans {
-            bn._init_calls(&game_info, _window)
+            bn._init_calls(&mut game_info, _window)
         }
 
-        let mut tasks: Vec<Task<Image>> = Vec::new();
         for bn in &mut cup.beans_and_dependencies {
             match bn.load() {
                 None => (),
-                Some(mut tasksFromBean) => tasks.append(&mut tasksFromBean),
+                Some(mut tasks_from_bean) => load_tasks.append(&mut tasks_from_bean),
             }
         }
 
-        Task::succeed(move || GameRoot { cup, game_info })
+        Task::succeed(move || GameRoot {
+            cup,
+            game_info,
+            load_tasks,
+        })
     }
 
     fn draw(&mut self, frame: &mut Frame, timer: &Timer) {
         frame.clear(Color::WHITE);
 
         for bean in self.cup.pour_beans() {
-            bean._draw_calls(&self.game_info, frame, timer);
+            bean._draw_calls(&mut self.game_info, frame, timer);
         }
     }
 
-    fn interact(&mut self, _input: &mut Self::Input, _window: &mut Window) {}
+    fn interact(&mut self, _input: &mut Self::Input, window: &mut Window) {
+        for i in 0..self.load_tasks.len() {
+            let renderer_task = self.load_tasks.remove(i);
+            match renderer_task.task.run(window.gpu()) {
+                Ok(image) => self.game_info.assets.new_asset(
+                    &renderer_task.module,
+                    &renderer_task.path,
+                    image,
+                ),
+                Err(_) => todo!(),
+            };
+        }
+    }
 
-    fn update(&mut self, _window: &Window) {
+    fn update(&mut self, window: &Window) {
         for bean in &mut self.cup.beans {
-            bean._update_calls(_window, &self.game_info);
+            bean._update_calls(&mut self.game_info, window);
         }
     }
 

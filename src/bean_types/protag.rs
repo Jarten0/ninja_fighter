@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use crate::bean_types::transform::Transform;
 use crate::{bean::Bean, GameInfo};
 use coffee::graphics::Window;
@@ -27,12 +29,15 @@ impl Bean for Protag {
         let transf = Transform::new();
 
         let mut rend = Renderer::new();
-        rend.set_path(&String::from("Peep"), &String::from("Pap"));
-        rend.set_size(100.0, 100.0);
+        rend.set_path(
+            &String::from("Peep"),
+            PathBuf::from("C:\\Users\\Markian\\Coffee\\ninja_fighter\\assets\\protag_texture.png")
+                .into(),
+        );
+        rend.set_size(128.0, 128.0);
 
         dependencies.push(Box::new(transf));
         dependencies.push(Box::new(rend));
-        println!("Created the protag!");
         Self { dependencies }
     }
 
@@ -41,9 +46,7 @@ impl Bean for Protag {
     }
 
     #[allow(unused_variables)]
-    fn ready(&mut self, game_info: &GameInfo, _window: &Window) {
-        println!("Ran the funny thingy!")
-    }
+    fn prep_self(&mut self, game_info: &mut GameInfo, _window: &Window) {}
 
     #[allow(unused_variables)]
     fn update(&mut self, game_info: &GameInfo) {}

@@ -1,10 +1,11 @@
-use std::path::Path;
+use core::panic;
+use std::path::{Path, PathBuf};
 
 use crate::{bean::Bean, math::vector::Vector2, GameInfo};
 use coffee::{
-    graphics::{self, Image, Point, Rectangle, Window},
+    graphics::{self, Frame, Image, Point, Rectangle, Window},
     load::Task,
-    Error, Timer,
+    Timer,
 };
 use serde::{Deserialize, Serialize};
 
@@ -12,18 +13,30 @@ use serde::{Deserialize, Serialize};
 pub struct Renderer {
     pub dependencies: Vec<Box<dyn Bean>>,
     module_name: Option<String>,
-    path: Option<Box<Path>>,
+    path: Option<Box<PathBuf>>,
     quad: Que,
+
+    ready: bool,
 }
 
 impl Renderer {
-    pub fn set(&mut self, image: Image, module: &String, path: &String, game_info: &GameInfo) {
-        game_info.assets.new_module(module);
-        game_info.assets.new_asset(module, path, image);
+    pub fn set(
+        &mut self,
+        game_info: &mut GameInfo,
+        module: String,
+        image: Image,
+        path: Option<Box<PathBuf>>,
+    ) {
+        game_info.assets.new_module(&module);
+
+        match path {
+            Some(path) => game_info.assets.new_asset(&module, &path.clone(), image),
+            None => None,
+        };
     }
 
-    pub fn set_path(&mut self, module: &String, path: &Path) {
-        self.path = Some(path.to_owned());
+    pub fn set_path(&mut self, module: &String, path: Box<PathBuf>) {
+        self.path = Some(path);
         self.module_name = Some(module.to_owned());
     }
 
@@ -43,12 +56,31 @@ impl Renderer {
         &self.quad
     }
 
-    pub fn get_path(&self) -> Option<String> {
-        self.path.to_owned()
+    pub fn get_path(&self) -> &Option<Box<PathBuf>> {
+        &self.path
     }
 
     pub fn get_module(&self) -> Option<String> {
         self.module_name.to_owned()
+    }
+
+    fn prep_self(&mut self, game_info: &mut GameInfo, window: &mut Frame) {
+        let path = match self.path.to_owned() {
+            None => Box::new(PathBuf::from("assets/default/default_texture.png")),
+            Some(path) => path,
+        };
+
+        let module = match self.module_name.to_owned() {
+            None => String::from("Teehee"),
+            Some(path) => path,
+        };
+
+        let image = match Image::new::<&Path>(window.gpu(), path.as_path()) {
+            Ok(img) => img,
+            Err(..) => get_default_texture(window),
+        };
+
+        self.set(game_info, module, image, Some(path));
     }
 }
 
@@ -63,6 +95,7 @@ impl Bean for Renderer {
                 position: Vector2::zero(),
                 size: (1.0, 1.0),
             },
+            ready: false,
         }
     }
 
@@ -71,37 +104,31 @@ impl Bean for Renderer {
     }
 
     #[allow(unused_variables)]
-    fn init(&mut self, game_info: &GameInfo, window: &Window) {
+    fn init(&mut self, game_info: &mut GameInfo, window: &Window) {
         self.quad = Que {
             position: Vector2::zero(),
             size: (100.0, 100.0),
         };
     }
 
-    fn ready(&mut self, game_info: &GameInfo, window: &Window) {
-        let path = match self.path.to_owned() {
-            None => String::from("Teehee"),
-            Some(path) => path,
+    fn load(&mut self) -> Option<Vec<RendererTask>> {
+        let mut tasks: Vec<RendererTask> = Vec::new();
+
+        let path = match self.get_path() {
+            None => return None,
+            Some(path) => path.to_owned(),
         };
+
         let module = match self.module_name.to_owned() {
-            None => String::from("Teehee"),
-            Some(path) => path,
+            Some(module) => module,
+            None => String::from("default_module"),
         };
-        let image = Image::new(window.gpu(), path.to_owned());
-        let image = match image {
-            Ok(img) => img,
-            Err(..) => match Image::new(window.gpu(), String::from("Teehee")) {
-                Result::Ok(img) => img,
-                Result::Err(..) => return (),
-            },
-        };
-        self.set(image, &module, &path, game_info);
-    }
 
-    fn load(&mut self) -> Option<Vec<Task<Image>>> {
-        let tasks = Vec::new();
-        tasks.push(Image::load());
-
+        tasks.push(RendererTask {
+            task: Image::load::<&PathBuf>(path.as_ref()),
+            path: *path,
+            module,
+        });
         Some(tasks)
     }
 
@@ -109,7 +136,12 @@ impl Bean for Renderer {
     fn update(&mut self, game_info: &GameInfo) {}
 
     #[allow(unused_variables)]
-    fn draw(&self, game_info: &GameInfo, frame: &mut graphics::Frame, timer: &Timer) {
+    fn draw(&mut self, game_info: &mut GameInfo, frame: &mut graphics::Frame, timer: &Timer) {
+        if self.ready == false {
+            self.prep_self(game_info, frame);
+            self.ready = true;
+        }
+
         let img = match game_info.assets.get_asset(
             match &self.module_name {
                 None => return (),
@@ -124,9 +156,22 @@ impl Bean for Renderer {
             Some(img) => img,
         };
 
+        let default = get_default_texture(frame);
+
         let mut targ = frame.as_target();
 
         graphics::Image::draw(&img, self.quad.clone(), &mut targ);
+        graphics::Image::draw(&default, self.quad.clone(), &mut targ);
+    }
+}
+
+fn get_default_texture(frame: &mut Frame) -> Image {
+    match Image::new(
+        frame.gpu(),
+        &Path::new("C:\\Users\\Markian\\Coffee\\ninja_fighter\\assets\\default_texture.png"),
+    ) {
+        Result::Ok(img) => img,
+        Result::Err(err) => panic!("Failed to obtain default texture! {}", err),
     }
 }
 
@@ -146,7 +191,13 @@ impl graphics::IntoQuad for Que {
                 height: self.size.1,
             },
             position: Point::new(0.0, 0.0),
-            size: (0.0, 0.0),
+            size: self.size,
         }
     }
+}
+
+pub struct RendererTask {
+    pub task: Task<Image>,
+    pub path: PathBuf,
+    pub module: String,
 }

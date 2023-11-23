@@ -1,9 +1,9 @@
 // hehe
 
 use coffee::graphics::Image;
-use std::collections::HashMap;
+use std::{collections::HashMap, path::Path};
 
-type AssetModule = HashMap<String, Image>;
+type AssetModule = HashMap<Box<Path>, Image>;
 
 #[allow(dead_code)]
 pub struct Assets {
@@ -31,17 +31,21 @@ pub struct Assets {
 #[allow(dead_code)]
 impl Assets {
     /// Inserts a new asset inside of the specified module at the specified path, and returns the old value
-    /// if there is one. Returns [`None`] if the [`AssetModule`] doesn't exist, or if there was no previous
+    /// if there is one.
+    ///
+    /// Returns [`None`] if the [`AssetModule`] doesn't exist, or if there was no previous
     /// [`Image`] stored.
-    pub fn new_asset(&mut self, module_name: &String, path: &String, val: Image) -> Option<Image> {
+    pub fn new_asset(&mut self, module_name: &String, path: &Path, val: Image) -> Option<Image> {
         let module_dict = self.internal_assets.get_mut(module_name);
         let module = module_dict?;
-        Some(module.insert(String::clone(&path), val)?)
+        Some(module.insert(path.to_owned().into(), val)?)
     }
 
-    /// Returns the asset from the given [`AssetModule`] at the given path. Returns [`None`] if no
+    /// Returns the asset from the given [`AssetModule`] at the given path.
+    ///
+    /// Returns [`None`] if no
     /// [`Image`] was found.
-    pub fn get_asset(&self, module_name: &String, path: &String) -> Option<&Image> {
+    pub fn get_asset(&self, module_name: &String, path: &Path) -> Option<&Image> {
         Some(self.internal_assets.get(module_name)?.get(path)?)
     }
 
