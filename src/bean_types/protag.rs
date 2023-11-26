@@ -46,7 +46,7 @@ impl Bean for Protag {
     }
 
     #[allow(unused_variables)]
-    fn prep_self(&mut self, game_info: &mut GameInfo, _window: &Window) {}
+    fn ready(&mut self, game_info: &mut GameInfo, _window: &Window) {}
 
     #[allow(unused_variables)]
     fn update(&mut self, game_info: &GameInfo) {}

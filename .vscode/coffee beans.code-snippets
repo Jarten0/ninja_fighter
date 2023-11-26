@@ -1,0 +1,75 @@
+{
+	// Place your ninja_fighter workspace snippets here. Each snippet is defined under a snippet name and has a scope, prefix, body and 
+	// description. Add comma separated ids of the languages where the snippet is applicable in the scope field. If scope 
+	// is left empty or omitted, the snippet gets applied to all languages. The prefix is what is 
+	// used to trigger the snippet and the body will be expanded and inserted. Possible variables are: 
+	// $1, $2 for tab stops, $0 for the final cursor position, and ${1:label}, ${2:another} for placeholders. 
+	// Placeholders with the same ids are connected.
+	// Example:
+	"Empty bean": {
+		"scope": "rust",
+		"prefix": "empty_bean",
+		"body": [
+"#[derive(Serialize, Deserialize)]",
+"struct ${1:MinBean} {",
+"	pub dependencies: Vec<Box<dyn Bean>>,",
+"}",
+"",
+"#[typetag::serde]",
+"impl Bean for ${1:MinBean} {",
+"	fn return_dependencies(&mut self) -> &mut Vec<Box<dyn Bean>> {",
+"		&mut self.dependencies",
+"	}",
+"",
+"	fn new() -> Self",
+"	where",
+"		Self: Sized,",
+"	{",
+"		Self {",
+"			dependencies: Vec::new(),",
+"		}",
+"	}",
+"}",
+"",	"$2",
+		],
+		"description": "Creates a new minimum bean for writing scripts with"
+	},
+
+	"Template bean": {
+		"scope": "rust",
+		"prefix": "temp_bean",
+		"body": [
+"use crate::bean::Bean;",
+"use serde::{Serialize, Deserialize};",
+
+"",
+"#[derive(Serialize, Deserialize)]",
+"struct ${1:TemplateBean} {",
+"	pub dependencies: Vec<Box<dyn Bean>>,",
+"}",
+"",
+"#[typetag::serde]",
+"impl Bean for ${1:TemplateBean} {",
+"	fn return_dependencies(&mut self) -> &mut Vec<Box<dyn Bean>> {",
+"		&mut self.dependencies",
+"	}",
+"",
+"	fn new() -> Self",
+"	where",
+"		Self: Sized,",
+"	{",
+"		let mut dependencies: Vec<Box<dyn Bean>> = Vec::new();",
+"		dependencies.push(Box::new(crate::bean_types::transform::Transform::new()));"
+"		Self { dependencies }",
+"	}",
+
+
+
+"}",
+"$2",
+		],
+		"description": "Creates a new template bean with some basic methods for writing scripts with"
+	},
+
+
+}

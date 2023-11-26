@@ -190,7 +190,7 @@ impl graphics::IntoQuad for Que {
                 width: self.size.0,
                 height: self.size.1,
             },
-            position: Point::new(0.0, 0.0),
+            position: Point::new(100.0, 100.0),
             size: self.size,
         }
     }
