@@ -1,122 +1,69 @@
-pub mod assets;
-pub mod bean;
-pub mod bean_types;
-pub mod cup;
-pub mod math;
+pub mod transform;
 
-use std::collections::HashMap;
+use bevy_ecs::entity::Entity;
+use ggez::event::{self, EventHandler};
+use ggez::graphics::{self, Color};
+use ggez::{Context, ContextBuilder, GameResult};
 
-use assets::Assets;
-use bean_types::render::RendererTask;
-use coffee::input::keyboard::KeyCode;
-use coffee::input::KeyboardAndMouse;
-use coffee::load::loading_screen::ProgressBar;
-use cup::{BeanGrinder, Cup};
+// use bevy_ecs::*;
+use bevy_ecs::world::*;
+use transform::{Position, Velocity};
 
-use coffee::graphics::{Color, Frame, Image, Window, WindowSettings};
-use coffee::load::Task;
-use coffee::{Game, Result, Timer};
+fn main() {
+    // Make a Context.
+    let (mut ctx, event_loop) = ContextBuilder::new("ninja_fighter", "Jarten :)")
+        .build()
+        .expect("aieee, could not create ggez context!");
 
-fn main() -> Result<()> {
-    GameRoot::run(WindowSettings {
-        title: String::from("Ninja Fighter [PROTOTYPE]"),
-        size: (100 * 16, 100 * 9),
-        resizable: true,
-        fullscreen: false,
-        maximized: false,
-    })
+    // Create an instance of your event handler.
+    // Usually, you should provide it with the Context object to
+    // use when setting your game up.
+    let my_game = MyGame::new(&mut ctx);
+
+    // Run!
+    event::run(ctx, event_loop, my_game);
 }
 
-#[allow(dead_code)]
-pub struct GameRoot {
-    pub cup: Cup,
-    pub game_info: GameInfo,
-    pub load_tasks: Vec<RendererTask>,
+pub struct MyGame {
+    pub world: World,
+    pub trackEntity: Entity,
 }
 
-pub struct GameInfo {
-    pub assets: Assets,
-    pub delta: f32,
+impl MyGame {
+    pub fn new(_ctx: &mut Context) -> MyGame {
+        // Load/create resources such as images here.
+        let mut world = World::new();
+
+        let entity = world
+            .spawn((Position { x: 50.0, y: 50.0 }, Velocity { x: 2.0, y: 2.0 }))
+            .id();
+
+        let mut entity_ref = world.entity_mut(entity.clone());
+
+        entity_ref.get_mut::<Velocity>().unwrap().y += 3.0;
+
+        MyGame {
+            world,
+            trackEntity: entity,
+        }
+    }
 }
 
-impl Game for GameRoot {
-    type Input = KeyboardAndMouse;
-    type LoadingScreen = ProgressBar; // No loading screen
+impl EventHandler for MyGame {
+    fn update(&mut self, _ctx: &mut Context) -> GameResult {
+        // Update code here...
 
-    const TICKS_PER_SECOND: u16 = 60;
-    const DEBUG_KEY: Option<KeyCode> = Some(KeyCode::F12);
+        let mut ent = self.world.entity_mut(self.trackEntity.clone());
 
-    fn load(_window: &Window) -> Task<GameRoot> {
-        let assets: Assets = Assets {
-            internal_assets: HashMap::new(),
-        };
+        println!("{}", ent.get_mut::<Position>().unwrap().y);
 
-        Image::load(String::from("ee"));
-
-        let mut cup: Cup = BeanGrinder::brew_default_cup();
-        let delta: f32 = 1.0 / GameRoot::TICKS_PER_SECOND as f32;
-        let mut load_tasks: Vec<RendererTask> = Vec::new();
-        let mut game_info: GameInfo = GameInfo { assets, delta };
-
-        for bn in &mut cup.beans {
-            bn._init_calls(&mut game_info, _window)
-        }
-
-        for bn in &mut cup.beans_and_dependencies {
-            match bn.load() {
-                None => (),
-                Some(mut tasks_from_bean) => load_tasks.append(&mut tasks_from_bean),
-            }
-        }
-
-        Task::succeed(move || GameRoot {
-            cup,
-            game_info,
-            load_tasks,
-        })
+        Ok(())
     }
 
-    fn draw(&mut self, frame: &mut Frame, timer: &Timer) {
-        frame.clear(Color::WHITE);
+    fn draw(&mut self, ctx: &mut Context) -> GameResult {
+        let mut canvas = graphics::Canvas::from_frame(ctx, Color::WHITE);
 
-        for bean in self.cup.pour_beans() {
-            bean._draw_calls(&mut self.game_info, frame, timer);
-        }
-    }
-
-    fn interact(&mut self, _input: &mut Self::Input, window: &mut Window) {
-        for i in 0..self.load_tasks.len() {
-            let renderer_task = self.load_tasks.remove(i);
-            match renderer_task.task.run(window.gpu()) {
-                Ok(image) => self.game_info.assets.new_asset(
-                    &renderer_task.module,
-                    &renderer_task.path,
-                    image,
-                ),
-                Err(_) => todo!(),
-            };
-        }
-    }
-
-    fn update(&mut self, window: &Window) {
-        for bean in &mut self.cup.beans {
-            bean._update_calls(&mut self.game_info, window);
-        }
-    }
-
-    fn cursor_icon(&self) -> coffee::graphics::CursorIcon {
-        coffee::graphics::CursorIcon::Default
-    }
-
-    fn debug(&self, _input: &Self::Input, frame: &mut Frame<'_>, debug: &mut coffee::Debug) {
-        debug.draw(frame);
-    }
-
-    fn on_close_request(&mut self) -> bool {
-        true
-    }
-
-    fn is_finished(&self) -> bool {
-        false
+        // Draw code here...
+        canvas.finish(ctx)
     }
 }
