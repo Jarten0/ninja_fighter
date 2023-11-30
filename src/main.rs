@@ -3,13 +3,15 @@ pub mod render;
 pub mod transform;
 
 use bevy_ecs::entity::Entity;
+use bevy_ecs::schedule::{IntoSystemConfigs, Schedule};
+use bevy_ecs::system::Query;
 use ggez::event::{self, EventHandler};
 use ggez::graphics::{self, Canvas, Color};
 use ggez::{Context, ContextBuilder, GameResult};
 
 // use bevy_ecs::*;
 use bevy_ecs::world::*;
-use transform::{Position, Velocity};
+use transform::{Position, Transform, Velocity};
 
 fn main() {
     // Make a Context.
@@ -28,48 +30,59 @@ fn main() {
 
 #[derive(Default)]
 struct Indexer {
-    pub init: Vec<Box<dyn Init>>,
-    pub update: Vec<Box<dyn Update>>,
-    pub draw: Vec<Box<dyn Draw>>,
+    pub init: Vec<Box<Entity>>,
+    pub update: Vec<Box<Entity>>,
+    pub draw: Vec<Box<Entity>>,
+    queue: Vec<Box<Entity>>,
 }
 
 impl Indexer {
     fn _init_calls(&mut self, game_info: &mut GameInfo, ctx: &mut Context) {
+        for index in 0..self.queue.len() {
+            match self.queue.pop() {
+                None => (),
+                Some(entity) => self.init.push(entity),
+            };
+        }
+
         for entity in &mut self.init {
-            entity.init(game_info, ctx);
+            // entity.init(game_info, ctx);
         }
         self.init.clear();
     }
 
     fn _update_calls(&mut self, game_info: &mut GameInfo, ctx: &mut Context) {
         for entity in &mut self.update {
-            entity.update(game_info, ctx);
+            // entity.update(game_info, ctx);
         }
     }
 
     fn _draw_calls(&mut self, game_info: &mut GameInfo, ctx: &mut Context, canvas: &mut Canvas) {
         for entity in &mut self.draw {
-            entity.draw(game_info, ctx, canvas);
+            // entity.draw(game_info, ctx, canvas);
         }
+    }
+
+    fn add_to_queue(&mut self, entity: Box<Entity>) {
+        self.queue.push(entity);
     }
 }
 
 struct GameRoot {
     pub game_info: GameInfo,
-    entities: Indexer,
+    pub entities: Indexer,
 }
 
 pub struct GameInfo {
     pub world: World,
-    game_root: Option<&'static mut GameRoot>,
+    game_root: *const GameRoot,
 }
 
 impl GameInfo {
-    fn new_entity(&mut self) {
-        match self.game_root {
-            None => todo!(),
-            Some(..) => todo!(),
-        }
+    pub fn new_entity(&self, entity: Box<Entity>) {
+        unsafe {
+            self.game_root.read().entities.add_to_queue(entity);
+        };
     }
 }
 
@@ -91,18 +104,21 @@ impl GameRoot {
         let mut root = GameRoot {
             game_info: GameInfo {
                 world,
-                game_root: None,
+                game_root: std::ptr::null::<GameRoot>(),
             },
             entities,
         };
-        // root.game_info.game_root = Some(&mut root); // !TODO
+        root.game_info.game_root = &root;
         root
     }
 }
 
 impl EventHandler for GameRoot {
     fn update(&mut self, ctx: &mut Context) -> GameResult {
-        self.entities._update_calls(&mut self.game_info, ctx);
+        let mut schedule = Schedule::default();
+
+        schedule.add_systems(Position::update);
+
         Ok(())
     }
 
@@ -116,14 +132,35 @@ impl EventHandler for GameRoot {
     }
 }
 
-pub trait Init {
-    fn init(&mut self, root: &mut GameInfo, ctx: &mut Context);
+pub trait SystemsManager
+where
+    Self: Sized,
+{
+    fn schedule_systems<Marker>() -> dyn IntoSystemConfigs<Marker>;
 }
 
-pub trait Update {
-    fn update(&mut self, root: &mut GameInfo, ctx: &mut Context);
+pub trait Init<System>
+where
+    System: bevy_ecs::query::WorldQuery,
+{
+    fn init(mut query: Query<System>) {}
+}
+
+pub trait Update<System>
+where
+    System: bevy_ecs::query::WorldQuery,
+{
+    fn update(mut query: Query<System>) {}
 }
 
 pub trait Draw {
     fn draw(&mut self, root: &mut GameInfo, ctx: &mut Context, canvas: &mut graphics::Canvas);
 }
+
+// pub trait EntityBundle
+// where
+//     Self: Init,
+//     Self: Update,
+//     Self: Draw,
+// {
+// }
