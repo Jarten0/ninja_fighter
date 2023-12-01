@@ -1,9 +1,11 @@
 pub mod protag;
 pub mod render;
 pub mod transform;
+mod schedule;
+pub mod space;
 
 use bevy_ecs::entity::Entity;
-use bevy_ecs::schedule::{IntoSystemConfigs, Schedule};
+use bevy_ecs::schedule::Schedule;
 use bevy_ecs::system::Query;
 use ggez::event::{self, EventHandler};
 use ggez::graphics::{self, Canvas, Color};
@@ -11,7 +13,8 @@ use ggez::{Context, ContextBuilder, GameResult};
 
 // use bevy_ecs::*;
 use bevy_ecs::world::*;
-use transform::{Position, Transform, Velocity};
+use space::Position;
+use space::Velocity;
 
 fn main() {
     // Make a Context.
@@ -71,6 +74,7 @@ impl Indexer {
 struct GameRoot {
     pub game_info: GameInfo,
     pub entities: Indexer,
+    schedule: Schedule,
 }
 
 pub struct GameInfo {
@@ -88,6 +92,11 @@ impl GameInfo {
 
 impl GameRoot {
     pub fn new(_ctx: &mut Context) -> GameRoot {
+
+        let schedule_default_thing = Schedule::default();
+
+        let schedule = schedule::schedule_systems(schedule_default_thing);
+
         // Load/create resources such as images here.
         let mut world = World::new();
 
@@ -107,6 +116,7 @@ impl GameRoot {
                 game_root: std::ptr::null::<GameRoot>(),
             },
             entities,
+            schedule,
         };
         root.game_info.game_root = &root;
         root
@@ -115,10 +125,7 @@ impl GameRoot {
 
 impl EventHandler for GameRoot {
     fn update(&mut self, ctx: &mut Context) -> GameResult {
-        let mut schedule = Schedule::default();
-
-        schedule.add_systems(Position::update);
-
+        self.schedule.run(&mut self.game_info.world);
         Ok(())
     }
 
@@ -132,12 +139,6 @@ impl EventHandler for GameRoot {
     }
 }
 
-pub trait SystemsManager
-where
-    Self: Sized,
-{
-    fn schedule_systems<Marker>() -> dyn IntoSystemConfigs<Marker>;
-}
 
 pub trait Init<System>
 where
