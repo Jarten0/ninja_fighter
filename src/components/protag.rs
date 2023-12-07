@@ -1,13 +1,15 @@
 use bevy_ecs::prelude::*;
-// use ggez::graphics::Transform;
 
-use crate::transform::Transform;
+use crate::components::Transform;
+
+use super::Renderer;
 
 #[derive(Default, Component)]
 pub struct Protag {}
 
-#[derive(Bundle, Default)]
+#[derive(Bundle)]
 pub struct ProtagBundle {
     pub protag: Protag,
     pub transform: Transform,
+    pub renderer: Renderer,
 }
