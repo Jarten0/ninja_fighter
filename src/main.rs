@@ -1,8 +1,9 @@
 pub mod components;
-pub mod space;
 mod schedule;
+pub mod space;
 
-use bevy_ecs::component::Component;
+use std::sync::Mutex;
+
 use bevy_ecs::entity::Entity;
 use bevy_ecs::schedule::Schedule;
 use bevy_ecs::system::Query;
@@ -18,9 +19,9 @@ use space::Velocity;
 fn main() {
     // Make a Context.
     loop {
-        let (mut context, event_loop) = ContextBuilder::new("ninja_fighter", "Jarten :)")
-        .build()
-        .expect("aieee, could not create ggez context!");
+        let (mut context, event_loop) = ContextBuilder::new("Ninja Fighter", "Jarten0")
+            .build()
+            .expect("aieee, could not create ggez context!");
 
         // Create an instance of your event handler.
         // Usually, you should provide it with the Context object to
@@ -28,8 +29,9 @@ fn main() {
         let my_game = GameRoot::new(&mut context);
 
         // Run!
+
         event::run(context, event_loop, my_game);
-}
+    }
 }
 
 #[derive(Default)]
@@ -73,7 +75,10 @@ impl Indexer {
     }
 }
 
-struct GameRoot where Self: 'static {
+struct GameRoot
+where
+    Self: 'static,
+{
     pub game_info: GameInfo,
     pub entities: Indexer,
     schedule: Schedule,
@@ -87,8 +92,12 @@ impl GameRoot {
 
 pub struct GameInfo {
     pub world: World,
-    context_ptr: *mut Context,
-    game_root_ptr: *const GameRoot,
+    pub context_ptr: Mutex<Context>,
+    pub game_root_ptr: Mutex<GameRoot>,
+}
+
+unsafe impl Sync for GameInfo {
+    
 }
 
 impl GameInfo {
@@ -96,7 +105,7 @@ impl GameInfo {
         unsafe {
             match self.context_ptr.is_null() {
                 true => panic!("ContextPtr is null! ContextPtr should NEVER be null"),
-                false => return self.context_ptr.as_ref().unwrap()
+                false => return self.context_ptr.as_ref().unwrap(),
             }
         }
     }
@@ -119,7 +128,6 @@ impl GameInfo {
 
 impl GameRoot {
     pub fn new(context: &mut Context) -> GameRoot {
-
         let schedule_default_thing = Schedule::default();
 
         let schedule = schedule::schedule_systems(schedule_default_thing);
@@ -141,7 +149,7 @@ impl GameRoot {
             game_info: GameInfo {
                 world,
                 game_root_ptr: std::ptr::null::<GameRoot>(),
-                context_ptr: context
+                context_ptr: context,
             },
             entities,
             schedule,
@@ -153,9 +161,8 @@ impl GameRoot {
 
 impl EventHandler for GameRoot {
     fn update(&mut self, ctx: &mut Context) -> GameResult {
-
         self.update_context(ctx);
-    
+
         self.schedule.run(&mut self.game_info.world);
         Ok(())
     }
@@ -163,14 +170,13 @@ impl EventHandler for GameRoot {
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
         let mut canvas = graphics::Canvas::from_frame(ctx, Color::WHITE);
         self.game_info.context_ptr = ctx;
-        
+
         self.entities
             ._draw_calls(&mut self.game_info, ctx, &mut canvas);
 
         canvas.finish(ctx)
     }
 }
-
 
 pub trait Init<System>
 where
@@ -188,7 +194,7 @@ where
 
 pub trait Draw<System>
 where
-    System: bevy_ecs::query::WorldQuery
+    System: bevy_ecs::query::WorldQuery,
 {
     fn draw(query: Query<System>);
 }

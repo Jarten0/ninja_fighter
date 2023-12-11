@@ -10,15 +10,14 @@
 			"group": "build",
 			"label": "rust: cargo build"
 		},
-		// {
-		// 	"type": "cargo",
-		// 	"command": "build",
-		// 	"problemMatcher": [
-		// 		"$rustc"
-		// 	],
-		// 	"group": "build",
-		// 	"label": "rust: cargo build"
-		// },
+		{
+			"type": "process",
+			"command": "d:\\rust\\installRust.bat",
+			"problemMatcher": [
+			],
+			"group": "none",
+			"label": "rust: install_rust"
+		},
 		{
 			"type": "cargo",
 			"command": "run",

@@ -5,7 +5,9 @@ use crate::components::Transform;
 use super::Renderer;
 
 #[derive(Default, Component)]
-pub struct Protag {}
+pub struct Protag {
+    
+}
 
 #[derive(Bundle)]
 pub struct ProtagBundle {

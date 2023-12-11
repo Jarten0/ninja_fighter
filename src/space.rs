@@ -8,10 +8,44 @@ pub struct Vector2(mVec<f32>);
 
 impl Vector2 {
     pub fn new(x: f32, y: f32) -> Self {
-        Self {
-            0: mVec {
-                x, y
-            }
+        Self { 0: mVec { x, y } }
+    }
+
+    pub fn translate(&mut self, translation: &Vector2) {
+        self.x += translation.x;
+        self.y += translation.y;
+    }   
+}
+
+impl Vector2 {
+    pub fn up() -> Self {
+        Vector2 {
+            0: mVec { x: 0.0, y: -1.0 },
+        }
+    }
+    pub fn down() -> Self {
+        Vector2 {
+            0: mVec { x: 0.0, y: 1.0 },
+        }
+    }
+    pub fn left() -> Self {
+        Vector2 {
+            0: mVec { x: -1.0, y: 0.0 },
+        }
+    }
+    pub fn right() -> Self {
+        Vector2 {
+            0: mVec { x: 1.0, y: 0.0 },
+        }
+    }
+    pub fn zero() -> Self {
+        Vector2 {
+            0: mVec { x: 0.0, y: 0.0 },
+        }
+    }
+    pub fn one() -> Self {
+        Vector2 {
+            0: mVec { x: 1.0, y: 1.0 },
         }
     }
 }
@@ -36,8 +70,6 @@ impl DerefMut for Vector2 {
     }
 }
 
-
-
 #[derive(Default, Component, Clone, Copy)]
 pub struct Position(Vector2);
 
@@ -58,12 +90,10 @@ impl DerefMut for Position {
 impl Position {
     pub fn new(x: f32, y: f32) -> Self {
         Self {
-            0: Vector2::new(x, y)
+            0: Vector2::new(x, y),
         }
     }
 }
-
-
 
 #[derive(Component, Default, Clone, Copy)]
 pub struct Velocity(Vector2);
@@ -71,7 +101,7 @@ pub struct Velocity(Vector2);
 impl Velocity {
     pub fn new(x: f32, y: f32) -> Self {
         Self {
-            0: Vector2::new(x, y)
+            0: Vector2::new(x, y),
         }
     }
 }
@@ -95,9 +125,7 @@ pub struct Rotation(f32);
 
 impl Rotation {
     pub fn new(angle: f32) -> Self {
-        Self {
-            0: angle
-        }
+        Self { 0: angle }
     }
 }
 
@@ -135,7 +163,7 @@ impl DerefMut for Scale {
 impl Scale {
     pub fn new(x: f32, y: f32) -> Self {
         Self {
-            0: Vector2::new(x, y)
+            0: Vector2::new(x, y),
         }
     }
 }
