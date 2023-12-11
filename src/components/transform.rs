@@ -1,16 +1,15 @@
 use bevy_ecs::prelude::*;
 
-use crate::{space::{Position, Velocity, Rotation, Scale}, Update};
-
+use crate::{
+    space::{Position, Rotation, Scale, Velocity},
+    Update,
+};
 
 #[derive(Component, Default, Clone, Copy)]
 pub struct TransformSettings {
-    pub use_gravity: bool, 
+    pub use_gravity: bool,
     pub auto_update: bool,
 }
-
-
-
 
 #[derive(Bundle, Default, Clone, Copy)]
 pub struct Transform {
@@ -33,11 +32,17 @@ impl Update<(&mut Position, &Velocity, &TransformSettings)> for Transform {
 
 impl Into<ggez::graphics::Transform> for Transform {
     fn into(self) -> ggez::graphics::Transform {
-        ggez::graphics::Transform::Values { 
-            dest: mint::Point2::<f32> { x: self.position.x, y: self.position.y }, 
-            rotation: *self.rotation, 
-            scale: mint::Vector2::<f32> { x: self.scale.x, y: self.scale.y }, 
-            offset: mint::Point2 { x: 0.0, y: 0.0 } 
+        ggez::graphics::Transform::Values {
+            dest: mint::Point2::<f32> {
+                x: self.position.x,
+                y: self.position.y,
+            },
+            rotation: *self.rotation,
+            scale: mint::Vector2::<f32> {
+                x: self.scale.x,
+                y: self.scale.y,
+            },
+            offset: mint::Point2 { x: 0.0, y: 0.0 },
         }
     }
 }

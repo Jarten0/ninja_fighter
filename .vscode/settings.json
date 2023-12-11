@@ -37,7 +37,8 @@
         "target/CACHEDIR.TAG": true,
         "**/CACHEDIR.TAG": true,
         "**/.rustc_info.json": true,
-        "target/debug": true
+        "target/debug": true,
+        "archive": true
     },
     "explorerExclude.backup": {}
 }

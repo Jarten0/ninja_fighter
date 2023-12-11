@@ -1,19 +1,18 @@
 pub mod components;
+pub mod readonly;
 mod schedule;
 pub mod space;
-
-use std::sync::Mutex;
 
 use bevy_ecs::entity::Entity;
 use bevy_ecs::schedule::Schedule;
 use bevy_ecs::system::Query;
+use components::Protag;
 use ggez::event::{self, EventHandler};
 use ggez::graphics::{self, Canvas, Color};
 use ggez::{Context, ContextBuilder, GameResult};
 
 // use bevy_ecs::*;
 use bevy_ecs::world::*;
-use space::Position;
 use space::Velocity;
 
 fn main() {
@@ -34,6 +33,7 @@ fn main() {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Default)]
 struct Indexer {
     pub init: Vec<Box<Entity>>,
@@ -80,7 +80,7 @@ where
     Self: 'static,
 {
     pub game_info: GameInfo,
-    pub entities: Indexer,
+    entities: Indexer,
     schedule: Schedule,
 }
 
@@ -90,15 +90,15 @@ impl GameRoot {
     }
 }
 
+#[derive()]
 pub struct GameInfo {
     pub world: World,
-    pub context_ptr: Mutex<Context>,
-    pub game_root_ptr: Mutex<GameRoot>,
+    context_ptr: *mut Context,
+    game_root_ptr: *mut GameRoot,
 }
 
-unsafe impl Sync for GameInfo {
-    
-}
+unsafe impl Send for GameInfo {}
+unsafe impl Sync for GameInfo {}
 
 impl GameInfo {
     pub fn get_context(&self) -> &Context {
@@ -135,26 +135,24 @@ impl GameRoot {
         // Load/create resources such as images here.
         let mut world = World::new();
 
-        let entity = world
-            .spawn((Position::new(50.0, 50.0), Velocity::new(2.0, 2.0)))
-            .id();
+        let mut entity = world.spawn(Protag::default());
 
-        let mut entity_ref = world.entity_mut(entity.clone());
+        entity.get_mut::<Velocity>().unwrap().y += 3.0;
 
-        entity_ref.get_mut::<Velocity>().unwrap().y += 3.0;
+        let mut entities = Indexer::default();
 
-        let entities = Indexer::default();
+        entities.add_to_queue(Box::new(entity.id()));
 
         let mut root = GameRoot {
             game_info: GameInfo {
                 world,
-                game_root_ptr: std::ptr::null::<GameRoot>(),
+                game_root_ptr: std::ptr::null_mut::<GameRoot>(),
                 context_ptr: context,
             },
             entities,
             schedule,
         };
-        root.game_info.game_root_ptr = &root;
+        root.game_info.game_root_ptr = &mut root;
         root
     }
 }
@@ -169,7 +167,7 @@ impl EventHandler for GameRoot {
 
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
         let mut canvas = graphics::Canvas::from_frame(ctx, Color::WHITE);
-        self.game_info.context_ptr = ctx;
+        self.update_context(ctx);
 
         self.entities
             ._draw_calls(&mut self.game_info, ctx, &mut canvas);
@@ -202,11 +200,3 @@ where
 pub trait DrawBas {
     fn draw_bas(&mut self, game_info: &mut GameInfo, ctx: &mut Context, canvas: &mut Canvas);
 }
-
-// pub trait EntityBundle
-// where
-//     Self: Init,
-//     Self: Update,
-//     Self: Draw,
-// {
-// }

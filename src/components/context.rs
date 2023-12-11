@@ -4,8 +4,7 @@ use bevy_ecs::component::Component;
 
 use crate::GameInfo;
 
-
 #[derive(Component)]
-pub struct GlobalInfo {
+pub struct WorldInfo {
     pub game_info: Mutex<GameInfo>,
 }
