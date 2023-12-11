@@ -4,9 +4,9 @@ mod schedule;
 pub mod space;
 
 use bevy_ecs::entity::Entity;
-use bevy_ecs::schedule::Schedule;
+use bevy_ecs::schedule::{Schedule, ScheduleLabel};
 use bevy_ecs::system::Query;
-use components::Protag;
+use components::{Protag, ProtagBundle, Transform};
 use ggez::event::{self, EventHandler};
 use ggez::graphics::{self, Canvas, Color};
 use ggez::{Context, ContextBuilder, GameResult};
@@ -33,55 +33,13 @@ fn main() {
     }
 }
 
-#[allow(dead_code)]
-#[derive(Default)]
-struct Indexer {
-    pub init: Vec<Box<Entity>>,
-    pub update: Vec<Box<Entity>>,
-    pub draw: Vec<Box<dyn DrawBas>>,
-    queue: Vec<Box<Entity>>,
-}
-
-#[allow(unused_variables)]
-impl Indexer {
-    fn _init_calls(&mut self, game_info: &mut GameInfo, ctx: &mut Context) {
-        for index in 0..self.queue.len() {
-            match self.queue.pop() {
-                None => (),
-                Some(entity) => self.init.push(entity),
-            };
-        }
-
-        for entity in &mut self.init {
-            // entity.init(game_info, ctx);
-        }
-        self.init.clear();
-    }
-
-    fn _update_calls(&mut self, game_info: &mut GameInfo, ctx: &mut Context) {
-        for entity in &mut self.update {
-            // entity.update(game_info, ctx);
-        }
-    }
-
-    fn _draw_calls(&mut self, game_info: &mut GameInfo, ctx: &mut Context, canvas: &mut Canvas) {
-        for entity in &mut self.draw {
-            entity.draw_bas(game_info, ctx, canvas);
-        }
-    }
-
-    fn add_to_queue(&mut self, entity: Box<Entity>) {
-        self.queue.push(entity);
-    }
-}
-
 struct GameRoot
 where
     Self: 'static,
 {
     pub game_info: GameInfo,
-    entities: Indexer,
     schedule: Schedule,
+    draw_schedule: Schedule,
 }
 
 impl GameRoot {
@@ -90,11 +48,12 @@ impl GameRoot {
     }
 }
 
-#[derive()]
+#[derive(Debug)]
 pub struct GameInfo {
     pub world: World,
     context_ptr: *mut Context,
     game_root_ptr: *mut GameRoot,
+    current_canvas: Option<Canvas>,
 }
 
 unsafe impl Send for GameInfo {}
@@ -118,39 +77,26 @@ impl GameInfo {
             }
         }
     }
-
-    pub fn new_entity(&self, entity: Box<Entity>) {
-        unsafe {
-            self.game_root_ptr.read().entities.add_to_queue(entity);
-        };
-    }
 }
 
 impl GameRoot {
     pub fn new(context: &mut Context) -> GameRoot {
-        let schedule_default_thing = Schedule::default();
+        let (schedule, draw_schedule) =
+            schedule::schedule_systems(Schedule::default(), Schedule::default());
 
-        let schedule = schedule::schedule_systems(schedule_default_thing);
-
-        // Load/create resources such as images here.
         let mut world = World::new();
 
-        let mut entity = world.spawn(Protag::default());
-
-        entity.get_mut::<Velocity>().unwrap().y += 3.0;
-
-        let mut entities = Indexer::default();
-
-        entities.add_to_queue(Box::new(entity.id()));
+        let mut entity = world.spawn(ProtagBundle::default(&context.gfx));
 
         let mut root = GameRoot {
             game_info: GameInfo {
                 world,
                 game_root_ptr: std::ptr::null_mut::<GameRoot>(),
                 context_ptr: context,
+                current_canvas: Canvas::from_frame(&context.gfx, Color::WHITE),
             },
-            entities,
             schedule,
+            draw_schedule,
         };
         root.game_info.game_root_ptr = &mut root;
         root
@@ -166,13 +112,15 @@ impl EventHandler for GameRoot {
     }
 
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
-        let mut canvas = graphics::Canvas::from_frame(ctx, Color::WHITE);
+        self.game_info.current_canvas = Some(graphics::Canvas::from_frame(ctx, Color::WHITE));
+
         self.update_context(ctx);
 
-        self.entities
-            ._draw_calls(&mut self.game_info, ctx, &mut canvas);
+        self.draw_schedule.run(&mut self.game_info.world);
 
-        canvas.finish(ctx)
+        let e = (self.game_info.current_canvas = None)
+
+        // self.game_info.current_canvas.finish(ctx)
     }
 }
 

@@ -1,11 +1,14 @@
+use bevy_ecs::{system::Query, world};
 use ggez::{
     graphics::{
-        self as ggraphics, Canvas, DrawParam, GraphicsContext, Image, InstanceArray, Mesh, Text
+        self as ggraphics, Canvas, DrawParam, GraphicsContext, Image, InstanceArray, Mesh, Text,
     },
     Context,
 };
 
 use crate::{space, DrawBas, GameInfo};
+
+use super::context::WorldInfo;
 
 pub enum RenderType {
     Image(Image),
@@ -16,7 +19,12 @@ pub enum RenderType {
 
 impl RenderType {
     pub fn default(gfx: &GraphicsContext) -> Self {
-        Self::Image(Image::from_color(gfx, 10, 10, Some(ggraphics::Color::RED)))
+        Self::Image(Image::from_color(
+            gfx,
+            100,
+            100,
+            Some(ggraphics::Color::RED),
+        ))
     }
 }
 
@@ -28,32 +36,27 @@ pub struct Renderer {
     pub offset: space::Position,
 }
 
-// impl Draw<&mut Self> for Renderer {
-//     fn draw(mut query: Query<&mut Self>) {
-//         for renderer in query.iter_mut() {
-
-//         }
-
-//     }
-// }
-
 impl Renderer {
-    fn set(&mut self) {
-        self.draw_param = DrawParam::new();
+    pub fn set(&mut self, draw_param: DrawParam) {
+        self.draw_param = draw_param;
         self.draw_param.transform = self.transform.into();
     }
 }
 
-impl DrawBas for Renderer {
-    #[allow(unused_variables)]
-    fn draw_bas(&mut self, game_info: &mut GameInfo, ctx: &mut Context, canvas: &mut Canvas) {
-        self.set();
+impl Renderer {
+    pub fn draw(mut query: Query<(&mut Renderer, &mut WorldInfo)>) {
+        println!("Drawing.. :)");
+        for (renderer, world_info) in query.iter_mut() {
+            let mut gameinfo = world_info.game_info.lock().unwrap();
 
-        match &self.image {
-            RenderType::Image(image) => canvas.draw(image, self.draw_param),
-            RenderType::InstanceArray(_) => todo!(),
-            RenderType::Mesh(_) => todo!(),
-            RenderType::Text(_) => todo!(),
+            let canvas = &mut gameinfo.current_canvas;
+
+            match &renderer.image {
+                RenderType::Image(image) => canvas.draw(image, renderer.draw_param),
+                RenderType::InstanceArray(_) => todo!(),
+                RenderType::Mesh(_) => todo!(),
+                RenderType::Text(_) => todo!(),
+            }
         }
     }
 }

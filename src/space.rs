@@ -14,7 +14,7 @@ impl Vector2 {
     pub fn translate(&mut self, translation: &Vector2) {
         self.x += translation.x;
         self.y += translation.y;
-    }   
+    }
 }
 
 impl Vector2 {
@@ -143,8 +143,14 @@ impl DerefMut for Rotation {
     }
 }
 
-#[derive(Default, Component, Clone, Copy)]
+#[derive(Component, Clone, Copy)]
 pub struct Scale(Vector2);
+
+impl Default for Scale {
+    fn default() -> Self {
+        Self(Vector2::new(1.0, 1.0))
+    }
+}
 
 impl Deref for Scale {
     type Target = Vector2;

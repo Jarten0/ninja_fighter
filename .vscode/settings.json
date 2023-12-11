@@ -40,5 +40,7 @@
         "target/debug": true,
         "archive": true
     },
-    "explorerExclude.backup": {}
+    "explorerExclude.backup": {},
+    "python.analysis.typeCheckingMode": "off",
+    "python.analysis.autoImportCompletions": false
 }
