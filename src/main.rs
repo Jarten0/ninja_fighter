@@ -3,6 +3,7 @@ pub mod readonly;
 mod schedule;
 pub mod space;
 
+use std::process::exit;
 use std::thread::park_timeout;
 use std::time::Duration;
 
@@ -106,7 +107,7 @@ impl GameRoot {
         let (schedule, draw_schedule) =
             schedule::schedule_systems(Schedule::default(), Schedule::default());
 
-        // park_timeout(Duration::from_secs(15));
+        park_timeout(Duration::from_secs(10));
 
         let world = World::new();
 
@@ -151,19 +152,17 @@ impl EventHandler for GameRoot {
         self.game_info
             .current_canvas
             .take()
-            .expect("game_info.current_canvas should never be moved during system running! If you took it, please undo that and make a clone or borrow instead of take ownership over.")
+            .expect("game_info.current_canvas should never be moved during system running! If you took it, please undo that and make a clone or borrow instead of taking ownership over it.")
             .finish(&mut ctx.gfx)
     }
 }
 
-fn main() {
-    loop {
-        let (mut context, event_loop) = ContextBuilder::new("Ninja Fighter", "Jarten0")
-            .build()
-            .expect("aieee, could not create ggez context!");
+fn main() -> ! {
+    let (mut context, event_loop) = ContextBuilder::new("Ninja Fighter", "Jarten0")
+        .build()
+        .expect("aieee, could not create ggez context!");
 
-        let my_game = GameRoot::new(&mut context);
+    let root = GameRoot::new(&mut context);
 
-        event::run(context, event_loop, my_game);
-    }
+    event::run(context, event_loop, root);
 }

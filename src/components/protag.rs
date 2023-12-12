@@ -20,7 +20,7 @@ pub struct ProtagBundle {
 
 impl ProtagBundle {
     pub fn default(game_info_ptr: *mut GameInfo) -> Self {
-        let gfx = unsafe { &game_info_ptr.read().context_ptr.read().gfx };
+        let gfx = unsafe { &game_info_ptr.clone().read().context_ptr.read().gfx };
 
         let transform = Transform {
             position: crate::space::Position::new(100.0, 100.0),
