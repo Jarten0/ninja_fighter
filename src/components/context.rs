@@ -6,5 +6,5 @@ use crate::GameInfo;
 
 #[derive(Component)]
 pub struct WorldInfo {
-    pub game_info: Mutex<GameInfo>,
+    pub game_info: GameInfo,
 }

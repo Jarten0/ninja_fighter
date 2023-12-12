@@ -1,12 +1,9 @@
-use bevy_ecs::{system::Query, world};
-use ggez::{
-    graphics::{
-        self as ggraphics, Canvas, DrawParam, GraphicsContext, Image, InstanceArray, Mesh, Text,
-    },
-    Context,
+use bevy_ecs::system::Query;
+use ggez::graphics::{
+    self as ggraphics, DrawParam, GraphicsContext, Image, InstanceArray, Mesh, Text,
 };
 
-use crate::{space, DrawBas, GameInfo};
+use crate::space;
 
 use super::context::WorldInfo;
 
@@ -45,11 +42,13 @@ impl Renderer {
 
 impl Renderer {
     pub fn draw(mut query: Query<(&mut Renderer, &mut WorldInfo)>) {
-        println!("Drawing.. :)");
-        for (renderer, world_info) in query.iter_mut() {
-            let mut gameinfo = world_info.game_info.lock().unwrap();
+        for (renderer, mut world_info) in query.iter_mut() {
+            println!("Drawing.. :)");
 
-            let canvas = &mut gameinfo.current_canvas;
+            let canvas = match &mut world_info.game_info.current_canvas {
+                Some(canvas) => canvas,
+                None => return,
+            };
 
             match &renderer.image {
                 RenderType::Image(image) => canvas.draw(image, renderer.draw_param),

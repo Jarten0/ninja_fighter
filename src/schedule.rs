@@ -1,11 +1,6 @@
-use bevy_ecs::schedule::{self, Schedule, ScheduleBuildSettings, ScheduleLabel};
+use bevy_ecs::schedule::{self, Schedule, ScheduleBuildSettings};
 
-use crate::components::{Renderer, Transform, TransformSettings};
-
-use crate::{
-    space::{Position, Velocity},
-    Update,
-};
+use crate::components::{Renderer, Transform};
 
 pub fn schedule_systems(mut sched: Schedule, mut draw_sched: Schedule) -> (Schedule, Schedule) {
     sched.set_build_settings(ScheduleBuildSettings {

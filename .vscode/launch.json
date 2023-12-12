@@ -40,7 +40,9 @@
                 "run",
             ]
         },
-        "args": []
-    }
+        "args": [],
+        "env": {"RUST_BACKTRACE": "1"},
+    },
+
     ]
 }

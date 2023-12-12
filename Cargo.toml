@@ -2,11 +2,18 @@
 name = "ninja_fighter"
 version = "0.1.0"
 edition = "2021"
+authors = ["Jarten"]
+description = "A student project about making a game using Rust"
+readme = "README.md"
+repository = "https://github.com/Jarten0/ninja_fighter/"
+keywords = ["game", "gamedev", "ggez", "bevy-ecs"]
+publish = false
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[profile]
+dev.debug = "full"
 
 [dependencies]
-# coffee = { version = "0.4", features = ["opengl"] }
 ggez = "0.9.3"
 bevy_ecs = "0.12.1"
 serde = { version = "1.0.189", features = ["derive"] }
