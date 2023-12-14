@@ -1,11 +1,9 @@
-use std::sync::Mutex;
-
 use bevy_ecs::prelude::*;
 use ggez::graphics::{self, DrawParam, Rect};
 
 use crate::{components::Transform, GameInfo};
 
-use super::{context::WorldInfo, Renderer};
+use super::Renderer;
 
 #[derive(Default, Component)]
 pub struct Protag {}
@@ -15,12 +13,11 @@ pub struct ProtagBundle {
     pub protag: Protag,
     pub transform: Transform,
     pub renderer: Renderer,
-    pub world_info: WorldInfo,
 }
 
 impl ProtagBundle {
-    pub fn default(game_info_ptr: *mut GameInfo) -> Self {
-        let gfx = unsafe { &game_info_ptr.clone().read().context_ptr.read().gfx };
+    pub fn default(game_info_ptr: &GameInfo) -> Self {
+        let protag = Protag {};
 
         let transform = Transform {
             position: crate::space::Position::new(100.0, 100.0),
@@ -30,6 +27,7 @@ impl ProtagBundle {
             settings: super::TransformSettings::default(),
         };
 
+        let gfx = &GameInfo::get_context(&game_info_ptr).gfx;
         let mut renderer = Renderer::default(gfx);
         renderer.set(DrawParam {
             src: Rect::default(),
@@ -38,17 +36,10 @@ impl ProtagBundle {
             z: 0,
         });
 
-        let protag = Protag {};
-
-        let world_info = WorldInfo {
-            game_info: unsafe { game_info_ptr.read() },
-        };
-
         Self {
             protag,
             transform,
             renderer,
-            world_info,
         }
     }
 }

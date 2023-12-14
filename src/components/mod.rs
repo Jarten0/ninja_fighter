@@ -1,5 +1,4 @@
 mod collider;
-pub mod context;
 mod protag;
 mod render;
 pub mod scene;

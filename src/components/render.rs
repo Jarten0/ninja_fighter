@@ -1,11 +1,9 @@
-use bevy_ecs::system::Query;
+use bevy_ecs::system::{Query, ResMut};
 use ggez::graphics::{
     self as ggraphics, DrawParam, GraphicsContext, Image, InstanceArray, Mesh, Text,
 };
 
-use crate::space;
-
-use super::context::WorldInfo;
+use crate::{space, GameInfo};
 
 pub enum RenderType {
     Image(Image),
@@ -41,17 +39,22 @@ impl Renderer {
 }
 
 impl Renderer {
-    pub fn draw(mut query: Query<(&mut Renderer, &mut WorldInfo)>) {
-        for (renderer, mut world_info) in query.iter_mut() {
+    pub fn draw(mut query: Query<&mut Renderer>, mut game_info: ResMut<GameInfo>) {
+        println!("D.. :|");
+        for renderer in query.iter_mut() {
             println!("Drawing.. :)");
 
-            let canvas = match &mut world_info.game_info.current_canvas {
+            let canvas_option = &mut game_info.current_canvas;
+
+            let mut canvas = match canvas_option {
                 Some(canvas) => canvas,
                 None => return,
             };
 
             match &renderer.image {
-                RenderType::Image(image) => canvas.draw(image, renderer.draw_param),
+                RenderType::Image(image) => {
+                    ggraphics::Canvas::draw(&mut canvas, image, renderer.draw_param)
+                }
                 RenderType::InstanceArray(_) => todo!(),
                 RenderType::Mesh(_) => todo!(),
                 RenderType::Text(_) => todo!(),

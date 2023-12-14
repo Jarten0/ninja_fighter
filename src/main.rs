@@ -3,11 +3,12 @@ pub mod readonly;
 mod schedule;
 pub mod space;
 
-use std::process::exit;
 use std::thread::park_timeout;
 use std::time::Duration;
 
 use bevy_ecs::schedule::Schedule;
+use bevy_ecs::storage::Resources;
+use bevy_ecs::system::{InitResource, Resource};
 use components::ProtagBundle;
 use ggez::event::{self, EventHandler};
 use ggez::graphics::{self, Canvas, Color};
@@ -29,12 +30,15 @@ use bevy_ecs::world::*;
 /// * `current_canvas` - private optional holding the current [`Canvas`].
 /// Holds [`None`] if operating during an `Update` frame, or holds `Some(Canvas)` if operating during a `Draw` frame.
 
-#[derive(Debug)]
-pub struct GameInfo {
+#[derive(Debug, Resource)]
+pub struct GameInfo
+where
+    Self: 'static,
+{
     pub world: World,
+    pub current_canvas: Option<Canvas>,
     context_ptr: *mut Context,
     game_root_ptr: *mut GameRoot,
-    current_canvas: Option<Canvas>,
 }
 
 unsafe impl Send for GameInfo {}
@@ -90,7 +94,7 @@ struct GameRoot
 where
     Self: 'static,
 {
-    pub game_info: GameInfo,
+    // pub game_info: GameInfo,
     schedule: Schedule,
     draw_schedule: Schedule,
 }
@@ -103,13 +107,13 @@ impl GameRoot {
 
 impl GameRoot {
     /// Loads and initialized essential data for [`bevy_ecs`] operations, specifically the [`GameRoot`] and [`GameInfo`] structs
-    fn new(context: &mut Context) -> GameRoot {
+    fn new(context: &mut Context) -> Self {
         let (schedule, draw_schedule) =
             schedule::schedule_systems(Schedule::default(), Schedule::default());
 
-        park_timeout(Duration::from_secs(10));
+        // park_timeout(Duration::from_secs(10));
 
-        let world = World::new();
+        let mut world = World::new();
 
         let game_info = GameInfo {
             world,
@@ -118,17 +122,20 @@ impl GameRoot {
             current_canvas: None,
         };
 
+        World::insert_resource(&mut world, game_info);
+
         let mut root = GameRoot {
-            game_info,
+            // game_info,
             schedule,
             draw_schedule,
         };
 
-        root.update_context(context);
-        root.game_info.game_root_ptr = &mut root;
+        // root.game_info.game_root_ptr = &mut root;
 
-        let bundle = ProtagBundle::default(&mut root.game_info);
-        let _protag = root.game_info.world.spawn(bundle);
+        GameRoot::update_context(&mut root, context);
+
+        // let bundle = ProtagBundle::default(&mut root.game_info);
+        // let _protag = World::spawn(&mut root.game_info.world, bundle);
 
         root
     }
