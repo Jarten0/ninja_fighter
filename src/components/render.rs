@@ -1,27 +1,12 @@
 use bevy_ecs::system::{Query, ResMut};
 use ggez::graphics::{
-    self as ggraphics, DrawParam, GraphicsContext, Image, InstanceArray, Mesh, Text,
+    self as ggraphics, Color, DrawParam, GraphicsContext, Image, InstanceArray, Mesh, Text,
 };
 
-use crate::{space, GameInfo};
-
-pub enum RenderType {
-    Image(Image),
-    InstanceArray(InstanceArray),
-    Mesh(Mesh),
-    Text(Text),
-}
-
-impl RenderType {
-    pub fn default(gfx: &GraphicsContext) -> Self {
-        Self::Image(Image::from_color(
-            gfx,
-            100,
-            100,
-            Some(ggraphics::Color::RED),
-        ))
-    }
-}
+use crate::{
+    space::{self},
+    GameInfo,
+};
 
 #[derive(bevy_ecs::component::Component)]
 pub struct Renderer {
@@ -32,18 +17,60 @@ pub struct Renderer {
 }
 
 impl Renderer {
-    pub fn set(&mut self, draw_param: DrawParam) {
+    /// Creates a new basic Renderer component for regular use.
+    /// Use `Renderer::set()` to alter the offset and extra draw settings, or `Renderer::new_opt()` to directly set those values during initialization.
+    pub fn new(image: RenderType, transform: super::Transform) -> Self {
+        let draw_param = DrawParam {
+            src: Default::default(),
+            color: Color::WHITE,
+            transform: transform.into(),
+            z: 0,
+        };
+        let offset = space::Position::new(0.0, 0.0);
+
+        Renderer {
+            image,
+            draw_param,
+            transform,
+            offset,
+        }
+    }
+
+    /// Similar to `Renderer::new()`, but with extra parameters for other values.
+    pub fn new_opt(
+        image: RenderType,
+        transform: super::Transform,
+        draw_param: DrawParam,
+        offset: space::Position,
+    ) -> Self {
+        Renderer {
+            image,
+            draw_param,
+            transform,
+            offset,
+        }
+    }
+
+    pub fn set(&mut self, draw_param: DrawParam, offset: space::Position) {
         self.draw_param = draw_param;
-        self.draw_param.transform = self.transform.into();
+        self.offset = offset;
+    }
+}
+
+impl Renderer {
+    pub fn default(gfx: &GraphicsContext) -> Self {
+        Self {
+            image: RenderType::default(gfx),
+            draw_param: Default::default(),
+            transform: Default::default(),
+            offset: Default::default(),
+        }
     }
 }
 
 impl Renderer {
     pub fn draw(mut query: Query<&mut Renderer>, mut game_info: ResMut<GameInfo>) {
-        println!("D.. :|");
         for renderer in query.iter_mut() {
-            println!("Drawing.. :)");
-
             let canvas_option = &mut game_info.current_canvas;
 
             let mut canvas = match canvas_option {
@@ -63,13 +90,20 @@ impl Renderer {
     }
 }
 
-impl Renderer {
+pub enum RenderType {
+    Image(Image),
+    InstanceArray(InstanceArray),
+    Mesh(Mesh),
+    Text(Text),
+}
+
+impl RenderType {
     pub fn default(gfx: &GraphicsContext) -> Self {
-        Self {
-            image: RenderType::default(gfx),
-            draw_param: Default::default(),
-            transform: Default::default(),
-            offset: Default::default(),
-        }
+        Self::Image(Image::from_color(
+            gfx,
+            100,
+            100,
+            Some(ggraphics::Color::RED),
+        ))
     }
 }
