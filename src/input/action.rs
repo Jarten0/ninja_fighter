@@ -130,6 +130,28 @@ impl Action {
 
 impl ToString for Action {
     fn to_string(&self) -> String {
-        todo!()
+        let mut output: String = String::new();
+
+        output
+    }
+}
+
+impl From<String> for Action {
+    fn from(value: String) -> Self {
+        let first_sub_index = value.find(',').unwrap();
+        let second_sub_index = value.find(',').unwrap();
+
+        let name = value.get(0..first_sub_index).unwrap();
+
+        let keys_str = value.get(first_sub_index..second_sub_index);
+
+        let mut keys: HashMap<&str, &Key> = HashMap::new();
+        keys.insert(k, v);
+
+        Self {
+            name,
+            keys,
+            status: KeyStatus::default(),
+        }
     }
 }

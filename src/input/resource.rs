@@ -6,6 +6,7 @@ use std::collections::HashMap;
 use std::env::current_dir;
 use std::fs::File;
 use std::io::prelude::*;
+use std::ops::Add;
 use std::path::PathBuf;
 
 /// A module for dealing with player input. Add it as a [`bevy_ecs::system::Res<>`] or [`bevy_ecs::system::ResMut<>`] parameter inside your system function to make use of it.
@@ -29,6 +30,17 @@ impl Input {
         }
     }
 
+    pub fn load() -> Self {
+        let mut input = Self {
+            actions: HashMap::new(),
+            keylist: HashMap::new(),
+        };
+
+        input.load_keys_file();
+
+        input
+    }
+
     pub fn action_status(&self, action: &Action) -> KeyStatus {
         action.status
     }
@@ -49,7 +61,7 @@ impl Input {
         self.actions.get_mut(action_name)
     }
 
-    fn load_keys(&mut self) {
+    fn load_keys_file(&mut self) {
         let dir = match current_dir() {
             Ok(path) => path,
             Err(err) => panic!("Path directory error! What? {}", err),
@@ -62,13 +74,13 @@ impl Input {
             Err(err) => panic!("Key file could not be opened! {}", err),
         };
 
-        let mut buf = String::new();
-        match file.read_to_string(&mut buf) {
+        let mut key_buf = String::new();
+        match file.read_to_string(&mut key_buf) {
             Ok(_) => (),
             Err(err) => panic!("Invalid file read! {}", err),
         }
 
-        for (index, char) in buf.char_indices() {}
+        Self::from(key_buf);
     }
 }
 
@@ -82,5 +94,23 @@ impl ToString for Input {
         }
 
         string
+    }
+}
+
+impl From<String> for Input {
+    fn from(value: String) -> Self {
+        let mut input = Self::new();
+        let mut token_buf = String::new();
+
+        for (index, char) in value.char_indices() {
+            if char == ';' {
+                input.new_action(Action::from(token_buf));
+                token_buf = String::new();
+            } else {
+                token_buf.push(char);
+            }
+        }
+
+        input
     }
 }
