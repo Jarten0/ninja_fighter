@@ -1,4 +1,5 @@
 pub mod components;
+mod freeze;
 pub mod game_info;
 pub mod input;
 pub mod readonly;
@@ -9,13 +10,22 @@ use bevy_ecs::schedule::Schedule;
 
 use components::ProtagBundle;
 use ggez::event::{self, EventHandler};
-use ggez::graphics::{self, Canvas, Color};
+use ggez::graphics::{self, Color};
 use ggez::{Context, ContextBuilder, GameResult};
 
+use crate::input::Input;
 use bevy_ecs::world::*;
 use game_info::GameInfo;
 
 fn main() -> ! {
+    let args: Vec<String> = std::env::args().collect();
+
+    for arg in args {
+        if arg == String::from("input") {
+            crate::input::main::main();
+        }
+    }
+
     let (mut context, event_loop) = ContextBuilder::new("Ninja Fighter", "Jarten0")
         .build()
         .expect("aieee, could not create ggez context!");
@@ -60,25 +70,22 @@ impl GameRoot {
         let (schedule, draw_schedule) =
             schedule::schedule_systems(Schedule::default(), Schedule::default());
 
-        // park_timeout(Duration::from_secs(10));
-
         let mut world = World::new();
 
         let game_info = GameInfo {
-            // game_root_ptr: std::ptr::null_mut::<GameRoot>(),
             context_ptr: context,
             current_canvas: None,
         };
-
         World::insert_resource(&mut world, game_info);
+
+        let input = Input::new();
+        World::insert_resource(&mut world, input);
 
         let mut root = GameRoot {
             schedule,
             draw_schedule,
             world,
         };
-
-        // root.game_info.game_root_ptr = &mut root;
 
         GameRoot::update_context(&mut root, context);
 
@@ -168,6 +175,11 @@ impl EventHandler for GameRoot {
         if input.keycode == Some(ggez::winit::event::VirtualKeyCode::Escape) {
             ctx.request_quit();
         }
+
+        self.world.resource_mut::<Input>();
+
+        todo!();
+
         Ok(())
     }
 

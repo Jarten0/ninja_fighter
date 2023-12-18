@@ -1,7 +1,6 @@
 mod collider;
 mod protag;
 mod render;
-pub mod scene;
 mod transform;
 
 pub use protag::{Protag, ProtagBundle};
