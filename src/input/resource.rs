@@ -6,8 +6,9 @@ use std::collections::HashMap;
 use std::env::current_dir;
 use std::fs::File;
 use std::io::prelude::*;
-use std::ops::Add;
+
 use std::path::PathBuf;
+use std::str::FromStr;
 
 /// A module for dealing with player input. Add it as a [`bevy_ecs::system::Res<>`] or [`bevy_ecs::system::ResMut<>`] parameter inside your system function to make use of it.
 ///
@@ -16,8 +17,9 @@ use std::path::PathBuf;
 /// Then, you can store a reference to that action. From there, simply query any actions you want using `action_status()` to get a [`KeyStatus`] enum variant.
 /// Read the [`KeyStatus`] documentation for further details on inquiring about actions.
 #[derive(Resource)]
+#[allow(dead_code)]
 pub struct Input {
-    actions: HashMap<&'static str, Action>,
+    actions: HashMap<String, Action>,
     keylist: HashMap<KeyCode, Key>,
 }
 
@@ -48,7 +50,7 @@ impl Input {
     /// Wrapper function for `HashMap::Insert` but making sure that the hash key equals the actions name.
     /// Thus, it also returns [`Some(Key)`] if the key already had a value. Otherwise, it returns [`None`].
     pub fn new_action(&mut self, action: Action) -> Option<Action> {
-        HashMap::insert(&mut self.actions, action.name, action)
+        HashMap::insert(&mut self.actions, action.name.clone(), action)
     }
 
     /// Wrapper function for HashMap::get. Returns [`Some(&Action)`] if the action exists, and returning [`None`] if not.
@@ -80,7 +82,7 @@ impl Input {
             Err(err) => panic!("Invalid file read! {}", err),
         }
 
-        Self::from(key_buf);
+        let _ = Self::from_str(key_buf.as_str());
     }
 }
 
@@ -97,20 +99,22 @@ impl ToString for Input {
     }
 }
 
-impl From<String> for Input {
-    fn from(value: String) -> Self {
+impl FromStr for Input {
+    type Err = &'static str;
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
         let mut input = Self::new();
         let mut token_buf = String::new();
 
-        for (index, char) in value.char_indices() {
+        for char in value.chars() {
             if char == ';' {
-                input.new_action(Action::from(token_buf));
+                let action = Action::from_str(&token_buf)?;
+                input.new_action(action);
                 token_buf = String::new();
             } else {
                 token_buf.push(char);
             }
         }
 
-        input
+        Ok(input)
     }
 }

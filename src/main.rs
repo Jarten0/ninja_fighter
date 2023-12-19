@@ -125,7 +125,9 @@ impl EventHandler for GameRoot {
         _x: f32,
         _y: f32,
     ) -> Result<(), ggez::GameError> {
-        Ok(())
+        todo!();
+
+        // Ok(())
     }
 
     fn mouse_button_up_event(
@@ -135,7 +137,9 @@ impl EventHandler for GameRoot {
         _x: f32,
         _y: f32,
     ) -> Result<(), ggez::GameError> {
-        Ok(())
+        todo!();
+
+        // Ok(())
     }
 
     fn mouse_motion_event(
@@ -163,7 +167,9 @@ impl EventHandler for GameRoot {
         _x: f32,
         _y: f32,
     ) -> Result<(), ggez::GameError> {
-        Ok(())
+        todo!();
+
+        // Ok(())
     }
 
     fn key_down_event(
@@ -180,7 +186,7 @@ impl EventHandler for GameRoot {
 
         todo!();
 
-        Ok(())
+        // Ok(())
     }
 
     fn key_up_event(
@@ -188,7 +194,9 @@ impl EventHandler for GameRoot {
         _ctx: &mut Context,
         _input: ggez::input::keyboard::KeyInput,
     ) -> Result<(), ggez::GameError> {
-        Ok(())
+        todo!();
+
+        // Ok(())
     }
 
     fn text_input_event(

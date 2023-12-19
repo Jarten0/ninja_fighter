@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, ops::Deref, str::FromStr};
 
 use super::{key::Key, resource};
 
@@ -54,7 +54,7 @@ impl Default for KeyStatus {
 /// Container for an action. An action has a list of keys, and can be queried if any of them are currently active.
 /// When any of the keys are pressed, `status` is set to [`KeyStatus::Pressed`].
 pub struct Action {
-    pub name: &'static str,
+    pub name: String,
     pub keys: HashMap<&'static str, &'static Key>,
     pub status: KeyStatus,
 }
@@ -65,7 +65,7 @@ impl Action {
     /// Use `Input::get_action` or `Input::get_action_mut` to alter the action later.
     pub fn new(
         input: &mut resource::Input,
-        name: &'static str,
+        name: String,
         keys: HashMap<&'static str, &'static Key>,
     ) {
         input.new_action(Self {
@@ -136,22 +136,27 @@ impl ToString for Action {
     }
 }
 
-impl From<String> for Action {
-    fn from(value: String) -> Self {
-        let first_sub_index = value.find(',').unwrap();
-        let second_sub_index = value.find(',').unwrap();
+impl FromStr for Action {
+    type Err = &'static str;
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        let first_sub_index = value.find('|').unwrap();
+        let second_sub_index = value
+            .get(first_sub_index + 1..value.len())
+            .expect("action save value is invalid")
+            .find('|')
+            .unwrap();
 
-        let name = value.get(0..first_sub_index).unwrap();
+        let name = value.get(0..first_sub_index).unwrap().to_owned();
 
         let keys_str = value.get(first_sub_index..second_sub_index);
 
-        let mut keys: HashMap<&str, &Key> = HashMap::new();
-        keys.insert(k, v);
+        let keys: HashMap<&str, &Key> = HashMap::new();
+        // keys.insert(k, v);
 
-        Self {
+        Ok(Self {
             name,
             keys,
             status: KeyStatus::default(),
-        }
+        })
     }
 }

@@ -1,14 +1,13 @@
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::PathBuf;
-
-use crate::input::Action;
+use std::str::FromStr;
 
 use super::Input;
 
 /// Welcome to the input CLI editor! Here you can create new keys and alter the input data from the command line!
 /// Mostly useful early on when setting things up.
-pub fn main() -> ! {
+pub(crate) fn main() -> ! {
     println!("Booting into input editor..");
     println!("\nWelcome to the input editor!");
 
@@ -87,8 +86,12 @@ fn load(input: &mut Input) {
         Ok(_) => (),
         Err(err) => panic!("Invalid file read! {}", err),
     }
+    let e = match Input::from_str(&buf) {
+        Ok(e) => e,
+        Err(e) => panic!("Uhoh {}", e),
+    };
 
-    *input = Input::from(buf);
+    *input = e;
 }
 
 fn add_key() {
