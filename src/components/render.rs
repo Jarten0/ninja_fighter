@@ -1,11 +1,9 @@
 use bevy_ecs::system::{Query, ResMut};
-use ggez::graphics::{
-    self as ggraphics, Color, DrawParam, GraphicsContext, Image, InstanceArray, Mesh, Text,
-};
+use ggez::graphics::{self as ggraphics, *};
 
 use crate::{
+    engine::MainCanvas,
     space::{self},
-    GameInfo,
 };
 
 #[derive(bevy_ecs::component::Component)]
@@ -16,6 +14,7 @@ pub struct Renderer {
     pub offset: space::Position,
 }
 
+#[allow(dead_code)]
 impl Renderer {
     /// Creates a new basic Renderer component for regular use.
     /// Use `Renderer::set()` to alter the offset and extra draw settings, or `Renderer::new_opt()` to directly set those values during initialization.
@@ -57,6 +56,7 @@ impl Renderer {
     }
 }
 
+#[allow(dead_code)]
 impl Renderer {
     pub fn default(gfx: &GraphicsContext) -> Self {
         Self {
@@ -69,9 +69,9 @@ impl Renderer {
 }
 
 impl Renderer {
-    pub fn draw(mut query: Query<&mut Renderer>, mut game_info: ResMut<GameInfo>) {
-        for renderer in query.iter_mut() {
-            let canvas_option = &mut game_info.current_canvas;
+    pub fn draw(query: Query<&Renderer>, mut main_canvas: ResMut<MainCanvas>) {
+        for renderer in query.iter() {
+            let canvas_option = main_canvas.get_canvas_mut();
 
             let mut canvas = match canvas_option {
                 Some(canvas) => canvas,
@@ -90,6 +90,7 @@ impl Renderer {
     }
 }
 
+#[allow(dead_code)]
 pub enum RenderType {
     Image(Image),
     InstanceArray(InstanceArray),

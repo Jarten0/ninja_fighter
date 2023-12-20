@@ -1,7 +1,7 @@
 use bevy_ecs::prelude::*;
 use ggez::graphics::{self, Color, DrawParam, Image, Rect};
 
-use crate::{components::Transform, space::Position, GameInfo};
+use crate::{components::Transform, engine::MainCanvas, space::Position};
 
 use super::Renderer;
 
@@ -16,7 +16,7 @@ pub struct ProtagBundle {
 }
 
 impl ProtagBundle {
-    pub fn default(game_info_ptr: &GameInfo) -> Self {
+    pub fn default(game_info_ptr: &MainCanvas) -> Self {
         let protag = Protag {};
 
         let mut transform = Transform {
@@ -34,7 +34,7 @@ impl ProtagBundle {
 
         // transform.
 
-        let gfx = &GameInfo::get_context(&game_info_ptr).gfx;
+        let gfx = &MainCanvas::get_context(&game_info_ptr).gfx;
         let mut renderer = Renderer::new(
             super::RenderType::Image(Image::from_color(gfx, 100, 100, Some(Color::RED))),
             transform.into(),

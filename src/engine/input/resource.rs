@@ -21,22 +21,25 @@ use std::str::FromStr;
 pub struct Input {
     actions: HashMap<String, Action>,
     keylist: HashMap<KeyCode, Key>,
+    /// cli_mode is a special value, as it's equal to false during normal runtime. The only time it equates to true is when you are editing the Input module
+    /// through the input CLI editor, which enables you to adjust keys specifically.
+    cli_mode: bool,
 }
 
+#[allow(dead_code)]
 impl Input {
-    /// Returns a new [`Input`] resource.
-    pub fn new() -> Self {
+    /// Returns a new [`Input`] resource. Should only be used when resetting the engine. Use `Input::load` unless you have a specific reason to use this.
+    pub(crate) fn new() -> Self {
         Self {
             actions: HashMap::new(),
             keylist: HashMap::new(),
+            cli_mode: false,
         }
     }
 
-    pub fn load() -> Self {
-        let mut input = Self {
-            actions: HashMap::new(),
-            keylist: HashMap::new(),
-        };
+    /// Returns an [`Input`] resource with the keylist and whatever actions are currently stored in the engine save data. Recommended over `Input::new()`.
+    pub(crate) fn load() -> Self {
+        let mut input = Self::new();
 
         input.load_keys_file();
 
@@ -49,7 +52,7 @@ impl Input {
 
     /// Wrapper function for `HashMap::Insert` but making sure that the hash key equals the actions name.
     /// Thus, it also returns [`Some(Key)`] if the key already had a value. Otherwise, it returns [`None`].
-    pub fn new_action(&mut self, action: Action) -> Option<Action> {
+    pub(super) fn new_action(&mut self, action: Action) -> Option<Action> {
         HashMap::insert(&mut self.actions, action.name.clone(), action)
     }
 
@@ -62,22 +65,36 @@ impl Input {
     pub fn get_action_mut(&mut self, action_name: &str) -> Option<&mut Action> {
         self.actions.get_mut(action_name)
     }
+}
 
-    fn load_keys_file(&mut self) {
+impl Input {
+    pub(super) fn save_to_file(&self) {
+        self.load_file(InputFile::ActionFile);
+    }
+
+    fn load_file(&self, filetype: InputFile) -> File {
         let dir = match current_dir() {
             Ok(path) => path,
             Err(err) => panic!("Path directory error! What? {}", err),
         };
 
-        let path = dir.join(PathBuf::from("/src/input/keyData.txt"));
+        let path = dir.join(PathBuf::from(match filetype {
+            InputFile::ActionFile => todo!(),
+            InputFile::KeyFile => "/src/input/keyData.txt",
+        }));
 
-        let mut file = match File::open(path) {
+        match File::open(path) {
             Ok(path) => path,
             Err(err) => panic!("Key file could not be opened! {}", err),
-        };
+        }
+    }
 
+    fn load_keys_file(&mut self) {
         let mut key_buf = String::new();
-        match file.read_to_string(&mut key_buf) {
+        match self
+            .load_file(InputFile::KeyFile)
+            .read_to_string(&mut key_buf)
+        {
             Ok(_) => (),
             Err(err) => panic!("Invalid file read! {}", err),
         }
@@ -117,4 +134,9 @@ impl FromStr for Input {
 
         Ok(input)
     }
+}
+
+enum InputFile {
+    KeyFile,
+    ActionFile,
 }

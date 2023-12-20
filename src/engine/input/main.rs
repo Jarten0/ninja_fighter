@@ -1,4 +1,3 @@
-use std::fs::File;
 use std::io::prelude::*;
 use std::path::PathBuf;
 use std::str::FromStr;
@@ -7,12 +6,10 @@ use super::Input;
 
 /// Welcome to the input CLI editor! Here you can create new keys and alter the input data from the command line!
 /// Mostly useful early on when setting things up.
-pub(crate) fn main() -> ! {
+pub fn main() -> ! {
     println!("Booting into input editor..");
     println!("\nWelcome to the input editor!");
 
-    let mut key_file: File;
-    let mut action_file: File;
     let mut input_module: Input = Input::new();
     loop {
         println!(">");
@@ -30,7 +27,7 @@ pub(crate) fn main() -> ! {
         if io_input == String::from("help") {
             help()
         } else if io_input == String::from("save") {
-            save()
+            save(&mut input_module)
         } else if io_input == String::from("load") {
             load(&mut input_module)
         } else if io_input == String::from("add_key") {
@@ -65,8 +62,8 @@ Sorry :\
     )
 }
 
-fn save() {
-    todo!()
+fn save(input: &mut Input) {
+    input.save_to_file();
 }
 
 fn load(input: &mut Input) {

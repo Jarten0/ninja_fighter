@@ -1,4 +1,4 @@
-use std::{collections::HashMap, ops::Deref, str::FromStr};
+use std::{collections::HashMap, str::FromStr};
 
 use super::{key::Key, resource};
 
@@ -132,7 +132,9 @@ impl ToString for Action {
     fn to_string(&self) -> String {
         let mut output: String = String::new();
 
-        output
+        todo!();
+
+        // output
     }
 }
 
@@ -149,6 +151,8 @@ impl FromStr for Action {
         let name = value.get(0..first_sub_index).unwrap().to_owned();
 
         let keys_str = value.get(first_sub_index..second_sub_index);
+
+        todo!();
 
         let keys: HashMap<&str, &Key> = HashMap::new();
         // keys.insert(k, v);

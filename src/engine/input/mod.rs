@@ -11,9 +11,10 @@
 //!
 mod action;
 mod key;
-pub mod main;
+mod main;
 mod resource;
 
 pub use action::{Action, KeyStatus};
 pub use key::Key;
+pub use main::main as input_cli_editor;
 pub use resource::Input;
