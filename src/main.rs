@@ -1,11 +1,17 @@
+//! The main directory.
+//!
+//! # Modules
+//!
+//! * [`components`] - where game logic occurs and where most end point functionality is written.
+//!
+//! * [`engine`] - modules designed to interface between the different libraries the core engine uses, including [`bevy_ecs`] and [`ggez`].
+//!
+//! * [`space`] -
+
 mod components;
 mod engine;
-mod freeze;
-mod game_root;
-mod schedule;
 
-pub mod space;
-
+/// The start of the program. The crux of the functionality however happens in [`engine::GameRoot`].
 fn main() -> ! {
     let args: Vec<String> = std::env::args().collect();
 
@@ -19,7 +25,7 @@ fn main() -> ! {
         .build()
         .expect("aieee, could not create ggez context!");
 
-    let root = game_root::GameRoot::new(&mut context);
+    let root = engine::GameRoot::new(&mut context);
 
     ggez::event::run(context, event_loop, root);
 }

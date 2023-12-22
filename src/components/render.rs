@@ -2,8 +2,8 @@ use bevy_ecs::system::{Query, ResMut};
 use ggez::graphics::{self as ggraphics, *};
 
 use crate::{
+    engine::space::{self},
     engine::MainCanvas,
-    space::{self},
 };
 
 #[derive(bevy_ecs::component::Component)]

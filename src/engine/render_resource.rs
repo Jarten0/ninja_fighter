@@ -40,6 +40,9 @@ impl MainCanvas {
     pub(crate) fn set_canvas(&mut self, canvas: Canvas) {
         self.current_canvas = Some(canvas);
     }
+    pub(crate) fn take_canvas(&mut self) -> Option<Canvas> {
+        self.current_canvas.take()
+    }
 
     /// Returns a reference to the value that `self.context_ptr` points to.
     /// Panics if `self.context_ptr` is null or invalid, which should never be the case in normal scenarios. If it is, investigate immediately.

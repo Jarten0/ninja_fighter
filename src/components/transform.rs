@@ -1,6 +1,6 @@
 use bevy_ecs::prelude::*;
 
-use crate::space::{Position, Rotation, Scale, Velocity};
+use crate::engine::space::{Position, Rotation, Scale, Velocity};
 
 #[derive(Component, Default, Clone, Copy)]
 pub struct TransformSettings {

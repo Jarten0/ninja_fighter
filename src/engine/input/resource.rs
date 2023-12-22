@@ -69,30 +69,34 @@ impl Input {
 
 impl Input {
     pub(super) fn save_to_file(&self) {
-        self.load_file(InputFile::ActionFile);
+        self.load_input_file(InputFile::ActionFile);
     }
 
-    fn load_file(&self, filetype: InputFile) -> File {
+    fn load_input_file(&self, filetype: InputFile) -> File {
         let dir = match current_dir() {
             Ok(path) => path,
             Err(err) => panic!("Path directory error! What? {}", err),
         };
 
-        let path = dir.join(PathBuf::from(match filetype {
-            InputFile::ActionFile => todo!(),
-            InputFile::KeyFile => "/src/input/keyData.txt",
+        let file_path = dir.join(PathBuf::from(match filetype {
+            InputFile::ActionFile => "assets\\engine\\input\\actionData.txt",
+            InputFile::KeyFile => "assets\\engine\\input\\keyData.txt",
         }));
 
-        match File::open(path) {
+        match File::open(file_path.clone()) {
             Ok(path) => path,
-            Err(err) => panic!("Key file could not be opened! {}", err),
+            Err(err) => panic!(
+                "Key file could not be opened! Error: [{}], Path: [{}]",
+                err,
+                file_path.display()
+            ),
         }
     }
 
     fn load_keys_file(&mut self) {
         let mut key_buf = String::new();
         match self
-            .load_file(InputFile::KeyFile)
+            .load_input_file(InputFile::KeyFile)
             .read_to_string(&mut key_buf)
         {
             Ok(_) => (),

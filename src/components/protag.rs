@@ -1,9 +1,9 @@
 use bevy_ecs::prelude::*;
 use ggez::graphics::{self, Color, DrawParam, Image, Rect};
 
-use crate::{components::Transform, engine::MainCanvas, space::Position};
+use crate::{components::Transform, engine::space, engine::MainCanvas};
 
-use super::Renderer;
+use super::{Renderer, TransformSettings};
 
 #[derive(Default, Component)]
 pub struct Protag {}
@@ -20,11 +20,11 @@ impl ProtagBundle {
         let protag = Protag {};
 
         let mut transform = Transform {
-            position: crate::space::Position::new(10.0, 10.0),
-            velocity: crate::space::Velocity::default(),
-            rotation: crate::space::Rotation::default(),
-            scale: crate::space::Scale::default(),
-            settings: super::TransformSettings::default(),
+            position: space::Position::new(10.0, 10.0),
+            velocity: space::Velocity::default(),
+            rotation: space::Rotation::default(),
+            scale: space::Scale::default(),
+            settings: TransformSettings::default(),
         };
 
         transform.settings = super::TransformSettings {
@@ -46,7 +46,7 @@ impl ProtagBundle {
                 transform: transform.into(),
                 z: 0,
             },
-            Position::new(0.0, 0.0),
+            space::Position::new(0.0, 0.0),
         );
 
         Self {

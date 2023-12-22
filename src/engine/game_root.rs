@@ -18,7 +18,7 @@ use bevy_ecs::world::*;
 /// * `schedule` - private owned [`Schedule`] used in operating [`bevy_ecs`]. Is run during `Update` frames.
 ///
 /// * `draw_schedule` - private owned [`Schedule`] used in operating [`bevy_ecs`]. Is run during `Draw` frames.
-pub(super) struct GameRoot
+pub(crate) struct GameRoot
 where
     Self: 'static,
 {
@@ -39,9 +39,9 @@ impl GameRoot {
     }
 
     /// Loads and initialized essential data for [`bevy_ecs`] operations, specifically the [`GameRoot`] and [`MainCanvas`] structs
-    pub(super) fn new(context: &mut Context) -> Self {
+    pub(crate) fn new(context: &mut Context) -> Self {
         let (schedule, draw_schedule) =
-            crate::schedule::schedule_systems(Schedule::default(), Schedule::default());
+            crate::engine::schedule::schedule_systems(Schedule::default(), Schedule::default());
 
         let mut world = World::new();
 
@@ -87,8 +87,7 @@ impl EventHandler for GameRoot {
         self.draw_schedule.run(&mut self.world);
 
         self.get_game_info()
-        .get_canvas()
-        .take()
+        .take_canvas()
         .expect("game_info.current_canvas should never be moved during system running! If you took it, please undo that and make a clone or borrow instead of taking ownership over it.")
         .finish(&mut ctx.gfx)
     }
