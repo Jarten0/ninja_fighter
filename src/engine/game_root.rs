@@ -46,10 +46,6 @@ impl GameRoot {
         let mut world = World::new();
 
         let game_info = MainCanvas::new(context);
-        // {
-        //     context_ptr: context,
-        //     current_canvas: None,
-        // };
         World::insert_resource(&mut world, game_info);
 
         let input = Input::load();
@@ -60,11 +56,10 @@ impl GameRoot {
             draw_schedule,
             world,
         };
-
         GameRoot::update_context(&mut root, context);
 
         let bundle = ProtagBundle::default(&mut root.get_game_info());
-        let _protag = World::spawn(&mut root.world, bundle);
+        World::spawn(&mut root.world, bundle);
 
         root
     }

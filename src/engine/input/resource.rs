@@ -65,6 +65,8 @@ impl Input {
     pub fn get_action_mut(&mut self, action_name: &str) -> Option<&mut Action> {
         self.actions.get_mut(action_name)
     }
+
+    pub(in crate::engine) fn update_key(&mut self, key: &Key) {}
 }
 
 impl Input {

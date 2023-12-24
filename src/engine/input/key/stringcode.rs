@@ -1,12 +1,12 @@
 use std::str::FromStr;
 
-use super::keycode_converter;
+use super::keycode_converter::{self, KeyTypes};
 use ggez::input::keyboard::KeyCode;
 
-pub struct StringifiableKeyCode(pub KeyCode);
+pub struct StringifiableKeyCode(pub KeyTypes);
 
 impl std::ops::Deref for StringifiableKeyCode {
-    type Target = KeyCode;
+    type Target = KeyTypes;
 
     fn deref(&self) -> &Self::Target {
         &self.0
