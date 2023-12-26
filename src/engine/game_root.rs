@@ -1,3 +1,4 @@
+use crate::engine::input::KeyTypes;
 use crate::engine::Input;
 use bevy_ecs::schedule::Schedule;
 
@@ -8,6 +9,7 @@ use ggez::graphics::{self, Color};
 use ggez::{Context, GameResult};
 
 use bevy_ecs::world::*;
+
 /// A basic container-struct that handles [`ggez`]'s events and interfaces with [`bevy_ecs`]'s ECS to provide full engine functionality.
 /// Use the [`components::context::WorldInfo`] component in a query, then use `WorldInfo.game_info.` to access.
 ///
@@ -69,6 +71,8 @@ impl EventHandler for GameRoot {
     fn update(&mut self, ctx: &mut Context) -> GameResult {
         self.update_context(ctx);
 
+        self.world.resource_mut::<Input>().process_key_queue();
+
         self.schedule.run(&mut self.world);
         Ok(())
     }
@@ -94,9 +98,19 @@ impl EventHandler for GameRoot {
         _x: f32,
         _y: f32,
     ) -> Result<(), ggez::GameError> {
-        todo!();
+        let mut input: Mut<'_, Input> = self.world.resource_mut();
 
-        // Ok(())
+        let i = Input::get_key_mut(&mut input, &mut KeyTypes::Mouse(_button)).unwrap();
+
+        Input::update_key_queue(&mut input, *i.keycode, true);
+
+        // {
+        //     return Err(ggez::GameError::CustomError(String::from(
+        //         "Invalid mouse key pressed",
+        //     )));
+        // }
+
+        Ok(())
     }
 
     fn mouse_button_up_event(
@@ -150,8 +164,6 @@ impl EventHandler for GameRoot {
         if input.keycode == Some(ggez::winit::event::VirtualKeyCode::Escape) {
             ctx.request_quit();
         }
-
-        self.world.resource_mut::<Input>();
 
         todo!();
 

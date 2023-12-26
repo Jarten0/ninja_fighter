@@ -25,3 +25,6 @@ mint = "0.5.9"
 nalgebra = { version = "0.32.3", features = ["serde-serialize"] }
 keycode = "0.4.0"
 lazy_static = "1.4.0"
+enum-iterator = "1.4.1"
+strum = "0.25.0"
+strum_macros = "0.25.3"

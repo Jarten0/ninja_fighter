@@ -1,12 +1,11 @@
 use super::action::{Action, KeyStatus};
-use super::key::Key;
+use super::key::keycode_converter::KeyTypes;
+use super::key::{input_hashmap, keycode_converter, Key};
 use bevy_ecs::system::Resource;
-use ggez::input::keyboard::KeyCode;
-use std::collections::HashMap;
+use std::collections::{HashMap, LinkedList};
 use std::env::current_dir;
 use std::fs::File;
-use std::io::prelude::*;
-
+use std::io::Read;
 use std::path::PathBuf;
 use std::str::FromStr;
 
@@ -16,44 +15,83 @@ use std::str::FromStr;
 /// Once you have the resource, you can call `get_action(key)`, using `key` to try and find the action you want, ex. "Jump" or "Fire".
 /// Then, you can store a reference to that action. From there, simply query any actions you want using `action_status()` to get a [`KeyStatus`] enum variant.
 /// Read the [`KeyStatus`] documentation for further details on inquiring about actions.
+///
+/// # Key Update Queue
+/// The process for updating keys goes along the lines of this:
+///
+/// * An event is triggered by the user
+/// * [`ggez`] registers it and gives it to [`crate::engine::GameRoot`]
+/// * [`crate::engine::GameRoot`] calls for an input assistant to store that information temporarily
+/// * Once the next frame is ready to process, the input assistant gives the information to [`Input`] to deal with
+/// * [`Input`] processes all of the updated information.
+/// * Game logic can then use [`Input`]'s updated information for whatever it needs.
 #[derive(Resource)]
 #[allow(dead_code)]
-pub struct Input {
-    actions: HashMap<String, Action>,
-    keylist: HashMap<KeyCode, Key>,
+pub(crate) struct Input
+where
+    Self: 'static,
+{
     /// cli_mode is a special value, as it's equal to false during normal runtime. The only time it equates to true is when you are editing the Input module
     /// through the input CLI editor, which enables you to adjust keys specifically.
     cli_mode: bool,
+    // the rest of these are used in normal use cases
+    actions: HashMap<String, Action>,
+    keylist: HashMap<KeyTypes, Key>,
+    key_update_queue: LinkedList<(KeyTypes, bool)>,
 }
 
 #[allow(dead_code)]
 impl Input {
     /// Returns a new [`Input`] resource. Should only be used when resetting the engine. Use `Input::load` unless you have a specific reason to use this.
-    pub(crate) fn new() -> Self {
+    pub(in crate::engine) fn new() -> Self {
         Self {
             actions: HashMap::new(),
             keylist: HashMap::new(),
             cli_mode: false,
+            key_update_queue: LinkedList::new(),
         }
     }
 
     /// Returns an [`Input`] resource with the keylist and whatever actions are currently stored in the engine save data. Recommended over `Input::new()`.
-    pub(crate) fn load() -> Self {
+    pub(in crate::engine) fn load() -> Self {
         let mut input = Self::new();
 
         input.load_keys_file();
 
+        input.keylist = (*input_hashmap::const_key_hashmap()).clone();
+
         input
     }
 
-    pub fn action_status(&self, action: &Action) -> KeyStatus {
-        action.status
+    pub(in crate::engine) fn update_key_queue(&mut self, key: KeyTypes, is_held: bool) {
+        self.key_update_queue.push_front((key, is_held))
+    }
+
+    pub(in crate::engine) fn process_key_queue(&mut self) {
+        for (keycode, key) in &mut self.keylist {}
+    }
+
+    pub(in crate::engine) fn get_key(&self, key: &KeyTypes) -> Option<&Key> {
+        self.keylist.get(key)
+    }
+
+    pub(in crate::engine) fn get_key_mut(&mut self, key: &KeyTypes) -> Option<&mut Key> {
+        self.keylist.get_mut(key)
+    }
+
+    pub(in crate::engine) fn get_key_from_str(&self, key: &str) -> Option<&Key> {
+        self.keylist.get(&keycode_converter::str_to_keycode(key)?)
     }
 
     /// Wrapper function for `HashMap::Insert` but making sure that the hash key equals the actions name.
     /// Thus, it also returns [`Some(Key)`] if the key already had a value. Otherwise, it returns [`None`].
-    pub(super) fn new_action(&mut self, action: Action) -> Option<Action> {
+    pub(in crate::engine) fn new_action(&mut self, action: Action) -> Option<Action> {
         HashMap::insert(&mut self.actions, action.name.clone(), action)
+    }
+
+    /// Returns the current status of the given action
+    pub fn action_status(&self, action: &Action) -> KeyStatus {
+        action.status
     }
 
     /// Wrapper function for HashMap::get. Returns [`Some(&Action)`] if the action exists, and returning [`None`] if not.
@@ -65,24 +103,22 @@ impl Input {
     pub fn get_action_mut(&mut self, action_name: &str) -> Option<&mut Action> {
         self.actions.get_mut(action_name)
     }
-
-    pub(in crate::engine) fn update_key(&mut self, key: &Key) {}
 }
 
 impl Input {
     pub(super) fn save_to_file(&self) {
-        self.load_input_file(InputFile::ActionFile);
+        self.load_input_file(input_hashmap::InputFile::ActionFile);
     }
 
-    fn load_input_file(&self, filetype: InputFile) -> File {
+    fn load_input_file(&self, filetype: input_hashmap::InputFile) -> File {
         let dir = match current_dir() {
             Ok(path) => path,
             Err(err) => panic!("Path directory error! What? {}", err),
         };
 
         let file_path = dir.join(PathBuf::from(match filetype {
-            InputFile::ActionFile => "assets\\engine\\input\\actionData.txt",
-            InputFile::KeyFile => "assets\\engine\\input\\keyData.txt",
+            input_hashmap::InputFile::ActionFile => "assets\\engine\\input\\actionData.txt",
+            input_hashmap::InputFile::KeyFile => "assets\\engine\\input\\keyData.txt",
         }));
 
         match File::open(file_path.clone()) {
@@ -98,7 +134,7 @@ impl Input {
     fn load_keys_file(&mut self) {
         let mut key_buf = String::new();
         match self
-            .load_input_file(InputFile::KeyFile)
+            .load_input_file(input_hashmap::InputFile::KeyFile)
             .read_to_string(&mut key_buf)
         {
             Ok(_) => (),
@@ -124,25 +160,28 @@ impl ToString for Input {
 
 impl FromStr for Input {
     type Err = &'static str;
+
+    /// sample value: "Action Name/key1;key2;key3|actionName2/key1;key4;key6|"
+    ///
+    /// `|`: action seperator
+    ///
+    /// `/`: name and keys seperator
+    ///
+    /// `;`: key seperator
     fn from_str(value: &str) -> Result<Self, Self::Err> {
-        let mut input = Self::new();
-        let mut token_buf = String::new();
+        let mut new_input_module = Self::new();
+        let mut action_token_buf = String::new();
 
         for char in value.chars() {
-            if char == ';' {
-                let action = Action::from_str(&token_buf)?;
-                input.new_action(action);
-                token_buf = String::new();
+            if char == '|' {
+                new_input_module
+                    .new_action(Action::from_str(&action_token_buf, &mut new_input_module)?);
+                action_token_buf = String::new();
             } else {
-                token_buf.push(char);
+                action_token_buf.push(char);
             }
         }
 
-        Ok(input)
+        Ok(new_input_module)
     }
-}
-
-enum InputFile {
-    KeyFile,
-    ActionFile,
 }

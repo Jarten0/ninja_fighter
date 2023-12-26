@@ -3,6 +3,7 @@ use std::str::FromStr;
 use super::keycode_converter::{self, KeyTypes};
 use ggez::input::keyboard::KeyCode;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct StringifiableKeyCode(pub KeyTypes);
 
 impl std::ops::Deref for StringifiableKeyCode {

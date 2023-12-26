@@ -7,10 +7,9 @@ mod game_root;
 mod input;
 mod render_resource;
 mod schedule;
-
 pub(crate) mod space;
 
 pub(super) use game_root::GameRoot;
 pub(super) use input::input_cli_editor;
-pub use input::{Action, Input, Key, KeyStatus};
-pub use render_resource::MainCanvas;
+pub(crate) use input::{Action, Input, Key, KeyStatus};
+pub(crate) use render_resource::MainCanvas;
