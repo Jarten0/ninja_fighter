@@ -68,7 +68,7 @@ impl Input {
     }
 
     pub(in crate::engine) fn process_key_queue(&mut self) {
-        for (keycode, key) in &mut self.keylist {}
+        for (_keycode, _key) in &mut self.keylist {}
     }
 
     pub(crate) fn does_key_exist(&self, key_str: &'static str) -> bool {
@@ -177,12 +177,12 @@ impl FromStr for Input {
     ///
     /// `;`: key seperator
     fn from_str(value: &str) -> Result<Self, Self::Err> {
-        let mut new_input_module = Self::new();
+        let new_input_module = Self::new();
         let mut action_token_buf = String::new();
 
         for character in value.chars() {
             if character == '|' {
-                Action::from_str(action_token_buf.as_str());
+                Action::from_str(action_token_buf.as_str())?;
 
                 action_token_buf = String::new();
             } else {

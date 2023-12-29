@@ -83,7 +83,7 @@ impl Action {
     /// Returns [`Ok`] if the key exists.
     ///
     /// Returns [`Err`] if the key does not exist.
-    pub fn add_key(&mut self, key_str: KeycodeType, input: &Input) -> Result<(), &'static str> {
+    pub fn add_key(&mut self, key_str: KeycodeType, _input: &Input) -> Result<(), &'static str> {
         self.keys.push(key_str);
 
         Ok(())
@@ -156,13 +156,14 @@ impl ToString for Action {
 
         output.push('|');
         output.push_str(&self.name);
+        output.push('/');
 
         for key_type in &self.keys {
             output.push_str(keycode_to_str(key_type.clone()).unwrap());
-            output.push_str("_")
+            output.push_str(";")
         }
 
-        output.push('|');
+        // output.push('|');
 
         // todo!();
 
@@ -183,13 +184,25 @@ impl FromStr for Action {
 
         let end_of_string = value.len();
 
+        match value.get(0..1) {
+            Some(c) => {
+                if !c.contains("|") {
+                    println!("[{}]", c);
+                    return Err(
+                        "action save value is invalid (Invalid first character, must be '|')",
+                    );
+                }
+            }
+            None => return Err("action save value is invalid (Empty value given)"),
+        };
+
         let name = value
-            .get(0..name_seperator)
+            .get(1..name_seperator)
             .ok_or("action save value is invalid. (Parsing the name of the action failed)")?
             .to_owned();
 
         let keys_str = value
-            .get(name_seperator..end_of_string)
+            .get(name_seperator + 1..end_of_string)
             .ok_or("action save value is invalid. (keys_str is invalid)")?;
 
         let mut keys: Vec<KeycodeType> = Vec::new();
@@ -200,9 +213,13 @@ impl FromStr for Action {
                 keys.push({
                     match str_to_keycode(key_token_buf.as_str()) {
                         Some(val) => val,
-                        None => return Err("Invalid key type"),
+                        None => {
+                            println!("Invalid key type {}", key_token_buf.to_owned());
+                            return Err("Invalid key type");
+                        }
                     }
                 });
+                key_token_buf.clear();
             } else {
                 key_token_buf.push(char)
             }

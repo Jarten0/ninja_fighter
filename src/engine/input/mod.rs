@@ -13,12 +13,21 @@
 pub(self) mod test;
 
 pub(self) mod action;
+pub(self) mod input_resource;
 pub(self) mod key;
 pub(self) mod main;
-pub(self) mod resource;
 
+mod input_update_scheduler {
+    pub(in crate::engine) struct InputUpdateScheduler {}
+
+    impl InputUpdateScheduler {
+        pub fn push_update(&mut self) {}
+    }
+}
+
+#[allow(unused_imports)]
 pub(crate) use action::{Action, KeyStatus};
+pub(crate) use input_resource::Input;
 pub(crate) use key::keycode_converter::KeycodeType;
 pub(crate) use key::Key;
 pub(crate) use main::main as input_cli_editor;
-pub(crate) use resource::Input;

@@ -4,7 +4,7 @@ pub mod stringcode;
 
 use self::keycode_converter::KeycodeType;
 
-use super::{action::KeyStatus, Input};
+use super::action::KeyStatus;
 use ggez::input::keyboard::KeyCode;
 use stringcode::StringifiableKeyCode;
 

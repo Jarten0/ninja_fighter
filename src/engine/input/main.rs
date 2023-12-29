@@ -30,18 +30,12 @@ pub fn main() -> ! {
             save(&mut input_module)
         } else if io_input == String::from("load") {
             load(&mut input_module)
-        } else if io_input == String::from("add_key") {
-            add_key()
-        } else if io_input == String::from("edit_key") {
-            edit_key()
-        } else if io_input == String::from("remove_key") {
-            remove_key()
         } else if io_input == String::from("add_action") {
-            add_action()
+            add_action(&mut input_module)
         } else if io_input == String::from("edit_action") {
-            edit_action()
+            edit_action(&mut input_module)
         } else if io_input == String::from("remove_action") {
-            remove_action()
+            remove_action(&mut input_module)
         } else if io_input == String::from("exit") {
             std::process::exit(0)
         } else {
@@ -91,26 +85,14 @@ fn load(input: &mut Input) {
     *input = e;
 }
 
-fn add_key() {
+fn add_action(input: &mut Input) {
     todo!()
 }
 
-fn edit_key() {
+fn edit_action(input: &mut Input) {
     todo!()
 }
 
-fn remove_key() {
-    todo!()
-}
-
-fn add_action() {
-    todo!()
-}
-
-fn edit_action() {
-    todo!()
-}
-
-fn remove_action() {
+fn remove_action(input: &mut Input) {
     todo!()
 }

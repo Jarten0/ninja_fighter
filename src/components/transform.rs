@@ -18,7 +18,8 @@ pub struct Transform {
 }
 
 impl Transform {
-    pub fn startup() {}
+    // pub fn startup() {}
+
     pub fn update(mut query: Query<(&mut Position, &Velocity, &TransformSettings)>) {
         for (mut position, velocity, transform_settings) in query.iter_mut() {
             if transform_settings.auto_update {

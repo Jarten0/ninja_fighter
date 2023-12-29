@@ -15,13 +15,13 @@ pub enum KeycodeType {
 }
 
 impl PartialOrd for KeycodeType {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+    fn partial_cmp(&self, _other: &Self) -> Option<std::cmp::Ordering> {
         todo!()
     }
 }
 
 impl Ord for KeycodeType {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+    fn cmp(&self, _other: &Self) -> std::cmp::Ordering {
         todo!()
     }
 }

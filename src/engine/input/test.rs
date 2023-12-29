@@ -1,7 +1,4 @@
-use crate::engine::{
-    input::{key::keycode_converter::str_to_keycode, test},
-    Key,
-};
+use crate::engine::input::key::keycode_converter::str_to_keycode;
 
 /// Uses the given [`InputModuleType`].
 static INPUT_MODULE: InputModuleType = InputModuleType::EmptyInputModule;
@@ -54,7 +51,7 @@ enum InputModuleType {
 /// `;`: key seperator
 #[test]
 fn convert_action_to_str_test() {
-    use crate::engine::{input::resource::Input, Action};
+    use crate::engine::{input::input_resource::Input, Action};
     use std::str::FromStr;
 
     // Initialize data
@@ -72,22 +69,38 @@ fn convert_action_to_str_test() {
 
     let test_keys_str = match STRING_TEST_KEYS {
         Some(keys) => keys,
-        None => "key1;key2;key3",
+        None => "1;2;3;",
     };
 
-    let key = str_to_keycode(test_keys_str);
+    let mut keys = Vec::new();
+    let mut key_buf = String::new();
+
+    for key_char in test_keys_str.chars() {
+        if key_char == ';' {
+            push_key_to_keylist(&mut keys, &key_buf);
+            key_buf.clear();
+        } else {
+            key_buf.push(key_char);
+        }
+    }
+    if key_buf.len() > 0 {
+        push_key_to_keylist(&mut keys, &key_buf)
+    }
+
+    let _key = str_to_keycode(test_keys_str);
 
     let instantiated_action: Action = Action {
         name: String::from(test_name),
-        keys: Vec::new(),
+        keys,
         status: Default::default(),
     };
 
-    let test_action = String::from(test_name) + "/" + test_keys_str;
+    let test_action = String::from("|") + test_name + "/" + test_keys_str;
 
     // Test Functions
     let string_action = Action::to_string(&instantiated_action.clone());
 
+    println!("{}", string_action);
     let result = Action::from_str(string_action.as_str()).unwrap();
 
     assert_eq!(string_action, test_action);
@@ -98,4 +111,15 @@ fn convert_action_to_str_test() {
     let parsed_action = input_module.get_action(&test_name.clone()).unwrap();
 
     assert_eq!(parsed_action, &instantiated_action);
+}
+
+fn push_key_to_keylist(keys: &mut Vec<super::KeycodeType>, key_buf: &String) {
+    keys.push(
+        str_to_keycode(key_buf.as_str())
+            .ok_or(format!(
+                "Failed to parse key in STRING_TEST_KEYS [{}]",
+                key_buf
+            ))
+            .unwrap(),
+    );
 }

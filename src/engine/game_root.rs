@@ -166,9 +166,11 @@ impl EventHandler for GameRoot {
     ) -> Result<(), ggez::GameError> {
         if input.keycode == Some(ggez::winit::event::VirtualKeyCode::Escape) {
             ctx.request_quit();
-        }
+        };
 
-        todo!();
+        // self.world.resource();
+
+        todo!()
 
         // Ok(())
     }
