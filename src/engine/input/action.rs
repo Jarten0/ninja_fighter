@@ -1,6 +1,9 @@
-use std::{collections::HashMap, str::FromStr};
+use std::str::FromStr;
 
-use super::{key::Key, resource};
+use super::{
+    key::keycode_converter::{keycode_to_str, str_to_keycode},
+    Input, KeycodeType,
+};
 
 /// Declares the current state of the action.
 ///
@@ -53,10 +56,10 @@ impl Default for KeyStatus {
 
 /// Container for an action. An action has a list of keys, and can be queried if any of them are currently active.
 /// When any of the keys are pressed, `status` is set to [`KeyStatus::Pressed`].
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub(crate) struct Action {
     pub name: String,
-    pub(in crate::engine) keys: HashMap<&'static str, &'static Key>,
+    pub(in crate::engine) keys: Vec<KeycodeType>,
     pub(super) status: KeyStatus,
 }
 
@@ -65,11 +68,7 @@ impl Action {
     /// Returns a mutable reference to the action which is now owned by the [`Input`] module
     ///
     /// Use `Input::get_action` or `Input::get_action_mut` to alter the action later.
-    pub fn new<'a>(
-        input: &'a mut resource::Input,
-        name: String,
-        keys: HashMap<&'static str, &'static Key>,
-    ) -> &'a mut Action {
+    pub fn new<'a>(input: &'a mut Input, name: String, keys: Vec<KeycodeType>) -> &'a mut Action {
         input.new_action(Self {
             name: name.clone(),
             keys,
@@ -79,23 +78,41 @@ impl Action {
         return input.get_action_mut(&name).unwrap();
     }
 
-    /// Adds a new [`Key`] to the key list for the [`Action`]
-    pub fn add_key(&mut self, key: &'static Key) {
-        self.keys.insert(key.name, key);
+    /// Adds a new [`Key`] to the key list for the [`Action`].
+    ///
+    /// Returns [`Ok`] if the key exists.
+    ///
+    /// Returns [`Err`] if the key does not exist.
+    pub fn add_key(&mut self, key_str: KeycodeType, input: &Input) -> Result<(), &'static str> {
+        self.keys.push(key_str);
+
+        Ok(())
     }
 
-    /// Removes a [`Key`] from the key list for the [`Action`]
-    pub fn remove_key(&mut self, key: &'static Key) {
-        self.keys.remove(key.name);
+    /// Removes a Key from the key list for the [`Action`]
+    ///
+    /// Returns [`Ok`] if the key if found
+    ///
+    /// Returns [`Err`] if the key is not found
+    pub fn remove_key(&mut self, key: KeycodeType) -> Result<KeycodeType, &str> {
+        match self.keys.binary_search(&key) {
+            Ok(index) => Ok(self.keys.remove(index)),
+            Err(_) => Err("Key doesn't exist, or the list is not sorted"),
+        }
     }
 
     /// Updates the [`Action`]'s status based upon the keys in it's list. Prioritizes new key presses over key releases.
-    pub fn update(&mut self) {
+    pub fn update(&mut self, input: &Input) {
         let mut any_key_pressed_this_frame = false;
         let mut any_key_held_this_frame = false;
 
-        for (_, key_value) in self.keys.iter() {
-            match key_value.status {
+        for reference_to_stored_key in self.keys.iter() {
+            let key_with_current_status = match input.get_key(reference_to_stored_key) {
+                Some(val) => val,
+                None => panic!("called `Option::unwrap()` on a `None` value"),
+            };
+
+            match key_with_current_status.status {
                 KeyStatus::Pressed => any_key_pressed_this_frame = true,
                 KeyStatus::Held(_) => any_key_held_this_frame = true,
                 KeyStatus::Released => (),
@@ -140,19 +157,20 @@ impl ToString for Action {
         output.push('|');
         output.push_str(&self.name);
 
-        for (key_str, key) in &self.keys {
-            output.push_str(key_str);
+        for key_type in &self.keys {
+            output.push_str(keycode_to_str(key_type.clone()).unwrap());
             output.push_str("_")
         }
 
         output.push('|');
+
         // todo!();
 
         output
     }
 }
 
-impl Action {
+impl FromStr for Action {
     /// sample value: "Action Name/key1;key2;key3|actionName2/key1;key4;key6|"
     ///
     /// `|`: action seperator
@@ -160,50 +178,44 @@ impl Action {
     /// `/`: name and keys seperator
     ///
     /// `;`: key seperator
-    pub(in crate::engine) fn from_str(
-        value: &str,
-        input: &mut resource::Input,
-    ) -> Result<Self, &'static str> {
-        let name_seperator = value.find('/').expect(
-            "action save value is invalid. (Could not find name and keys character seperator, aka '/')",
-        );
+    fn from_str(value: &str) -> Result<Action, &'static str> {
+        let name_seperator = value.find('/').ok_or("action save value is invalid. (Could not find name and keys character seperator, aka '/')")?;
 
         let end_of_string = value.len();
 
         let name = value
             .get(0..name_seperator)
-            .expect("action save value is invalid. (Parsing the name of the action failed)")
+            .ok_or("action save value is invalid. (Parsing the name of the action failed)")?
             .to_owned();
 
         let keys_str = value
             .get(name_seperator..end_of_string)
-            .expect("action save value is invalid. (keys_str is invalid)");
+            .ok_or("action save value is invalid. (keys_str is invalid)")?;
 
-        let keys: HashMap<&str, &Key> = HashMap::new();
+        let mut keys: Vec<KeycodeType> = Vec::new();
 
-        let mut action = Action {
+        let mut key_token_buf = String::new();
+        for char in keys_str.chars() {
+            if char == ';' {
+                keys.push({
+                    match str_to_keycode(key_token_buf.as_str()) {
+                        Some(val) => val,
+                        None => return Err("Invalid key type"),
+                    }
+                });
+            } else {
+                key_token_buf.push(char)
+            }
+        }
+
+        let action = Action {
             name,
             keys,
             status: KeyStatus::default(),
         };
 
-        let key_token_buf = String::new();
-
-        for char in keys_str.chars() {
-            if char == ';' {
-                action.keys.insert(
-                    &key_token_buf,
-                    input.get_key_from_str(&key_token_buf).expect(
-                        format!(
-                            "action save value is invalid. (failed to parse key value {})",
-                            key_token_buf
-                        )
-                        .as_str(),
-                    ),
-                );
-            }
-        }
-
         Ok(action)
     }
+
+    type Err = &'static str;
 }

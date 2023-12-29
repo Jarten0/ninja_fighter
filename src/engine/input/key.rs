@@ -2,7 +2,7 @@ pub mod input_hashmap;
 pub mod keycode_converter;
 pub mod stringcode;
 
-use self::keycode_converter::KeyTypes;
+use self::keycode_converter::KeycodeType;
 
 use super::{action::KeyStatus, Input};
 use ggez::input::keyboard::KeyCode;
@@ -48,7 +48,7 @@ impl Default for Key {
     fn default() -> Self {
         Self {
             keycode: StringifiableKeyCode {
-                0: KeyTypes::Keyboard(KeyCode::Z),
+                0: KeycodeType::Keyboard(KeyCode::Z),
             },
             name: "None",
             status: Default::default(),

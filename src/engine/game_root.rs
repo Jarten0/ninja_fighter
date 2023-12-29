@@ -1,4 +1,4 @@
-use crate::engine::input::KeyTypes;
+use crate::engine::input::KeycodeType;
 use crate::engine::Input;
 use bevy_ecs::schedule::Schedule;
 
@@ -100,9 +100,12 @@ impl EventHandler for GameRoot {
     ) -> Result<(), ggez::GameError> {
         let mut input: Mut<'_, Input> = self.world.resource_mut();
 
-        let i = Input::get_key_mut(&mut input, &mut KeyTypes::Mouse(_button)).unwrap();
+        let _i = Input::get_key_mut(&mut input, &mut KeycodeType::Mouse(_button)).unwrap();
 
-        Input::update_key_queue(&mut input, *i.keycode, true);
+        // TODO: Change this Input call to use a different value
+        // Input::update_key_queue(&mut input, *i.keycode, true);
+
+        todo!();
 
         // {
         //     return Err(ggez::GameError::CustomError(String::from(
@@ -110,7 +113,7 @@ impl EventHandler for GameRoot {
         //     )));
         // }
 
-        Ok(())
+        // Ok(())
     }
 
     fn mouse_button_up_event(

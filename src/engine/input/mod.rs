@@ -9,6 +9,7 @@
 //!
 //! * [`Action`] - Basic container for assigning [`Key`]'s to user script actions.
 //!
+#[cfg(test)]
 pub(self) mod test;
 
 pub(self) mod action;
@@ -17,7 +18,7 @@ pub(self) mod main;
 pub(self) mod resource;
 
 pub(crate) use action::{Action, KeyStatus};
-pub(crate) use key::keycode_converter::KeyTypes;
+pub(crate) use key::keycode_converter::KeycodeType;
 pub(crate) use key::Key;
 pub(crate) use main::main as input_cli_editor;
 pub(crate) use resource::Input;

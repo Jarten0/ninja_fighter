@@ -1,5 +1,5 @@
 use super::action::{Action, KeyStatus};
-use super::key::keycode_converter::KeyTypes;
+use super::key::keycode_converter::KeycodeType;
 use super::key::{input_hashmap, keycode_converter, Key};
 use bevy_ecs::system::Resource;
 use std::collections::{HashMap, LinkedList};
@@ -28,16 +28,16 @@ use std::str::FromStr;
 #[derive(Resource)]
 #[allow(dead_code)]
 pub(crate) struct Input
-where
-    Self: 'static,
+// where
+//     Self: 'static,
 {
     /// cli_mode is a special value, as it's equal to false during normal runtime. The only time it equates to true is when you are editing the Input module
     /// through the input CLI editor, which enables you to adjust keys specifically.
     cli_mode: bool,
     // the rest of these are used in normal use cases
     actions: HashMap<String, Action>,
-    keylist: HashMap<KeyTypes, Key>,
-    key_update_queue: LinkedList<(KeyTypes, bool)>,
+    keylist: HashMap<KeycodeType, Key>,
+    key_update_queue: LinkedList<(KeycodeType, bool)>,
 }
 
 #[allow(dead_code)]
@@ -63,7 +63,7 @@ impl Input {
         input
     }
 
-    pub(in crate::engine) fn update_key_queue(&mut self, key: KeyTypes, is_held: bool) {
+    pub(in crate::engine) fn update_key_queue(&mut self, key: KeycodeType, is_held: bool) {
         self.key_update_queue.push_front((key, is_held))
     }
 
@@ -71,11 +71,19 @@ impl Input {
         for (keycode, key) in &mut self.keylist {}
     }
 
-    pub(in crate::engine) fn get_key(&self, key: &KeyTypes) -> Option<&Key> {
+    pub(crate) fn does_key_exist(&self, key_str: &'static str) -> bool {
+        let k = match keycode_converter::str_to_keycode(key_str) {
+            Some(k) => k,
+            None => return false,
+        };
+        self.keylist.contains_key(&k)
+    }
+
+    pub(in crate::engine) fn get_key(&self, key: &KeycodeType) -> Option<&Key> {
         self.keylist.get(key)
     }
 
-    pub(in crate::engine) fn get_key_mut(&mut self, key: &KeyTypes) -> Option<&mut Key> {
+    pub(in crate::engine) fn get_key_mut(&mut self, key: &KeycodeType) -> Option<&mut Key> {
         self.keylist.get_mut(key)
     }
 
@@ -172,13 +180,13 @@ impl FromStr for Input {
         let mut new_input_module = Self::new();
         let mut action_token_buf = String::new();
 
-        for char in value.chars() {
-            if char == '|' {
-                new_input_module
-                    .new_action(Action::from_str(&action_token_buf, &mut new_input_module)?);
+        for character in value.chars() {
+            if character == '|' {
+                Action::from_str(action_token_buf.as_str());
+
                 action_token_buf = String::new();
             } else {
-                action_token_buf.push(char);
+                action_token_buf.push(character);
             }
         }
 
