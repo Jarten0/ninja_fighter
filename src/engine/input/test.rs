@@ -93,6 +93,7 @@ fn convert_action_to_str_test() {
         name: String::from(test_name),
         keys,
         status: Default::default(),
+        default_keys: Vec::new(),
     };
 
     let test_action = String::from("|") + test_name + "/" + test_keys_str;

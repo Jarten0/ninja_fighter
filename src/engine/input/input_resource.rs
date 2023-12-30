@@ -28,16 +28,18 @@ use std::str::FromStr;
 #[derive(Resource)]
 #[allow(dead_code)]
 pub(crate) struct Input
-// where
-//     Self: 'static,
+where
+    Self: 'static,
 {
     /// cli_mode is a special value, as it's equal to false during normal runtime. The only time it equates to true is when you are editing the Input module
     /// through the input CLI editor, which enables you to adjust keys specifically.
+    ///
+    ///  // Currently unused atm btw, don't know if its even useful. the docs lie since the code is still in development
     cli_mode: bool,
     // the rest of these are used in normal use cases
-    actions: HashMap<String, Action>,
-    keylist: HashMap<KeycodeType, Key>,
-    key_update_queue: LinkedList<(KeycodeType, bool)>,
+    pub(super) actions: HashMap<String, Action>,
+    pub(super) keylist: HashMap<KeycodeType, Key>,
+    pub(super) key_update_queue: LinkedList<(KeycodeType, bool)>,
 }
 
 #[allow(dead_code)]
@@ -71,7 +73,7 @@ impl Input {
         for (_keycode, _key) in &mut self.keylist {}
     }
 
-    pub(crate) fn does_key_exist(&self, key_str: &'static str) -> bool {
+    pub(crate) fn does_key_exist(&self, key_str: &str) -> bool {
         let k = match keycode_converter::str_to_keycode(key_str) {
             Some(k) => k,
             None => return false,
@@ -102,14 +104,25 @@ impl Input {
         action.status
     }
 
-    /// Wrapper function for HashMap::get. Returns [`Some(&Action)`] if the action exists, and returning [`None`] if not.
+    /// Wrapper function for `HashMap::get`. Returns [`Some(&Action)`] if the action exists, and returning [`None`] if not.
     pub fn get_action(&mut self, action_name: &str) -> Option<&Action> {
         self.actions.get(action_name)
     }
 
-    /// Wrapper function for HashMap::get_mut. Returns [`Some(&Action)`] if the action exists, and returning [`None`] if not.
+    /// Wrapper function for `HashMap::get_mut`.
+    ///
+    /// Returns [`Some`] if the action exists, and returning [`None`] if not.
     pub fn get_action_mut(&mut self, action_name: &str) -> Option<&mut Action> {
         self.actions.get_mut(action_name)
+    }
+
+    /// Wrapper function for `HashMap::remove`.
+    ///
+    /// Returns [`Some`] if the action exists.
+    ///
+    /// Returns [`None`] if the action doesn't exist.
+    pub fn remove_action(&mut self, action_name: &str) -> Option<Action> {
+        self.actions.remove(action_name)
     }
 }
 

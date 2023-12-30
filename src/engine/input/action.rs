@@ -37,6 +37,8 @@ pub(crate) enum KeyStatus {
     Idle(u32),
 }
 
+type a = KeyStatus;
+
 impl KeyStatus {
     pub fn is_held(&self) -> bool {
         match self {
@@ -56,11 +58,14 @@ impl Default for KeyStatus {
 
 /// Container for an action. An action has a list of keys, and can be queried if any of them are currently active.
 /// When any of the keys are pressed, `status` is set to [`KeyStatus::Pressed`].
+///
+/// It also contains a set of default keys that can only be changed outside of gameplay.
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub(crate) struct Action {
     pub name: String,
     pub(in crate::engine) keys: Vec<KeycodeType>,
     pub(super) status: KeyStatus,
+    pub(in crate::engine) default_keys: Vec<KeycodeType>,
 }
 
 impl Action {
@@ -73,6 +78,7 @@ impl Action {
             name: name.clone(),
             keys,
             status: KeyStatus::Idle(0),
+            default_keys: Vec::new(),
         });
 
         return input.get_action_mut(&name).unwrap();
@@ -83,7 +89,7 @@ impl Action {
     /// Returns [`Ok`] if the key exists.
     ///
     /// Returns [`Err`] if the key does not exist.
-    pub fn add_key(&mut self, key_str: KeycodeType, _input: &Input) -> Result<(), &'static str> {
+    pub fn add_key(&mut self, key_str: KeycodeType) -> Result<(), &'static str> {
         self.keys.push(key_str);
 
         Ok(())
@@ -229,6 +235,7 @@ impl FromStr for Action {
             name,
             keys,
             status: KeyStatus::default(),
+            default_keys: Vec::new(),
         };
 
         Ok(action)

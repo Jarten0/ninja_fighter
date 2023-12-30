@@ -31,3 +31,5 @@ pub(crate) use input_resource::Input;
 pub(crate) use key::keycode_converter::KeycodeType;
 pub(crate) use key::Key;
 pub(crate) use main::main as input_cli_editor;
+
+mod prompt;
