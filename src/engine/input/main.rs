@@ -1,11 +1,10 @@
-use crate::engine::input::{
-    key::keycode_converter::keycode_to_str,
-    prompt::{prompt_bool, prompt_keycode},
-};
+use crate::engine::input::key::keycode_converter::keycode_to_str;
 
-use super::{
-    prompt::{self, prompt_string},
-    Action, Input,
+use super::{Action, Input};
+
+use inquire::{
+    validator::{StringValidator, Validation},
+    Text,
 };
 
 const HOME_HELP_TEXT: &str = "
@@ -44,32 +43,42 @@ pub fn main() -> ! {
 
     let mut input_module: Input = Input::new();
     loop {
-        println!(">");
-        let mut io_input = String::new();
-        if let Err(err) = std::io::stdin().read_line(&mut io_input) {
-            println!("Could not figure out what you asked, try again. Use `help` to see possible commands. ({})", err);
-            continue;
-        }
+        let char_limit = |input: &str| match input.chars().count() <= 20 {
+            true => Ok(Validation::Valid),
+            false => Ok(Validation::Invalid(
+                "Max command length is 20 characters".into(),
+            )),
+        };
 
-        io_input = io_input.to_lowercase();
+        let mut user_input = match Text::new("theeehee").with_validator(char_limit).prompt() {
+            Ok(input) => input,
+            Err(err) => {
+                println!("Err? [{}]", err);
+                continue;
+            }
+        };
+        user_input = user_input.to_lowercase();
 
-        io_input.pop();
-        io_input.pop();
-
-        if io_input == String::from("help") {
+        if user_input == String::from("help") {
             help();
-        } else if io_input == String::from("save") {
+        } else if user_input == String::from("save") {
             save(&mut input_module);
-        } else if io_input == String::from("load") {
+        } else if user_input == String::from("load") {
             load(&mut input_module);
-        } else if io_input == String::from("add_action") {
+        } else if user_input == String::from("add_action") {
             add_action(&mut input_module);
-        } else if io_input == String::from("edit_action") {
+        } else if user_input == String::from("edit_action") {
             edit_action(&mut input_module);
-        } else if io_input == String::from("remove_action") {
+        } else if user_input == String::from("remove_action") {
             remove_action(&mut input_module);
-        } else if io_input == String::from("exit") {
-            if prompt_bool("Are you sure? Any unsaved work will be lost ") {
+        } else if user_input == String::from("exit") {
+            let prompt =
+                inquire::Confirm::new("Are you sure? Any unsaved work will be lost ").prompt();
+            match prompt {
+                Ok(..) => (),
+                Err(_) => continue,
+            }
+            if prompt.unwrap() {
                 std::process::exit(0);
             }
         } else {

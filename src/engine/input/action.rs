@@ -37,8 +37,6 @@ pub(crate) enum KeyStatus {
     Idle(u32),
 }
 
-type a = KeyStatus;
-
 impl KeyStatus {
     pub fn is_held(&self) -> bool {
         match self {
