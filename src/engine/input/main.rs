@@ -1,11 +1,10 @@
+use std::collections::HashMap;
+
 use crate::engine::input::key::keycode_converter::keycode_to_str;
 
-use super::{Action, Input};
+use super::{Action, Input, KeycodeType};
 
-use inquire::{
-    validator::{StringValidator, Validation},
-    Text,
-};
+use inquire::{validator::Validation, Confirm, CustomType, Text};
 
 const HOME_HELP_TEXT: &str = "
 Welcome to my humble abode
@@ -34,6 +33,19 @@ You can edit the default bindings using `edit`
 * `exit` - exits the key editor, returning to the main loop.
 ";
 
+fn int_prompt_type() -> CustomType<'static, i32> {
+    let mut int_type: CustomType<i32> = CustomType::new("Whaaa").with_default(0);
+
+    int_type
+}
+
+fn keycode_prompt_type() -> CustomType<'static, KeycodeType> {
+    let custom_type: CustomType<'_, KeycodeType> =
+        CustomType::new("Heehee").with_help_message("This is keycode");
+
+    custom_type
+}
+
 /// Welcome to the input CLI editor! Here you can create new keys and alter the input data from the command line!
 /// Mostly useful early on when setting things up.
 pub fn main() -> ! {
@@ -42,14 +54,29 @@ pub fn main() -> ! {
     println!("You can always hit enter with no input to exit the current prompt.");
 
     let mut input_module: Input = Input::new();
-    loop {
-        let char_limit = |input: &str| match input.chars().count() <= 20 {
-            true => Ok(Validation::Valid),
-            false => Ok(Validation::Invalid(
-                "Max command length is 20 characters".into(),
-            )),
-        };
 
+    let char_limit = |input: &str| match input.chars().count() <= 20 {
+        true => Ok(Validation::Valid),
+        false => Ok(Validation::Invalid(
+            "Max command length is 20 characters".into(),
+        )),
+    };
+
+    let mut action_to_function: HashMap<&str, fn(&mut Input) -> ()> = HashMap::new();
+    let vec: Vec<(&str, fn(&mut Input))> = vec![
+        ("help", help),
+        ("save", save),
+        ("load", load),
+        ("add_action", add_action),
+        ("edit_action", edit_action),
+        ("remove_action", remove_action),
+    ];
+
+    for (input, func) in vec {
+        action_to_function.insert(input, func);
+    }
+
+    loop {
         let mut user_input = match Text::new("theeehee").with_validator(char_limit).prompt() {
             Ok(input) => input,
             Err(err) => {
@@ -59,21 +86,8 @@ pub fn main() -> ! {
         };
         user_input = user_input.to_lowercase();
 
-        if user_input == String::from("help") {
-            help();
-        } else if user_input == String::from("save") {
-            save(&mut input_module);
-        } else if user_input == String::from("load") {
-            load(&mut input_module);
-        } else if user_input == String::from("add_action") {
-            add_action(&mut input_module);
-        } else if user_input == String::from("edit_action") {
-            edit_action(&mut input_module);
-        } else if user_input == String::from("remove_action") {
-            remove_action(&mut input_module);
-        } else if user_input == String::from("exit") {
-            let prompt =
-                inquire::Confirm::new("Are you sure? Any unsaved work will be lost ").prompt();
+        if user_input == String::from("exit") {
+            let prompt = Confirm::new("Are you sure? Any unsaved work will be lost ").prompt();
             match prompt {
                 Ok(..) => (),
                 Err(_) => continue,
@@ -81,55 +95,56 @@ pub fn main() -> ! {
             if prompt.unwrap() {
                 std::process::exit(0);
             }
+        } else if let Some(f) = action_to_function.get(user_input.as_str()) {
+            f(&mut input_module)
         } else {
             println!("Invalid input.");
         }
     }
 }
 
-fn help() {
+fn help(_: &mut Input) {
     println!("{}", HOME_HELP_TEXT)
 }
 
 fn save(input: &mut Input) {
-    input.save_to_file();
+    match Confirm::new("Are you sure? This will overwrite any previous saved data").prompt() {
+        Ok(_response_yes) if _response_yes => input.save_to_file(),
+        Ok(_response_no) => println!("Save aborted."),
+        Err(err) => {
+            eprintln!("Inquire error! Save aborted. [{}]", err);
+            return;
+        }
+    }
 }
 
 fn load(input: &mut Input) {
-    *input = Input::load();
+    if input.actions.len() == 0 {
+        *input = Input::load();
+        return;
+    }
 
-    // let dir = match std::env::current_dir() {
-    //     Ok(path) => path,
-    //     Err(err) => panic!("Path directory error! What? {}", err),
-    // };
-
-    // let key_path = dir.join(PathBuf::from("/src/input/keyData.txt"));
-    // let mut key_file = match std::fs::File::open(key_path) {
-    //     Ok(path) => path,
-    //     Err(err) => panic!("Key file could not be opened! {}", err),
-    // };
-
-    // let mut buf = String::new();
-    // match key_file.read_to_string(&mut buf) {
-    //     Ok(_) => (),
-    //     Err(err) => panic!("Invalid file read! {}", err),
-    // }
-    // let e = match Input::from_str(&buf) {
-    //     Ok(e) => e,
-    //     Err(e) => panic!("Uhoh {}", e),
-    // };
-
-    // *input = e;
+    match Confirm::new(
+        "Are you sure? This will overwrite the currently stored data, losing any unsaved work",
+    )
+    .prompt()
+    {
+        Ok(_response_yes) if _response_yes => *input = Input::load(),
+        Ok(_response_no) => println!("Load aborted."),
+        Err(err) => {
+            eprintln!("Inquire error! Load aborted. [{}]", err);
+            return;
+        }
+    }
 }
 
 fn add_action(input: &mut Input) {
-    let name = prompt::prompt_string("Name of the action >");
+    let name = Text::new("Name of the action >").prompt().unwrap();
+
     let mut keys = Vec::new();
 
-    for key in 0..prompt::prompt_int("Number of keys >") {
-        keys.push(prompt::prompt_keycode(
-            format!("Name of key #{}", key).as_str(),
-        ));
+    for key in 0..int_prompt_type().prompt().unwrap() {
+        keys.push(keycode_prompt_type().prompt().unwrap());
     }
     Action::new(input, name, keys);
 }
@@ -140,7 +155,11 @@ fn edit_action(input_module: &mut Input) {
         print!("{}", action_key);
     }
     let action_ref = loop {
-        match input_module.get_action_mut(&prompt_string("Which action do you want to edit?")) {
+        match input_module.get_action_mut(
+            &Text::new("Which action do you want to edit?")
+                .prompt()
+                .unwrap(),
+        ) {
             Some(action) => break action,
             None => println!("Action does not exist"),
         }
@@ -155,17 +174,30 @@ fn edit_action(input_module: &mut Input) {
             println!("{}", keycode_to_str(key).unwrap());
         }
         println!("List of available actions: help, add, remove, clear, reset, rename, edit, exit");
-        let input_string = prompt_string("Which action do you want to take >").to_lowercase();
+        let input_string = Text::new("Which action do you want to take >")
+            .prompt()
+            .unwrap()
+            .to_lowercase();
         let input_str = input_string.as_str();
 
         if input_str == "help" {
             println!("{}", ACTION_EDITOR_HELP_TEXT)
         } else if input_str == "add" {
-            let _ = action_ref.add_key(prompt_keycode("Name of key to add"));
+            let _ = action_ref.add_key(
+                keycode_prompt_type()
+                    .with_help_message("Name of key to add")
+                    .prompt()
+                    .unwrap(),
+            );
         } else if input_str == "clear" {
             action_ref.keys.clear();
         } else if input_str == "remove" {
-            let _ = action_ref.remove_key(prompt_keycode("Name of key to remove"));
+            let _ = action_ref.remove_key(
+                keycode_prompt_type()
+                    .with_help_message("Name of key to remove")
+                    .prompt()
+                    .unwrap(),
+            );
         } else if input_str == "exit" {
             break;
         }
@@ -178,8 +210,9 @@ fn remove_action(input: &mut Input) {
         print!("{}", action_key);
     }
     loop {
-        let prompted_action =
-            prompt_string("Which action would you like to remove? [Case sensitive]");
+        let prompted_action = Text::new("Which action would you like to remove? [Case sensitive]")
+            .prompt()
+            .unwrap();
 
         let does_key_exist = input.does_key_exist(&prompted_action);
 
@@ -188,7 +221,7 @@ fn remove_action(input: &mut Input) {
             continue;
         }
 
-        if prompt_bool("Are you sure? ") {
+        if Confirm::new("Are you sure? ").prompt().unwrap() {
             input.remove_action(&prompted_action);
         }
     }

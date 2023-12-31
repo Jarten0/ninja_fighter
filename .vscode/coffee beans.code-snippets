@@ -47,5 +47,27 @@
 		"description": "Creates a new template component for writing scripts with"
 	},
 
+	"StaticOnceCell": {
+		"scope": "rust",
+		"prefix": "once_cell",
+		"body": [
+// "#[derive(bevy_ecs::component::Component)]",
+// "pub struct ${1: Component} {",
+// "	pub ${2:field}: $3,",
+// "}",
+"fn ${1:static_variable}() -> ${2:Type} {",
+"    static ${3:VARIABLE}: OnceLock<${2:Type}> = OnceLock::new();",
+"    ${3:VARIABLE}.get_or_init(|| {",
+"		let mut ${4:variable}: ${2:Type} = ${2:Type}${0}::new()",
+"",
+"		${4:variable}",
+"    })",
+"}",
+		],
+		"description": "Creates a function that returns a lazily-loaded static variable"
+	},
+
+
+
 
 }

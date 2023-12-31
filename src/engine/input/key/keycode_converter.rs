@@ -1,6 +1,7 @@
 //! Provides several conversion tables for converting from strings and keycodes
 //!
 
+use std::str::FromStr;
 use std::{collections::HashMap, sync::OnceLock};
 
 use enum_iterator::Sequence;
@@ -12,6 +13,23 @@ pub enum KeycodeType {
     Keyboard(KeyCode),  // 161 variants
     Gamepad(Button),    // 18 variants
     Mouse(MouseButton), // 4 variants
+}
+
+impl ToString for KeycodeType {
+    fn to_string(&self) -> String {
+        String::from(keycode_to_str(*self).unwrap())
+    }
+}
+
+impl FromStr for KeycodeType {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match str_to_keycode(s) {
+            Some(value) => Ok(value),
+            None => Err("Keycode not found!"),
+        }
+    }
 }
 
 impl PartialOrd for KeycodeType {
