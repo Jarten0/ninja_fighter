@@ -15,4 +15,4 @@ pub(super) use game_root::GameRoot;
 pub(super) use input::input_cli_editor;
 #[allow(unused_imports)]
 pub(crate) use input::{Action, Input, Key};
-pub(crate) use render_resource::MainCanvas;
+pub(crate) use render_resource::Engine;

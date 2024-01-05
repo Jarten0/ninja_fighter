@@ -1,16 +1,19 @@
-use bevy_ecs::system::{Query, ResMut};
+pub mod render_type;
+
+use bevy_ecs::system::Query;
+use bevy_ecs::system::ResMut;
 use ggez::graphics::{self as ggraphics, *};
 
-use crate::{
-    engine::space::{self},
-    engine::MainCanvas,
-};
+use crate::engine::space;
+use crate::engine::Engine;
+
+use super::transform::Transform;
 
 #[derive(bevy_ecs::component::Component)]
 pub struct Renderer {
-    pub image: RenderType,
+    pub image: render_type::RenderType,
     pub draw_param: DrawParam,
-    pub transform: super::Transform,
+    pub transform: super::transform::Transform,
     pub offset: space::Position,
 }
 
@@ -18,7 +21,7 @@ pub struct Renderer {
 impl Renderer {
     /// Creates a new basic Renderer component for regular use.
     /// Use `Renderer::set()` to alter the offset and extra draw settings, or `Renderer::new_opt()` to directly set those values during initialization.
-    pub fn new(image: RenderType, transform: super::Transform) -> Self {
+    pub fn new(image: render_type::RenderType, transform: super::transform::Transform) -> Self {
         let draw_param = DrawParam {
             src: Default::default(),
             color: Color::WHITE,
@@ -37,8 +40,8 @@ impl Renderer {
 
     /// Similar to `Renderer::new()`, but with extra parameters for other values.
     pub fn new_opt(
-        image: RenderType,
-        transform: super::Transform,
+        image: render_type::RenderType,
+        transform: Transform,
         draw_param: DrawParam,
         offset: space::Position,
     ) -> Self {
@@ -60,7 +63,7 @@ impl Renderer {
 impl Renderer {
     pub fn default(gfx: &GraphicsContext) -> Self {
         Self {
-            image: RenderType::default(gfx),
+            image: render_type::RenderType::default(gfx),
             draw_param: Default::default(),
             transform: Default::default(),
             offset: Default::default(),
@@ -68,43 +71,22 @@ impl Renderer {
     }
 }
 
-impl Renderer {
-    pub fn draw(query: Query<&Renderer>, mut main_canvas: ResMut<MainCanvas>) {
-        for renderer in query.iter() {
-            let canvas_option = main_canvas.get_canvas_mut();
+pub fn draw(query: Query<&Renderer>, mut main_canvas: ResMut<Engine>) {
+    for renderer in query.iter() {
+        let canvas_option = main_canvas.get_canvas_mut();
 
-            let mut canvas = match canvas_option {
-                Some(canvas) => canvas,
-                None => return,
-            };
+        let mut canvas = match canvas_option {
+            Some(canvas) => canvas,
+            None => return,
+        };
 
-            match &renderer.image {
-                RenderType::Image(image) => {
-                    ggraphics::Canvas::draw(&mut canvas, image, renderer.draw_param)
-                }
-                RenderType::InstanceArray(_) => todo!(),
-                RenderType::Mesh(_) => todo!(),
-                RenderType::Text(_) => todo!(),
+        match &renderer.image {
+            render_type::RenderType::Image(image) => {
+                ggraphics::Canvas::draw(&mut canvas, image, renderer.draw_param)
             }
+            render_type::RenderType::InstanceArray(_) => todo!(),
+            render_type::RenderType::Mesh(_) => todo!(),
+            render_type::RenderType::Text(_) => todo!(),
         }
-    }
-}
-
-#[allow(dead_code)]
-pub enum RenderType {
-    Image(Image),
-    InstanceArray(InstanceArray),
-    Mesh(Mesh),
-    Text(Text),
-}
-
-impl RenderType {
-    pub fn default(gfx: &GraphicsContext) -> Self {
-        Self::Image(Image::from_color(
-            gfx,
-            100,
-            100,
-            Some(ggraphics::Color::RED),
-        ))
     }
 }

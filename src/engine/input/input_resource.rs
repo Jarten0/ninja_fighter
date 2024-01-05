@@ -42,6 +42,19 @@ where
     pub(super) key_update_queue: LinkedList<(KeycodeType, bool)>,
 }
 
+impl std::fmt::Debug for Input
+where
+    Self: 'static,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Input")
+            .field("cli_mode", &self.cli_mode)
+            .field("actions", &self.actions)
+            .field("key_update_queue", &self.key_update_queue)
+            .finish()
+    }
+}
+
 #[allow(dead_code)]
 impl Input {
     /// Returns a new [`Input`] resource. Should only be used when resetting the engine. Use `Input::load` unless you have a specific reason to use this.

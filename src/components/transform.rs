@@ -17,14 +17,10 @@ pub struct Transform {
     pub settings: TransformSettings,
 }
 
-impl Transform {
-    // pub fn startup() {}
-
-    pub fn update(mut query: Query<(&mut Position, &Velocity, &TransformSettings)>) {
-        for (mut position, velocity, transform_settings) in query.iter_mut() {
-            if transform_settings.auto_update {
-                position.translate(velocity);
-            }
+pub fn update(mut query: Query<(&mut Position, &Velocity, &TransformSettings)>) {
+    for (mut position, velocity, transform_settings) in query.iter_mut() {
+        if transform_settings.auto_update {
+            position.translate(velocity);
         }
     }
 }

@@ -1,14 +1,12 @@
 use crate::engine::input::KeycodeType;
+use crate::engine::Engine;
 use crate::engine::Input;
-use bevy_ecs::schedule::Schedule;
 
-use crate::components::ProtagBundle;
-use crate::engine::MainCanvas;
+use bevy_ecs::schedule::Schedule;
+use bevy_ecs::world::*;
 use ggez::event::{self, EventHandler};
 use ggez::graphics::{self, Color};
 use ggez::{Context, GameResult};
-
-use bevy_ecs::world::*;
 
 /// A basic container-struct that handles [`ggez`]'s events and interfaces with [`bevy_ecs`]'s ECS to provide full engine functionality.
 /// Use the [`components::context::WorldInfo`] component in a query, then use `WorldInfo.game_info.` to access.
@@ -27,27 +25,25 @@ where
     // pub game_info: GameInfo,
     schedule: Schedule,
     draw_schedule: Schedule,
+    init_schedule: Schedule,
     world: World,
+    debug: bool,
 }
 
 impl GameRoot {
-    /// Simply changes the context value in the GameInfo resource to the input
-    fn update_context(&mut self, ctx: &mut Context) {
-        self.get_game_info().context_ptr = ctx;
-    }
-
-    fn get_game_info(&mut self) -> Mut<'_, MainCanvas> {
-        self.world.resource_mut::<MainCanvas>()
-    }
-
     /// Loads and initialized essential data for [`bevy_ecs`] operations, specifically the [`GameRoot`] and [`MainCanvas`] structs
     pub(crate) fn new(context: &mut Context) -> Self {
-        let (schedule, draw_schedule) =
-            crate::engine::schedule::schedule_systems(Schedule::default(), Schedule::default());
+        if false {
+            super::input_cli_editor();
+        }
+
+        let debug = false;
+
+        let (schedule, draw_schedule, init_schedule) = super::schedule::create_schedules();
 
         let mut world = World::new();
 
-        let game_info = MainCanvas::new(context);
+        let game_info = Engine::new(context);
         World::insert_resource(&mut world, game_info);
 
         let input = Input::load();
@@ -56,14 +52,24 @@ impl GameRoot {
         let mut root = GameRoot {
             schedule,
             draw_schedule,
+            init_schedule,
             world,
+            debug,
         };
         GameRoot::update_context(&mut root, context);
 
-        let bundle = ProtagBundle::default(&mut root.get_game_info());
-        World::spawn(&mut root.world, bundle);
+        root.init_schedule.run(&mut root.world);
 
         root
+    }
+
+    /// Simply changes the context value in the GameInfo resource to the input
+    fn update_context(&mut self, ctx: &mut Context) {
+        self.get_game_info().context_ptr = ctx;
+    }
+
+    fn get_game_info(&mut self) -> Mut<'_, Engine> {
+        self.world.resource_mut::<Engine>()
     }
 }
 
@@ -168,21 +174,33 @@ impl EventHandler for GameRoot {
             ctx.request_quit();
         };
 
-        // self.world.resource();
+        let virtual_key_code = match input.keycode {
+            Some(keycode) => keycode,
+            None => return Err(ggez::GameError::GamepadError(String::from("Wut"))),
+        };
 
-        todo!()
+        self.world
+            .resource_mut::<Input>()
+            .update_key_queue(KeycodeType::Keyboard(virtual_key_code), true);
 
-        // Ok(())
+        Ok(())
     }
 
     fn key_up_event(
         &mut self,
         _ctx: &mut Context,
-        _input: ggez::input::keyboard::KeyInput,
+        input: ggez::input::keyboard::KeyInput,
     ) -> Result<(), ggez::GameError> {
-        todo!();
+        let virtual_key_code = match input.keycode {
+            Some(keycode) => keycode,
+            None => return Err(ggez::GameError::GamepadError(String::from("Wut"))),
+        };
 
-        // Ok(())
+        self.world
+            .resource_mut::<Input>()
+            .update_key_queue(KeycodeType::Keyboard(virtual_key_code), false);
+
+        Ok(())
     }
 
     fn text_input_event(

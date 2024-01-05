@@ -46,6 +46,14 @@ impl KeyStatus {
             KeyStatus::Idle(_) => false,
         }
     }
+
+    pub fn is_just_pressed(&self) -> bool {
+        *self == KeyStatus::Pressed
+    }
+
+    pub fn is_just_released(&self) -> bool {
+        *self == KeyStatus::Released
+    }
 }
 
 impl Default for KeyStatus {
@@ -151,6 +159,10 @@ impl Action {
                 }
             }
         }
+    }
+
+    pub fn action_status(&self) -> KeyStatus {
+        self.status
     }
 }
 

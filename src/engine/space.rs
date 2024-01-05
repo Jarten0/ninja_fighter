@@ -1,9 +1,10 @@
 use std::ops::{Deref, DerefMut};
 
 use bevy_ecs::component::Component;
+use ggez::graphics::Vertex as DrawVertex;
 use mint::Vector2 as mVec;
 
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub struct Vector2(mVec<f32>);
 
 impl Vector2 {
@@ -70,7 +71,34 @@ impl DerefMut for Vector2 {
     }
 }
 
-#[derive(Default, Component, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy)]
+pub struct Vertex(Vector2);
+
+impl Deref for Vertex {
+    type Target = Vector2;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for Vertex {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+impl Into<DrawVertex> for Vertex {
+    fn into(self) -> DrawVertex {
+        DrawVertex {
+            position: [self.x, self.y],
+            uv: [10.0, 10.0],
+            color: [0.0, 0.0, 0.0, 1.0],
+        }
+    }
+}
+
+#[derive(Debug, Default, Component, Clone, Copy)]
 pub struct Position(Vector2);
 
 impl Deref for Position {
@@ -95,7 +123,7 @@ impl Position {
     }
 }
 
-#[derive(Component, Default, Clone, Copy)]
+#[derive(Debug, Component, Default, Clone, Copy)]
 pub struct Velocity(Vector2);
 
 impl Velocity {
@@ -120,7 +148,7 @@ impl DerefMut for Velocity {
     }
 }
 
-#[derive(Component, Default, Clone, Copy)]
+#[derive(Debug, Component, Default, Clone, Copy)]
 pub struct Rotation(f32);
 
 impl Rotation {
@@ -143,7 +171,7 @@ impl DerefMut for Rotation {
     }
 }
 
-#[derive(Component, Clone, Copy)]
+#[derive(Debug, Component, Clone, Copy)]
 pub struct Scale(Vector2);
 
 impl Default for Scale {

@@ -1,22 +1,32 @@
+use super::collider::Collider;
+use super::render::render_type::RenderType;
+use super::render::Renderer;
+use super::transform::Transform;
+use super::transform::TransformSettings;
+
+use crate::engine::space;
+use crate::engine::Engine;
+
 use bevy_ecs::prelude::*;
 use ggez::graphics::{self, Color, DrawParam, Image, Rect};
 
-use crate::{components::Transform, engine::space, engine::MainCanvas};
-
-use super::{Renderer, TransformSettings};
+pub fn init(mut commands: Commands, engine: Res<Engine>) {
+    commands.spawn(ProtagBundle::new(&engine));
+}
 
 #[derive(Default, Component)]
-pub struct Protag {}
+pub struct Protag;
 
 #[derive(Bundle)]
 pub struct ProtagBundle {
-    pub protag: Protag,
-    pub transform: Transform,
-    pub renderer: Renderer,
+    protag: Protag,
+    transform: Transform,
+    renderer: Renderer,
+    collider: Collider,
 }
 
 impl ProtagBundle {
-    pub fn default(game_info_ptr: &MainCanvas) -> Self {
+    pub fn new(engine: &Engine) -> Self {
         let protag = Protag {};
 
         let mut transform = Transform {
@@ -27,16 +37,16 @@ impl ProtagBundle {
             settings: TransformSettings::default(),
         };
 
-        transform.settings = super::TransformSettings {
+        transform.settings = TransformSettings {
             use_gravity: true,
             auto_update: true,
         };
 
         // transform.
 
-        let gfx = &MainCanvas::get_context(&game_info_ptr).gfx;
+        let gfx = &Engine::get_context(&engine).gfx;
         let mut renderer = Renderer::new(
-            super::RenderType::Image(Image::from_color(gfx, 100, 100, Some(Color::RED))),
+            RenderType::Image(Image::from_color(gfx, 100, 100, Some(Color::RED))),
             transform.into(),
         );
         renderer.set(
@@ -49,10 +59,13 @@ impl ProtagBundle {
             space::Position::new(0.0, 0.0),
         );
 
+        let collider = Collider::new(engine);
+
         Self {
             protag,
             transform,
             renderer,
+            collider,
         }
     }
 }

@@ -1,22 +1,29 @@
-use crate::engine::space;
-use bevy_ecs::{bundle::Bundle, component::Component};
+pub mod collider_mesh;
+pub mod gravity_settings;
+pub mod meta_vertex;
 
-#[derive(Default, Clone, Copy, Bundle)]
+use crate::engine::space::Vector2;
+
+use crate::engine::Engine;
+
+use bevy_ecs::bundle::Bundle;
+
+use self::collider_mesh::ColliderMesh;
+use self::gravity_settings::GravitySettings;
+
+#[derive(Debug, Clone, Bundle)]
 pub struct Collider {
-    pub gravity: GravitySettings,
+    gravity: gravity_settings::GravitySettings,
+    mesh: collider_mesh::ColliderMesh,
 }
 
-/// A group of settings for controlling gravitational force for an entity.
-///
-#[derive(Component, Clone, Copy)]
-pub struct GravitySettings {
-    pub force: space::Vector2,
-}
-
-impl Default for GravitySettings {
-    fn default() -> Self {
+impl Collider {
+    pub fn new(engine: &Engine) -> Self {
         Self {
-            force: space::Vector2::zero(),
+            gravity: GravitySettings {
+                force: Vector2::default(),
+            },
+            mesh: ColliderMesh::new(&engine.get_context().gfx),
         }
     }
 }

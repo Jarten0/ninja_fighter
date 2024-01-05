@@ -1,6 +1,5 @@
 use bevy_ecs::system::Resource;
 use ggez::graphics::Canvas;
-use ggez::Context;
 
 /// A basic resource designed for holding information and sharing access to [`ggez`] through [`bevy_ecs`]'s resource system.
 ///
@@ -12,22 +11,24 @@ use ggez::Context;
 /// Holds [`None`] if operating during an `Update` frame, or holds `Some(Canvas)` if operating during a `Draw` frame.
 
 #[derive(Debug, Resource)]
-pub struct MainCanvas
+pub struct Engine
 where
     Self: 'static,
 {
     current_canvas: Option<Canvas>,
-    pub(crate) context_ptr: *mut Context,
+    pub(crate) context_ptr: *mut ggez::Context,
+    pub(crate) debug: bool,
 }
 
-unsafe impl Send for MainCanvas {}
-unsafe impl Sync for MainCanvas {}
+unsafe impl Send for Engine {}
+unsafe impl Sync for Engine {}
 
-impl MainCanvas {
-    pub(crate) fn new(context_ptr: &mut Context) -> Self {
+impl Engine {
+    pub(crate) fn new(context_ptr: &mut ggez::Context) -> Self {
         Self {
             current_canvas: None,
             context_ptr,
+            debug: true,
         }
     }
     /// Returns a reference to the current canvas [`ggez`] will operate on.
@@ -46,7 +47,7 @@ impl MainCanvas {
 
     /// Returns a reference to the value that `self.context_ptr` points to.
     /// Panics if `self.context_ptr` is null or invalid, which should never be the case in normal scenarios. If it is, investigate immediately.
-    pub fn get_context(&self) -> &Context {
+    pub fn get_context(&self) -> &ggez::Context {
         unsafe {
             match self.context_ptr.is_null() {
                 true => {
@@ -61,7 +62,7 @@ impl MainCanvas {
 
     /// Returns a mutable reference to the value that `self.context_ptr` points to.
     /// Panics if `self.context_ptr` is null or invalid, which should never be the case in normal scenarios. If it is, investigate immediately.
-    pub fn get_mut_context(&mut self) -> &mut Context {
+    pub fn get_mut_context(&mut self) -> &mut ggez::Context {
         unsafe {
             match self.context_ptr.is_null() {
                 true => {

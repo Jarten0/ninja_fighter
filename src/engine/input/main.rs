@@ -34,16 +34,11 @@ You can edit the default bindings using `edit`
 ";
 
 fn int_prompt_type() -> CustomType<'static, i32> {
-    let mut int_type: CustomType<i32> = CustomType::new("Whaaa").with_default(0);
-
-    int_type
+    CustomType::new("Whaaa").with_default(0)
 }
 
 fn keycode_prompt_type() -> CustomType<'static, KeycodeType> {
-    let custom_type: CustomType<'_, KeycodeType> =
-        CustomType::new("Heehee").with_help_message("This is keycode");
-
-    custom_type
+    CustomType::new("Heehee").with_help_message("This is keycode")
 }
 
 /// Welcome to the input CLI editor! Here you can create new keys and alter the input data from the command line!
@@ -77,7 +72,10 @@ pub fn main() -> ! {
     }
 
     loop {
-        let mut user_input = match Text::new("theeehee").with_validator(char_limit).prompt() {
+        let mut user_input = match Text::new("Pick a command")
+            .with_validator(char_limit)
+            .prompt()
+        {
             Ok(input) => input,
             Err(err) => {
                 println!("Err? [{}]", err);
@@ -143,7 +141,7 @@ fn add_action(input: &mut Input) {
 
     let mut keys = Vec::new();
 
-    for key in 0..int_prompt_type().prompt().unwrap() {
+    for _ in 0..int_prompt_type().prompt().unwrap() {
         keys.push(keycode_prompt_type().prompt().unwrap());
     }
     Action::new(input, name, keys);
