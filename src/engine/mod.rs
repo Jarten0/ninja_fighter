@@ -5,14 +5,14 @@
 //!
 //!
 
-mod game_root;
+mod engine;
 mod input;
-mod render_resource;
+mod root;
 mod schedule;
 pub(crate) mod space;
 
-pub(super) use game_root::GameRoot;
+pub(crate) use engine::Engine;
 pub(super) use input::input_cli_editor;
 #[allow(unused_imports)]
 pub(crate) use input::{Action, Input, Key};
-pub(crate) use render_resource::Engine;
+pub(super) use root::GameRoot;

@@ -1,3 +1,5 @@
+//! Contains resources useful for interoperability between [`ggez`] and [`bevy_ecs`]
+
 use bevy_ecs::system::Resource;
 use ggez::graphics::Canvas;
 
