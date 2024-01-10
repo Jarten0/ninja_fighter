@@ -30,7 +30,7 @@ use super::{
 /// * `is_held(&self) -> bool` - returns whether the action is currently active or not.
 ///
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub(crate) enum KeyStatus {
+pub enum KeyStatus {
     Pressed,
     Held(u32),
     Released,
@@ -67,7 +67,7 @@ impl Default for KeyStatus {
 ///
 /// It also contains a set of default keys that can only be changed outside of gameplay.
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub(crate) struct Action {
+pub struct Action {
     pub name: String,
     pub(in crate::engine) keys: Vec<KeycodeType>,
     pub(super) status: KeyStatus,

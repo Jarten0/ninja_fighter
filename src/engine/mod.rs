@@ -1,18 +1,22 @@
 #![allow(dead_code)]
+#![allow(unused_imports)]
 
 //! The main module for having game logic through components interact with [`bevy_ecs`] and [`ggez`]
 //! If you need to access the main engine, this is how you do it.
 //!
 //!
 
+mod assets;
 mod engine;
 mod input;
+mod render;
 mod root;
 mod schedule;
 pub(crate) mod space;
 
-pub(crate) use engine::Engine;
-pub(super) use input::input_cli_editor;
-#[allow(unused_imports)]
-pub(crate) use input::{Action, Input, Key};
+pub use assets::Assets;
+pub use engine::Engine;
+pub use input::input_cli_editor;
+pub use input::{Action, Input, Key};
+pub use render::render_type::RenderType;
 pub(super) use root::GameRoot;

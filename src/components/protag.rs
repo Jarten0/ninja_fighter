@@ -1,11 +1,11 @@
 use super::collider::Collider;
-use super::render::render_type::RenderType;
 use super::render::Renderer;
 use super::transform::Transform;
 use super::transform::TransformSettings;
 
 use crate::engine::space;
 use crate::engine::Engine;
+use crate::engine::RenderType;
 
 use bevy_ecs::prelude::*;
 use ggez::graphics::{self, Color, DrawParam, Image, Rect};

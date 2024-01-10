@@ -109,7 +109,7 @@ fn convert_action_to_str_test() {
 
     input_module.new_action(result);
 
-    let parsed_action = input_module.get_action(&test_name.clone()).unwrap();
+    let parsed_action = input_module.get_action(&test_name).unwrap();
 
     assert_eq!(parsed_action, &instantiated_action);
 }

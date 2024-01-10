@@ -9,7 +9,7 @@ use ggez::input::keyboard::KeyCode;
 use stringcode::StringifiableKeyCode;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub(crate) struct Key {
+pub struct Key {
     pub keycode: StringifiableKeyCode,
     pub name: &'static str,
     pub status: KeyStatus,

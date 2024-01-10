@@ -27,7 +27,7 @@ use std::str::FromStr;
 /// * Game logic can then use [`Input`]'s updated information for whatever it needs.
 #[derive(Resource)]
 #[allow(dead_code)]
-pub(crate) struct Input
+pub struct Input
 where
     Self: 'static,
 {

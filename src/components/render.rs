@@ -1,17 +1,15 @@
-pub mod render_type;
-
 use bevy_ecs::system::Query;
 use bevy_ecs::system::ResMut;
 use ggez::graphics::{self as ggraphics, *};
 
+use super::transform::Transform;
 use crate::engine::space;
 use crate::engine::Engine;
-
-use super::transform::Transform;
+use crate::engine::RenderType;
 
 #[derive(bevy_ecs::component::Component)]
 pub struct Renderer {
-    pub image: render_type::RenderType,
+    pub image: RenderType,
     pub draw_param: DrawParam,
     pub transform: super::transform::Transform,
     pub offset: space::Position,
@@ -21,7 +19,7 @@ pub struct Renderer {
 impl Renderer {
     /// Creates a new basic Renderer component for regular use.
     /// Use `Renderer::set()` to alter the offset and extra draw settings, or `Renderer::new_opt()` to directly set those values during initialization.
-    pub fn new(image: render_type::RenderType, transform: super::transform::Transform) -> Self {
+    pub fn new(image: RenderType, transform: super::transform::Transform) -> Self {
         let draw_param = DrawParam {
             src: Default::default(),
             color: Color::WHITE,
@@ -40,7 +38,7 @@ impl Renderer {
 
     /// Similar to `Renderer::new()`, but with extra parameters for other values.
     pub fn new_opt(
-        image: render_type::RenderType,
+        image: RenderType,
         transform: Transform,
         draw_param: DrawParam,
         offset: space::Position,
@@ -63,7 +61,7 @@ impl Renderer {
 impl Renderer {
     pub fn default(gfx: &GraphicsContext) -> Self {
         Self {
-            image: render_type::RenderType::default(gfx),
+            image: RenderType::default(gfx),
             draw_param: Default::default(),
             transform: Default::default(),
             offset: Default::default(),
@@ -81,12 +79,12 @@ pub fn draw(query: Query<&Renderer>, mut main_canvas: ResMut<Engine>) {
         };
 
         match &renderer.image {
-            render_type::RenderType::Image(image) => {
+            RenderType::Image(image) => {
                 ggraphics::Canvas::draw(&mut canvas, image, renderer.draw_param)
             }
-            render_type::RenderType::InstanceArray(_) => todo!(),
-            render_type::RenderType::Mesh(_) => todo!(),
-            render_type::RenderType::Text(_) => todo!(),
+            RenderType::InstanceArray(_) => todo!(),
+            RenderType::Mesh(_) => todo!(),
+            RenderType::Text(_) => todo!(),
         }
     }
 }

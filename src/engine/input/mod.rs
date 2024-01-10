@@ -26,8 +26,8 @@ mod input_update_scheduler {
 }
 
 #[allow(unused_imports)]
-pub(crate) use action::{Action, KeyStatus};
-pub(crate) use input_resource::Input;
-pub(crate) use key::keycode_converter::KeycodeType;
-pub(crate) use key::Key;
-pub(crate) use main::main as input_cli_editor;
+pub use action::{Action, KeyStatus};
+pub use input_resource::Input;
+pub use key::keycode_converter::KeycodeType;
+pub use key::Key;
+pub use main::main as input_cli_editor;

@@ -1,3 +1,4 @@
+#![allow(unused)]
 use crate::engine::space;
 
 use crate::engine::space::Vertex;
