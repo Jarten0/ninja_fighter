@@ -13,18 +13,30 @@ mod id;
 #[derive(Resource, Debug)]
 pub struct Assets {
     pub render_stuff: HashMap<AssetID, AssetType>,
+    pub queue: AssetCommandQueue,
 }
 
 impl Assets {
     pub(super) fn new() -> Self {
         Self {
             render_stuff: HashMap::new(),
+            queue: AssetCommandQueue { queue: Vec::new() },
         }
     }
 
-    pub fn load_asset(&mut self) {}
+    /// Temporary, until load_asset can be finished
+    pub fn insert_asset(&mut self, asset_id: AssetID, asset_type: AssetType) {
+        self.render_stuff.insert(asset_id, asset_type);
+    }
 
-    pub fn unload_asset(&mut self, asset_id: &AssetID) {}
+    /// Not
+    pub fn load_asset(&mut self) {
+        todo!()
+    }
+
+    pub fn unload_asset(&mut self, _asset_id: &AssetID) {
+        todo!()
+    }
 
     pub fn get_asset(&self, asset_id: &AssetID) -> Result<&AssetType, &'static str> {
         match self.render_stuff.get(&asset_id) {
@@ -37,19 +49,29 @@ impl Assets {
         for asset_id in self.render_stuff.keys() {
             if let Some(condition) = asset_id.unload_condition {
                 condition(asset_id, &world);
-                self.unload_asset(asset_id);
+                self.queue.unload_asset(asset_id.to_owned());
             }
         }
     }
+
+    fn process_queue(&mut self) {
+        todo!()
+    }
 }
 
+#[derive(Debug)]
 pub struct AssetCommandQueue {
-    pub queue: Vec<AssetCommand>,
+    queue: Vec<AssetCommand>,
 }
 
-impl AssetCommandQueue {}
+impl AssetCommandQueue {
+    fn unload_asset(&mut self, asset_id: AssetID) {
+        self.queue.push(AssetCommand::Unload(asset_id))
+    }
+}
 
+#[derive(Debug)]
 enum AssetCommand {
     Load(AssetID),
-    Unload(),
+    Unload(AssetID),
 }

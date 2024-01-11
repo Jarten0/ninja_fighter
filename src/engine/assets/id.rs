@@ -2,7 +2,7 @@ use std::{collections::HashMap, hash::Hash, sync::atomic::AtomicUsize};
 
 use bevy_ecs::world::World;
 
-#[derive(Debug, Eq)]
+#[derive(Debug, Eq, Clone, Copy)]
 pub struct AssetID {
     pub(crate) id: usize,
     pub(crate) unload_condition: Option<fn(&Self, world: &World) -> bool>,
