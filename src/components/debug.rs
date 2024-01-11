@@ -48,7 +48,9 @@ pub(super) fn update(
     mut input: ResMut<Input>,
     mut commands: Commands,
 ) {
-    println!("{:?}", input);
+    // println!("{:?}", input);
+
+    return;
 
     todo!();
 

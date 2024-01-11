@@ -28,7 +28,6 @@ pub(crate) struct GameRoot
 where
     Self: 'static,
 {
-    // pub game_info: GameInfo,
     schedule: Schedule,
     draw_schedule: Schedule,
     init_schedule: Schedule,
