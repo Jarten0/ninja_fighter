@@ -22,5 +22,3 @@ pub use game_root::GameRoot;
 pub use input::input_cli_editor;
 pub use input::{Action, Input, Key};
 pub use render::render_type::RenderType;
-pub use render_resource::Engine;
-pub(super) use root::GameRoot;

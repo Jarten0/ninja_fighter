@@ -1,13 +1,10 @@
-use crate::input::KeycodeType;
-use crate::Engine;
-use crate::Input;
 //! Contains all of the functionality related to getting [`bevy_ecs`] and [`ggez`] up and running.
 //!
 //! * [`GameRoot`] - Creates the main game state, initializes modules and libraries, and communicates between [`ggez`]'s engine and [`bevy_ecs`]'s world
 
-use crate::engine::input::KeycodeType;
-use crate::engine::Engine;
-use crate::engine::Input;
+use crate::input::KeycodeType;
+use crate::Engine;
+use crate::Input;
 
 use bevy_ecs::schedule::Schedule;
 use bevy_ecs::world::*;

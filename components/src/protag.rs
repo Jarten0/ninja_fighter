@@ -1,3 +1,5 @@
+use crate::render::render_type::RenderType;
+
 use super::collider::Collider;
 use super::render::Renderer;
 use super::transform::Transform;

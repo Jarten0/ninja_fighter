@@ -1,6 +1,6 @@
 use self::asset_type::AssetType;
 use super::RenderType;
-use crate::engine::assets::id::AssetID;
+use crate::assets::id::AssetID;
 use bevy_ecs::{
     system::Resource,
     world::{self, World},
