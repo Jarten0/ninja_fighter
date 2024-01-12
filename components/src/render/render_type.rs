@@ -1,7 +1,6 @@
 use ggez::graphics::{Color, GraphicsContext, Image, InstanceArray, Mesh, Text};
 
 #[allow(dead_code)]
-#[derive(Debug)]
 pub enum RenderType {
     Image(Image),
     InstanceArray(InstanceArray),

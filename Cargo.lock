@@ -308,7 +308,7 @@ dependencies = [
  "bevy_macro_utils",
  "proc-macro2",
  "quote",
- "syn 2.0.43",
+ "syn 2.0.48",
 ]
 
 [[package]]
@@ -320,7 +320,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "rustc-hash",
- "syn 2.0.43",
+ "syn 2.0.48",
  "toml_edit 0.20.7",
 ]
 
@@ -2063,29 +2063,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1f71d09d5c87634207f894c6b31b6a2b2c64ea3bdcf71bd5599fdbbe1600c00f"
 dependencies = [
  "unicode-segmentation",
-]
-
-[[package]]
-name = "ninja_fighter"
-version = "0.1.0"
-dependencies = [
- "bevy_ecs",
- "clap",
- "dict",
- "enum-iterator",
- "erased-serde 0.4.1",
- "ggez",
- "inquire",
- "keycode",
- "lazy_static",
- "mint",
- "nalgebra",
- "serde",
- "serde_json",
- "strum",
- "strum_macros",
- "syn 2.0.48",
- "typetag",
 ]
 
 [[package]]
