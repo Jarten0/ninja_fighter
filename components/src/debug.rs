@@ -15,7 +15,7 @@ use ggez::graphics::DrawParam;
 use ggez::graphics::Rect;
 
 use super::collider::collider_mesh::ColliderMesh;
-use super::collider::Collider;
+// use super::collider::Collider;
 
 pub(super) fn init(mut commands: Commands, engine: Res<Engine>) {
     if !engine.debug {
@@ -48,41 +48,40 @@ pub(super) fn update(
     mut input: ResMut<Input>,
     mut commands: Commands,
 ) {
-    let is_just_pressed = input
-        .get_action("Click")
-        .unwrap()
-        .action_status()
-        .is_just_pressed();
+    // println!("{:?}", input);
 
-    for mut debug in query.iter_mut() {
-        match debug.current_place_state {
-            PlaceState::Idle => {
-                if is_just_pressed {
-                    let spawn = commands.spawn(Collider::new(&engine));
+    return;
 
-                    debug.update_place_state(PlaceState::Pending(spawn.id()));
-                }
-            }
-            PlaceState::Pending(entity) => {
-                if let Ok(_collider) = collider_query.get(entity) {
-                    debug.update_place_state(PlaceState::Placing(0, entity));
-                }
-            }
-            PlaceState::Placing(_stage, entity) => {
-                if !is_just_pressed {
-                    continue;
-                }
+    todo!();
 
-                let value: space::Vertex = space::Vector2::new(0.0, 0.0).into();
+    // let is_just_pressed = input
+    //     .get_action("Click")
+    //     .unwrap()
+    //     .action_status()
+    //     .is_just_pressed();
 
-                collider_query
-                    .get_mut(entity)
-                    .unwrap()
-                    .vertecies_list
-                    .push(value);
-            }
-        }
-    }
+    // for mut debug in query.iter_mut() {
+    //     match debug.current_place_state {
+    //         PlaceState::Idle => {
+    //             if is_just_pressed {
+    //                 let spawn = commands.spawn(Collider::new(&engine));
+
+    //                 debug.update_place_state(PlaceState::Pending(spawn.id()));
+    //             }
+    //         }
+    //         PlaceState::Pending(entity) => {
+    //             if let Ok(_) = colliders.get(entity) {
+    //                 debug.update_place_state(PlaceState::Placing(0, entity))
+    //             }
+    //         }
+    //         PlaceState::Placing(stage, entity) => {
+    //             if !is_just_pressed {
+    //                 continue;
+    //             }
+    //             // colliders.get(entity).unwrap().vertecies_list;
+    //         }
+    //     }
+    // }
 }
 
 enum PlaceState {

@@ -1,5 +1,4 @@
 use super::collider::Collider;
-use super::render::render_type::RenderType;
 use super::render::Renderer;
 use super::transform::Transform;
 use super::transform::TransformSettings;

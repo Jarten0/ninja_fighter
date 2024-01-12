@@ -5,7 +5,7 @@
 //! * [`components`] - where game logic occurs and where most end point functionality is written.
 //!
 //! * [`engine`] - modules designed to interface between the different libraries the core engine uses, including [`bevy_ecs`] and [`ggez`].
-//! Also contains extra stuff to standardize things used between all projects that use this engine.
+//! Also contains extra stuff to standardize things used between all projects that use this engine, for example, [`engine::space`] for a standard vector system.
 
 /// The start of the program. The crux of the functionality however happens in [`engine::GameRoot`].
 fn main() -> ! {

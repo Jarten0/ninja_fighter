@@ -1,5 +1,3 @@
-pub mod render_type;
-
 use bevy_ecs::system::Query;
 use bevy_ecs::system::ResMut;
 use ggez::graphics::{self as ggraphics, *};

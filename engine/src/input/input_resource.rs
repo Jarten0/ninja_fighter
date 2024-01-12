@@ -29,7 +29,7 @@ use std::str::FromStr;
 /// * [`Input`] processes all of the updated information.
 /// * Game logic can then use [`Input`]'s updated information for whatever it needs.
 #[derive(Resource)]
-// #[allow(dead_code)]
+#[allow(dead_code)]
 pub struct Input
 where
     Self: 'static,
