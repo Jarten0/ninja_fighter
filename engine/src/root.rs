@@ -44,8 +44,8 @@ impl GameRoot {
 
         let debug = false;
 
-        let (schedule, draw_schedule, init_schedule) =
-            super::schedule::create_schedules(todo!(), todo!(), todo!()); // TODO: Get schedules from game main.rs
+        let (schedule, draw_schedule, init_schedule) = todo!();
+        // super::schedule::create_schedules(todo!(), todo!(), todo!()); // TODO: Get schedules from game main.rs
 
         let mut world = World::new();
 

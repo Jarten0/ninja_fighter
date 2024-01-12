@@ -13,3 +13,5 @@ publish = false
 [dependencies]
 ggez = "0.9.3"
 engine = {version = "0.1.0", path = "../engine"}
+bevy_ecs.workspace = true
+components = { version = "0.1.0", path = "../components" }

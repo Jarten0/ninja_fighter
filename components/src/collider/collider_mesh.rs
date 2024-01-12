@@ -12,12 +12,12 @@ use ggez::graphics::MeshData;
 use ggez::graphics::Vertex as DrawVertex;
 
 #[derive(Debug, Component, Clone)]
-pub(crate) struct ColliderMesh {
+pub struct ColliderMesh {
     pub(crate) vertecies_list: Vec<Vertex>,
     pub(crate) drawable_mesh: DrawMesh,
 }
 
-pub(crate) fn update(mut query: Query<&mut ColliderMesh>, engine: bevy_ecs::system::Res<Engine>) {
+pub fn update(mut query: Query<&mut ColliderMesh>, engine: bevy_ecs::system::Res<Engine>) {
     for mut collider_mesh in query.iter_mut() {
         let gfx = &engine.get_context().gfx;
         let vertices: Vec<DrawVertex> = collider_mesh

@@ -37,7 +37,10 @@
         "archive": true,
         "**/target": true,
         "**/.vscode": true,
-        "README.md": true
+        "README.md": true,
+        "**/Cargo.toml": true,
+        "**/Cargo.lock": true,
+        "**/.gitignore": true
     },
     "explorerExclude.backup": {},
     "python.analysis.typeCheckingMode": "off",

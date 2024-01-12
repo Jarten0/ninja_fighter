@@ -39,7 +39,7 @@ impl Collider {
     }
 }
 
-pub(crate) fn update(mut query: Query<(&mut Velocity, &GravitySettings)>, engine: Res<Engine>) {
+pub fn update(mut query: Query<(&mut Velocity, &GravitySettings)>, engine: Res<Engine>) {
     for (mut velocity, gravity_settings) in query.iter_mut() {
         // velocity.translate(&gravity_settings.force * engine.get_context().time.delta().as_secs())
     }

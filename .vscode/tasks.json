@@ -13,8 +13,7 @@
 		{
 			"type": "process",
 			"command": "d:\\rust\\installRust.bat",
-			"problemMatcher": [
-			],
+			"problemMatcher": [],
 			"group": "none",
 			"label": "rust: install_rust"
 		},
@@ -25,6 +24,15 @@
 				"$rustc"
 			],
 			"label": "rust: cargo run"
+		},
+		{
+			"type": "shell",
+			"command": "bacon",
+			"label": "bacon: run",
+			"problemMatcher": [
+				"$rustc"
+			],
+			"icon": {"color": "terminal.ansiRed", "id": "tools"}
 		}
 	]
 }

@@ -16,9 +16,8 @@ use ggez::graphics::Rect;
 use crate::collider::Collider;
 
 use super::collider::collider_mesh::ColliderMesh;
-// use super::collider::Collider;
 
-pub(super) fn init(mut commands: Commands, engine: Res<Engine>) {
+pub fn init(mut commands: Commands, engine: Res<Engine>) {
     if !engine.debug {
         return;
     }
@@ -42,7 +41,7 @@ impl DebugComponent {
     }
 }
 
-pub(super) fn update(
+pub fn update(
     mut query: Query<&mut DebugComponent>,
     mut collider_query: Query<&mut ColliderMesh>,
     engine: ResMut<Engine>,
@@ -50,10 +49,6 @@ pub(super) fn update(
     mut commands: Commands,
 ) {
     println!("{:?}", input);
-
-    // return;
-
-    // todo!();
 
     let is_just_pressed = input
         .get_action("Click")
@@ -105,7 +100,7 @@ impl fmt::Display for PlaceState {
     }
 }
 
-pub(super) fn draw(query: Query<&ColliderMesh>, mut engine: ResMut<Engine>) {
+pub fn draw(query: Query<&ColliderMesh>, mut engine: ResMut<Engine>) {
     if !engine.debug {
         return;
     }
