@@ -1,0 +1,73 @@
+{
+	// Place your ninja_fighter workspace snippets here. Each snippet is defined under a snippet name and has a scope, prefix, body and 
+	// description. Add comma separated ids of the languages where the snippet is applicable in the scope field. If scope 
+	// is left empty or omitted, the snippet gets applied to all languages. The prefix is what is 
+	// used to trigger the snippet and the body will be expanded and inserted. Possible variables are: 
+	// $1, $2 for tab stops, $0 for the final cursor position, and ${1:label}, ${2:another} for placeholders. 
+	// Placeholders with the same ids are connected.
+	// Example:
+// 	"Empty bean": {
+// 		"scope": "rust",
+// 		"prefix": "empty_bean",
+// 		"body": [
+// "#[derive(Serialize, Deserialize)]",
+// "struct ${1:MinBean} {",
+// "	pub dependencies: Vec<Box<dyn Bean>>,",
+// "}",
+// "",
+// "#[typetag::serde]",
+// "impl Bean for ${1:MinBean} {",
+// "	fn return_dependencies(&mut self) -> &mut Vec<Box<dyn Bean>> {",
+// "		&mut self.dependencies",
+// "	}",
+// "",
+// "	fn new() -> Self",
+// "	where",
+// "		Self: Sized,",
+// "	{",
+// "		Self {",
+// "			dependencies: Vec::new(),",
+// "		}",
+// "	}",
+// "}",
+// "",	"$2",
+// 		],
+// 		"description": "Creates a new minimum bean for writing scripts with"
+// 	},
+
+	"Template bean": {
+		"scope": "rust",
+		"prefix": "component",
+		"body": [
+"#[derive(bevy_ecs::component::Component)]",
+"pub struct ${1: Component} {",
+"	pub ${2:field}: $3,",
+"}",
+		],
+		"description": "Creates a new template component for writing scripts with"
+	},
+
+	"StaticOnceCell": {
+		"scope": "rust",
+		"prefix": "once_cell",
+		"body": [
+// "#[derive(bevy_ecs::component::Component)]",
+// "pub struct ${1: Component} {",
+// "	pub ${2:field}: $3,",
+// "}",
+"fn ${1:static_variable}() -> ${2:Type} {",
+"    static ${3:VARIABLE}: OnceLock<${2:Type}> = OnceLock::new();",
+"    ${3:VARIABLE}.get_or_init(|| {",
+"		let mut ${4:variable}: ${2:Type} = ${2:Type}${0}::new()",
+"",
+"		${4:variable}",
+"    })",
+"}",
+		],
+		"description": "Creates a function that returns a lazily-loaded static variable"
+	},
+
+
+
+
+}

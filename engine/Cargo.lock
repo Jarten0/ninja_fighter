@@ -716,17 +716,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "components"
-version = "0.1.0"
-dependencies = [
- "bevy_ecs",
- "engine",
- "ggez",
- "mint",
- "nalgebra",
-]
-
-[[package]]
 name = "concurrent-queue"
 version = "2.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1222,14 +1211,6 @@ dependencies = [
  "futures-io",
  "parking",
  "pin-project-lite",
-]
-
-[[package]]
-name = "game"
-version = "0.1.0"
-dependencies = [
- "engine",
- "ggez",
 ]
 
 [[package]]

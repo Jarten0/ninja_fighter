@@ -1,0 +1,15 @@
+[package]
+name = "game"
+version = "0.1.0"
+edition = "2021"
+authors = ["Jarten"]
+description = "A student project about making a game using Rust"
+readme = "README.md"
+repository = "https://github.com/Jarten0/ninja_fighter/"
+keywords = ["game", "gamedev", "ggez", "bevy-ecs"]
+publish = false
+
+
+[dependencies]
+ggez = "0.9.3"
+engine = {version = "0.1.0", path = "../engine"}

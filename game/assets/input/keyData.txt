@@ -1,0 +1,5 @@
+Click/mouse1;mouse2;|
+Up/w;up;|
+Down/s;down;|
+Left/a;left;|
+Right/d;right;|

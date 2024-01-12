@@ -1,5 +1,9 @@
 {
-
+    "rust-analyzer.linkedProjects": [
+        ".\\Cargo.toml",
+        ".\\Cargo.toml"
+    ],
+    "rust-analyzer.showUnlinkedFileNotification": false,
     "files.exclude": {
         "**/.git": true,
         "**/.svn": true,
@@ -22,7 +26,7 @@
         "**/*.godot": true,
         "**/*.import": true,
         "**/*.meta": true,
-        "**/*.png": false,
+        "**/*.png": true,
         "**/*.so": true,
         "**/*.zip": true,
         "icon.svg": true,
@@ -34,10 +38,7 @@
         "**/CACHEDIR.TAG": true,
         "**/.rustc_info.json": true,
         "target/debug": true,
-        "archive": true,
-        "**/target": true,
-        "**/.vscode": true,
-        "README.md": true
+        "archive": true
     },
     "explorerExclude.backup": {},
     "python.analysis.typeCheckingMode": "off",
