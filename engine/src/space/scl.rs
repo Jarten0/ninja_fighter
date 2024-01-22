@@ -1,9 +1,11 @@
 use super::Vector2;
 use bevy_ecs::component::Component;
+use serde::Deserialize;
+use serde::Serialize;
 use std::ops::Deref;
 use std::ops::DerefMut;
 
-#[derive(Debug, Component, Clone, Copy)]
+#[derive(Debug, Component, Clone, Copy, Serialize, Deserialize)]
 pub struct Scale(Vector2);
 
 impl Default for Scale {

@@ -10,12 +10,9 @@ use ggez::graphics::GraphicsContext;
 use ggez::graphics::Mesh as DrawMesh;
 use ggez::graphics::MeshData;
 use ggez::graphics::Vertex as DrawVertex;
-
-#[derive(Debug, Component, Clone)]
-pub struct ColliderMesh {
-    pub(crate) vertecies_list: Vec<Vertex>,
-    pub(crate) drawable_mesh: DrawMesh,
-}
+use serde::ser::SerializeSeq;
+use serde::Deserialize;
+use serde::Serialize;
 
 pub fn update(mut query: Query<&mut ColliderMesh>, engine: bevy_ecs::system::Res<Engine>) {
     for mut collider_mesh in query.iter_mut() {
@@ -34,6 +31,12 @@ pub fn update(mut query: Query<&mut ColliderMesh>, engine: bevy_ecs::system::Res
             },
         );
     }
+}
+
+#[derive(Debug, Component, Clone)]
+pub struct ColliderMesh {
+    pub(crate) vertecies_list: Vec<Vertex>,
+    pub(crate) drawable_mesh: DrawMesh,
 }
 
 impl ColliderMesh {
@@ -58,8 +61,27 @@ impl ColliderMesh {
     }
 }
 
-impl fmt::Display for ColliderMesh {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self.vertecies_list)
+impl Serialize for ColliderMesh {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut serialize_seq = serializer.serialize_seq(Some(self.vertecies_list.len()))?;
+        for vertex in &self.vertecies_list {
+            serialize_seq.serialize_element(vertex);
+        }
+        serialize_seq.end()
+    }
+}
+
+impl<'de> Deserialize<'de> for ColliderMesh {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        Ok(Self {
+            vertecies_list: Vec::new(),
+            drawable_mesh: todo!(),
+        })
     }
 }

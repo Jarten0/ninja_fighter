@@ -1,8 +1,10 @@
 use bevy_ecs::component::Component;
+use serde::Deserialize;
+use serde::Serialize;
 use std::ops::Deref;
 use std::ops::DerefMut;
 
-#[derive(Debug, Component, Default, Clone, Copy)]
+#[derive(Debug, Component, Default, Clone, Copy, Serialize, Deserialize)]
 pub struct Rotation(f32);
 
 impl Rotation {

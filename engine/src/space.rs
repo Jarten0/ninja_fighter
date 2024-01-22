@@ -1,17 +1,24 @@
-use core::fmt;
-use std::{
-    ops::{Add, AddAssign, Deref, DerefMut, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
-    time::Duration,
-};
-
-use bevy_ecs::component::Component;
-use ggez::graphics::Vertex as DrawVertex;
-use nalgebra::base;
+mod pos;
+mod rtt;
+mod scl;
+mod vel;
+mod vtx;
 
 pub use pos::Position;
 pub use rtt::Rotation;
 pub use scl::Scale;
 pub use vel::Velocity;
+pub use vtx::Vertex;
+
+use bevy_ecs::component::Component;
+use core::fmt;
+use ggez::graphics::Vertex as DrawVertex;
+use nalgebra::base;
+use serde::{de::Visitor, ser::SerializeStruct, Deserialize, Serialize};
+use std::{
+    ops::{Add, AddAssign, Deref, DerefMut, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
+    time::Duration,
+};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Vector2(mint::Vector2<f32>);
@@ -140,43 +147,33 @@ impl SubAssign for Vector2 {
     }
 }
 
-#[derive(Debug, Default, Clone, Copy)]
-pub struct Vertex(Vector2);
-
-impl Deref for Vertex {
-    type Target = Vector2;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
+impl Serialize for Vector2 {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut vec = serializer.serialize_struct("Vector2", 2)?;
+        vec.serialize_field("x", &self.x);
+        vec.serialize_field("y", &self.y);
+        vec.end()
     }
 }
 
-impl DerefMut for Vertex {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
+impl<'de> Deserialize<'de> for Vector2 {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        Ok(deserializer.deserialize_struct("Vector2", &["x", "y"], F32Visitor {})?)
     }
 }
 
-impl From<Vector2> for Vertex {
-    fn from(value: Vector2) -> Self {
-        Self { 0: value }
+struct F32Visitor;
+
+impl<'de> Visitor<'de> for F32Visitor {
+    type Value = Vector2;
+
+    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+        formatter.write_str("any f32 value i really dont want to write deserialization code ughhh")
     }
 }
-
-impl Into<DrawVertex> for Vertex {
-    fn into(self) -> DrawVertex {
-        DrawVertex {
-            position: [self.x, self.y],
-            uv: [10.0, 10.0],
-            color: [0.0, 0.0, 0.0, 1.0],
-        }
-    }
-}
-
-mod pos;
-
-mod vel;
-
-mod rtt;
-
-mod scl;
