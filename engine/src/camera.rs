@@ -1,8 +1,8 @@
-use bevy_ecs::system::Resource;
+use bevy_ecs::component::Component;
 
 use crate::space;
 
-#[derive(Resource)]
+#[derive(Component)]
 struct Camera {
     position: space::Position,
     zoom: f32,

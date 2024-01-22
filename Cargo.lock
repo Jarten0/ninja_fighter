@@ -724,6 +724,7 @@ dependencies = [
  "ggez",
  "mint",
  "nalgebra",
+ "serde",
 ]
 
 [[package]]

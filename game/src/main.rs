@@ -14,63 +14,82 @@ fn main() -> ! {
         .build()
         .expect("aieee, could not create ggez context!");
 
-    // let scheduler = engine::schedule::Scheduler::new(create_schedules());
+    let scheduler = engine::schedule::Scheduler::new(custom_schedules::create_schedules());
     let root = engine::GameRoot::new(&mut context);
 
     ggez::event::run(context, event_loop, root);
 }
 
-pub fn create_schedules() -> Vec<fn(&mut Schedule)> {
-    todo!()
-}
-use bevy_ecs::schedule::ExecutorKind;
-use bevy_ecs::schedule::LogLevel;
-use bevy_ecs::schedule::Schedule;
-use bevy_ecs::schedule::ScheduleBuildSettings;
-use components::*;
-pub fn tick_schedule() {
-    let mut sched: Schedule = Schedule::default();
-    sched.set_build_settings(ScheduleBuildSettings {
+mod custom_schedules {
+    use bevy_ecs::schedule::ExecutorKind;
+    use bevy_ecs::schedule::LogLevel;
+    use bevy_ecs::schedule::Schedule;
+    use bevy_ecs::schedule::ScheduleBuildSettings;
+    use components::*;
+    use engine::schedule::ScheduleTag;
+
+    pub fn create_schedules() -> Vec<fn(&mut Schedule) -> ScheduleTag> {
+        vec![tick_schedule, frame_schedule, init_schedule]
+    }
+
+    pub(crate) static TICK_SETTINGS: ScheduleBuildSettings = ScheduleBuildSettings {
         ambiguity_detection: LogLevel::Warn,
         hierarchy_detection: LogLevel::Warn,
         use_shortnames: false,
         report_sets: true,
-    });
-    sched.set_executor_kind(ExecutorKind::MultiThreaded);
+    };
 
-    sched.add_systems(transform::update);
-    sched.add_systems(collider::collider_mesh::update);
-    sched.add_systems(debug::update);
-    sched.add_systems(collider::update);
-}
+    pub(crate) fn tick_schedule(sched: &mut Schedule) -> ScheduleTag {
+        // Configuration block
+        sched
+            .set_build_settings(TICK_SETTINGS.clone())
+            .set_executor_kind(ExecutorKind::MultiThreaded);
 
-// pub fn frame_schedule();
-static DRAW_SCHED: Schedule = {
-    let mut draw_sched: Schedule = Schedule::default();
-    draw_sched.set_build_settings(ScheduleBuildSettings {
+        // Systems block
+        sched
+            .add_systems(transform::update)
+            .add_systems(collider::collider_mesh::update)
+            .add_systems(debug::update)
+            .add_systems(collider::update);
+
+        ScheduleTag::Tick
+    }
+
+    pub(crate) static FRAME_SETTINGS: ScheduleBuildSettings = ScheduleBuildSettings {
         ambiguity_detection: LogLevel::Warn,
         hierarchy_detection: LogLevel::Warn,
         use_shortnames: false,
         report_sets: true,
-    });
-    draw_sched.set_executor_kind(ExecutorKind::SingleThreaded);
+    };
 
-    draw_sched.add_systems(render::draw);
-    draw_sched.add_systems(debug::draw);
-    draw_sched
-};
+    pub(crate) fn frame_schedule(draw_sched: &mut Schedule) -> ScheduleTag {
+        draw_sched
+            .set_build_settings(FRAME_SETTINGS.clone())
+            .set_executor_kind(ExecutorKind::SingleThreaded);
 
-static INIT_SETTINGS: ScheduleBuildSettings = ScheduleBuildSettings {
-    ambiguity_detection: LogLevel::Warn,
-    hierarchy_detection: LogLevel::Warn,
-    use_shortnames: false,
-    report_sets: true,
-};
-pub fn init_schedule() {
-    let mut init_sched = Schedule::default();
-    init_sched.set_build_settings(INIT_SETTINGS);
-    init_sched.set_executor_kind(ExecutorKind::MultiThreaded);
+        draw_sched
+            .add_systems(render::draw)
+            .add_systems(debug::draw);
 
-    init_sched.add_systems(debug::init);
-    init_sched.add_systems(protag::init);
+        ScheduleTag::Frame
+    }
+
+    pub(crate) static INIT_SETTINGS: ScheduleBuildSettings = ScheduleBuildSettings {
+        ambiguity_detection: LogLevel::Warn,
+        hierarchy_detection: LogLevel::Warn,
+        use_shortnames: false,
+        report_sets: true,
+    };
+
+    pub(crate) fn init_schedule(init_sched: &mut Schedule) -> ScheduleTag {
+        init_sched
+            .set_build_settings(INIT_SETTINGS.clone())
+            .set_executor_kind(ExecutorKind::MultiThreaded);
+
+        init_sched
+            .add_systems(debug::init)
+            .add_systems(protag::init);
+
+        ScheduleTag::Init
+    }
 }

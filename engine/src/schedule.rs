@@ -4,28 +4,21 @@ use bevy_ecs::schedule::Schedule;
 use bevy_ecs::schedule::ScheduleBuildSettings;
 
 pub struct Scheduler {
-    schedules: Vec<TaggedSchedule>,
+    schedules: Vec<(Schedule, ScheduleTag)>,
 }
 
 impl Scheduler {
-    pub fn new(e: Vec<fn(&mut Schedule) -> TaggedSchedule>) -> Self {
+    pub fn new(schedule_builders: Vec<fn(&mut Schedule) -> ScheduleTag>) -> Self {
         let mut schedules = Vec::new();
-        for i in e {
-            // schedules.push(i())
+
+        for builder in schedule_builders {
+            let mut sched = Schedule::default();
+            let details = builder(&mut sched);
+
+            schedules.push((sched, details))
         }
 
         Self { schedules }
-    }
-}
-
-pub struct TaggedSchedule {
-    schedule: Schedule,
-    tag: ScheduleTag,
-}
-
-impl TaggedSchedule {
-    fn new(schedule: Schedule, tag: ScheduleTag) -> Self {
-        Self { schedule, tag }
     }
 }
 
