@@ -12,6 +12,7 @@ mod engine;
 mod input;
 mod render;
 mod root;
+pub mod scene;
 pub mod schedule;
 pub mod space;
 

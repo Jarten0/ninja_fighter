@@ -20,63 +20,76 @@ fn main() -> ! {
     ggez::event::run(context, event_loop, root);
 }
 
-pub fn create_schedules() -> Vec<fn() -> Schedule> {
-    todo!()
+mod custom_schedules {
+    use bevy_ecs::schedule::ExecutorKind;
+    use bevy_ecs::schedule::LogLevel;
+    use bevy_ecs::schedule::Schedule;
+    use bevy_ecs::schedule::ScheduleBuildSettings;
+    use components::*;
+    use engine::schedule::ScheduleTag;
+
+    pub fn create_schedules() -> Vec<fn(&mut Schedule) -> ScheduleTag> {
+        vec![tick_schedule, frame_schedule, init_schedule]
+    }
+
+    pub(crate) static TICK_SETTINGS: ScheduleBuildSettings = ScheduleBuildSettings {
+        ambiguity_detection: LogLevel::Warn,
+        hierarchy_detection: LogLevel::Warn,
+        use_shortnames: false,
+        report_sets: true,
+    };
+
+    pub(crate) fn tick_schedule(sched: &mut Schedule) -> ScheduleTag {
+        // Configuration block
+        sched
+            .set_build_settings(TICK_SETTINGS.clone())
+            .set_executor_kind(ExecutorKind::MultiThreaded);
+
+        // Systems block
+        sched
+            .add_systems(transform::update)
+            .add_systems(collider::collider_mesh::update)
+            .add_systems(debug::update)
+            .add_systems(collider::update);
+
+        ScheduleTag::Tick
+    }
+
+    pub(crate) static FRAME_SETTINGS: ScheduleBuildSettings = ScheduleBuildSettings {
+        ambiguity_detection: LogLevel::Warn,
+        hierarchy_detection: LogLevel::Warn,
+        use_shortnames: false,
+        report_sets: true,
+    };
+
+    pub(crate) fn frame_schedule(draw_sched: &mut Schedule) -> ScheduleTag {
+        draw_sched
+            .set_build_settings(FRAME_SETTINGS.clone())
+            .set_executor_kind(ExecutorKind::SingleThreaded);
+
+        draw_sched
+            .add_systems(render::draw)
+            .add_systems(debug::draw);
+
+        ScheduleTag::Frame
+    }
+
+    pub(crate) static INIT_SETTINGS: ScheduleBuildSettings = ScheduleBuildSettings {
+        ambiguity_detection: LogLevel::Warn,
+        hierarchy_detection: LogLevel::Warn,
+        use_shortnames: false,
+        report_sets: true,
+    };
+
+    pub(crate) fn init_schedule(init_sched: &mut Schedule) -> ScheduleTag {
+        init_sched
+            .set_build_settings(INIT_SETTINGS.clone())
+            .set_executor_kind(ExecutorKind::MultiThreaded);
+
+        init_sched
+            .add_systems(debug::init)
+            .add_systems(protag::init);
+
+        ScheduleTag::Init
+    }
 }
-use bevy_ecs::schedule::ExecutorKind;
-use bevy_ecs::schedule::LogLevel;
-use bevy_ecs::schedule::Schedule;
-use bevy_ecs::schedule::ScheduleBuildSettings;
-use components::*;
-
-pub fn tick_schedule() {
-    let mut sched: Schedule = Schedule::default();
-
-    sched.set_build_settings(TICK_SETTINGS.clone());
-    sched.set_executor_kind(ExecutorKind::MultiThreaded);
-
-    sched.add_systems(transform::update);
-    sched.add_systems(collider::collider_mesh::update);
-    sched.add_systems(debug::update);
-    sched.add_systems(collider::update);
-}
-
-pub fn frame_schedule() -> Schedule {
-    let mut draw_sched: Schedule = Schedule::default();
-    draw_sched
-        .set_build_settings(FRAME_SETTINGS.clone())
-        .set_executor_kind(ExecutorKind::SingleThreaded);
-
-    draw_sched
-        .add_systems(render::draw)
-        .add_systems(debug::draw);
-    draw_sched
-}
-
-pub fn init_schedule() {
-    let mut init_sched = Schedule::default();
-    init_sched.set_build_settings(INIT_SETTINGS.clone());
-    init_sched.set_executor_kind(ExecutorKind::MultiThreaded);
-
-    init_sched.add_systems(debug::init);
-    init_sched.add_systems(protag::init);
-}
-
-static TICK_SETTINGS: ScheduleBuildSettings = ScheduleBuildSettings {
-    ambiguity_detection: LogLevel::Warn,
-    hierarchy_detection: LogLevel::Warn,
-    use_shortnames: false,
-    report_sets: true,
-};
-static FRAME_SETTINGS: ScheduleBuildSettings = ScheduleBuildSettings {
-    ambiguity_detection: LogLevel::Warn,
-    hierarchy_detection: LogLevel::Warn,
-    use_shortnames: false,
-    report_sets: true,
-};
-static INIT_SETTINGS: ScheduleBuildSettings = ScheduleBuildSettings {
-    ambiguity_detection: LogLevel::Warn,
-    hierarchy_detection: LogLevel::Warn,
-    use_shortnames: false,
-    report_sets: true,
-};
