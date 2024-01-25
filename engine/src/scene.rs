@@ -3,6 +3,7 @@ use std::{
     fmt::Display,
     fs::File,
     io::{BufWriter, Write},
+    ops::{Deref, DerefMut},
     path::PathBuf,
 };
 
@@ -44,49 +45,40 @@ pub struct Scene {
     /// This means the responsibility falls on the caller to take care of this before every serialization.
     /// To do so, a simple call to `Scene::`
     serialized_entity_component_data: Option<String>,
-}
-
-impl PartialEq for Scene {
-    fn eq(&self, other: &Self) -> bool {
-        self.name == other.name
-    }
-}
-
-#[derive(Debug)]
-pub struct SerializedScene {
-    pub name: String,
-    pub entity_data: String,
-}
-
-impl SerializedScene {
-    pub fn initialize(self, world: &mut World) -> serde_json::Result<Scene> {
-        let scene = Scene::new(self.name.to_owned());
-        // TODO: Deserialize entity data here and add it to the scene
-
-        let v: serde_json::Value = serde_json::from_str(&self.entity_data)?;
-        let entity = world.spawn_empty();
-        // for component in v.
-
-        dbg!(v);
-
-        Ok(scene)
-    }
+    save_data_path: PathBuf,
 }
 
 impl Scene {
+    /// Creates a new blank [`Scene`] using the provided name.
+    ///
+    /// Does not contain any [`Entity`]'s and does not load any. To do that, wait until its ready.
+    ///
+    ///
+    // TODO: When done, update these docs
     pub fn new(name: String) -> Self {
         Self {
             name,
             entities: Vec::new(),
+            serialized_entity_component_data: None,
+            save_data_path: PathBuf::new(),
         }
     }
 
+    /// Instantly despawns every entity belonging to the scene before despawning the scene entity.
+    ///
+    /// Does not give any time or calls any methods on or before despawn.
+    /// If you want that, use a better (currently non-existent) method.
+    // fix that later maybe
+    ///
+    /// Does not save before unloading! Make sure to call `save()` if anything in the scene must be serialized and stored.
+    /// If you don't have any non-global game state contained inside though, you're free to ignore that and unload as you please.
     pub fn unload(&self, commands: &mut Commands) {
         for entity in &self.entities {
             commands.entity(entity.to_owned()).despawn();
         }
     }
 
+    /// Serializes all of the
     pub fn save(&self, world: &mut World) -> Result<(), std::io::Error> {
         let mut path = PathBuf::new();
         path.push(current_dir()?);
@@ -97,14 +89,26 @@ impl Scene {
         Ok(())
     }
 
+    /// Takes all of the entities from [`Scene`], takes the [`SceneData`] of each one, and iterates over every [`Component`] that is designated to be serialized.
+    /// It then serializes each component and stores that data as `JSON` inside of the `Scene`'s `serialized_entity_component_data` as a [`String`].
+    ///
+    /// Later, when serializing the `Scene` itself, it will pull from there and store that data inside of the new serialized [`SerializedScene`] created.
     pub fn serialize_entity_components(&mut self, world: &mut World) -> Result<(), String> {
-        for entity in self.entities {
-            let scene_data = world.get::<SceneData>(entity).ok_or(format!(
+        for entity in &self.entities {
+            let scene_data = world.get::<SceneData>(entity.to_owned()).ok_or(format!(
                 "Entity {:?} does not have a SceneData component!",
                 entity
             ))?;
 
-            scene_data.serializeable_components;
+            for component_id in &scene_data.serializeable_components {
+                // this is where I would access each component
+                // I would then call `.serialize()` on each component
+                // then I would take that and store it-
+
+                // but how do I work around Rust's type system to call a method on an unknown component?
+                // It must implement `serde::serialize`, but I'm not sure how exactly to express that
+                // since trait objects dont seem to work from what I've tried
+            }
         }
 
         todo!()
@@ -114,7 +118,7 @@ impl Scene {
     /// This checks every entity to see if their [`SceneData`] matches, and if not, returns `false`.
     ///
     /// If you don't want to compare [`Scene`]s with world access, you can use the default `==` operator implementation.
-    /// However, it will only compare the scene's IDs, so entity checking is not viable.
+    /// However, it will only compare the scene's IDs, so entity checking is not viable.'/:`12`
     pub fn entity_eq(&self, other: &Scene, world: &mut World) -> bool {
         if self.name != other.name {
             return false;
@@ -150,6 +154,12 @@ impl Scene {
     }
 }
 
+impl PartialEq for Scene {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name
+    }
+}
+
 impl Serialize for Scene {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -161,6 +171,28 @@ impl Serialize for Scene {
         serialize_struct.serialize_field("entity_data", &var_name);
         // TODO: Convert entites to string data that can be deserialized
         serialize_struct.end()
+    }
+}
+
+/// A string based data type that stores useful data to convert [`Scene`]'s and bevy_ecs [`Entity`]'s to strings and back.
+#[derive(Debug)]
+pub struct SerializedScene {
+    pub name: String,
+    pub entity_data: String,
+}
+
+impl SerializedScene {
+    pub fn initialize(self, world: &mut World) -> serde_json::Result<Scene> {
+        let scene = Scene::new(self.name.to_owned());
+        // TODO: Deserialize entity data here and add it to the scene
+
+        let v: serde_json::Value = serde_json::from_str(&self.entity_data)?;
+        let entity = world.spawn_empty();
+        // for component in v.
+
+        dbg!(v);
+
+        Ok(scene)
     }
 }
 
@@ -176,7 +208,9 @@ impl<'de> Deserialize<'de> for SerializedScene {
     }
 }
 
+/// Simple [`Visitor`] for deserializing [`SerializedScene`]'s from `Jesoon` (or whatever serializer is used) into a proper Rust data type
 struct SceneVisitor;
+
 impl<'de> Visitor<'de> for SceneVisitor {
     type Value = SerializedScene;
 
@@ -188,16 +222,16 @@ impl<'de> Visitor<'de> for SceneVisitor {
     where
         A: serde::de::MapAccess<'de>,
     {
-        let mut scene = SerializedScene {
+        let mut serialized_scene = SerializedScene {
             name: String::new(),
             entity_data: String::new(),
         };
 
         // This at one point was like 20 lines long
-        while let Some((key, value)) = map.next_entry::<String, String>()? {
+        while let Some((key)) = map.next_key::<String>()? {
             match key.as_str() {
-                "name" => scene.name = value,
-                "entity_data" => scene.entity_data = value,
+                "name" => serialized_scene.name = map.next_value()?,
+                "entity_data" => serialized_scene.entity_data = map.next_value()?,
                 _ => (),
             };
         }
@@ -205,6 +239,7 @@ impl<'de> Visitor<'de> for SceneVisitor {
     }
 }
 
+// TODO: figure this struct out or remove it
 #[derive(Debug, Eq, Clone, Copy)]
 pub struct SceneObjectID {
     pub(crate) id: usize,
@@ -229,14 +264,25 @@ impl SceneObjectID {
     }
 }
 
+/// Holds data for the assigned [`Scene`] to operate upon.
+/// An entity cannot be serialized by the [`Scene`] if it does not have this component.
+///
+// TODO: finish [`SceneData`] docs
+#[derive(bevy_ecs::component::Component)]
+pub struct SceneData {
+    pub root_scene: String,
+    /// The ID of the current scene that the component holder belongs to.
+    /// Not to be confused with the [`SceneObjectID`], which is a seperate thing uhh
+    // TODO: figure that out
+    pub scene_id: usize,
+    pub serializeable_components: Vec<ComponentId>,
+}
+
 #[test]
 fn scene_test() {
     let mut world = World::new();
 
-    let init_scene: Scene = dbg!(Scene {
-        name: String::from("TestScene"),
-        entities: Vec::new(),
-    });
+    let init_scene: Scene = dbg!(Scene::new("TestScene".to_string()));
 
     let to_string: String =
         dbg!(serde_json::to_string(&init_scene).expect("jesoon should have serialized properly"));
@@ -251,35 +297,6 @@ fn scene_test() {
     assert!(Scene::entity_eq(&init_scene, &result_scene, &mut world))
 }
 
-pub struct SceneTag {
-    scene_name: String,
-}
-
-#[derive(bevy_ecs::component::Component)]
-pub struct SceneData {
-    pub root_scene: String,
-    pub serializeable_components: Vec<ComponentId>,
-    pub scene_id: usize,
-}
-
-impl Serialize for Scene {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        let mut serialize_struct = serializer.serialize_struct("Scene", 2)?;
-        serialize_struct.serialize_field("name", &self.name);
-        let value: Vec<Entity> = Vec::new();
-        serialize_struct.serialize_field("entities", &value);
-        serialize_struct.end()
-    }
-}
-
-impl<'de> Deserialize<'de> for Scene {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        todo!()
-    }
-}
+/// UGHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+/// so not excited to do this
+pub trait SerializableComponent {}
