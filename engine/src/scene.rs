@@ -100,7 +100,16 @@ impl Scene {
                 entity
             ))?;
 
-            for component_id in &scene_data.serializeable_components {
+            let vecc: String = String::new();
+            for component_id in &mut scene_data.serializeable_components {
+                let writer = BufWriter::new(std::fs::File::create("A").unwrap());
+                let serializer = serde_json::Serializer::new(writer);
+                let component_id = erased_serde::serialize(component_id, serializer);
+                let to_string = serde_json::to_string(component_id);
+                if let Err(err) = to_string {
+                    return Err(err.to_string());
+                }
+                vecc.push_str(to_string.unwrap());
                 // this is where I would access each component
                 // I would then call `.serialize()` on each component
                 // then I would take that and store it-
@@ -165,11 +174,13 @@ impl Serialize for Scene {
     where
         S: serde::Serializer,
     {
-        let mut serialize_struct = serializer.serialize_struct("SerializedScene", 2)?;
-        serialize_struct.serialize_field("name", &self.name);
-        let var_name = serde_json::to_string(&self.entities).unwrap();
-        serialize_struct.serialize_field("entity_data", &var_name);
+        let entity_json = serde_json::to_string(&self.entities).unwrap();
         // TODO: Convert entites to string data that can be deserialized
+
+        let mut serialize_struct = serializer.serialize_struct("SerializedScene", 2)?;
+
+        serialize_struct.serialize_field("name", &self.name);
+        serialize_struct.serialize_field("entity_data", &entity_json);
         serialize_struct.end()
     }
 }
@@ -239,6 +250,20 @@ impl<'de> Visitor<'de> for SceneVisitor {
     }
 }
 
+/// UGHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+/// so not excited to do this
+///
+/// A trait for implementing [`Scene`] serialization behaviour for your component
+///
+pub trait SerializableComponent
+where
+    Self: erased_serde::Serialize,
+    Self: Component<Storage = bevy_ecs::component::TableStorage>,
+{
+}
+
+pub struct SerializedComponent {}
+
 // TODO: figure this struct out or remove it
 #[derive(Debug, Eq, Clone, Copy)]
 pub struct SceneObjectID {
@@ -275,7 +300,7 @@ pub struct SceneData {
     /// Not to be confused with the [`SceneObjectID`], which is a seperate thing uhh
     // TODO: figure that out
     pub scene_id: usize,
-    pub serializeable_components: Vec<ComponentId>,
+    pub serializeable_components: Vec<Box<dyn SerializableComponent>>,
 }
 
 #[test]
@@ -296,7 +321,3 @@ fn scene_test() {
 
     assert!(Scene::entity_eq(&init_scene, &result_scene, &mut world))
 }
-
-/// UGHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
-/// so not excited to do this
-pub trait SerializableComponent {}
