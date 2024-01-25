@@ -13,13 +13,13 @@ use bevy_ecs::{
 use self::collider_mesh::ColliderMesh;
 use self::gravity_settings::GravitySettings;
 
-use super::transform::{self, Transform};
+use engine::space::Transform;
 
 #[derive(Debug, Clone, Bundle)]
 pub struct Collider {
     gravity: gravity_settings::GravitySettings,
     mesh: collider_mesh::ColliderMesh,
-    transform: transform::Transform,
+    transform: Transform,
 }
 
 impl Collider {

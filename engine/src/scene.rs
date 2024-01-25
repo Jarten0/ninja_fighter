@@ -7,7 +7,7 @@ use bevy_ecs::{
     system::{Command, Commands, EntityCommand, EntityCommands, Spawn},
     world::World,
 };
-use serde::Serialize;
+use serde::{ser::SerializeStruct, Deserialize, Serialize};
 
 #[derive(Debug, Bundle)]
 pub struct SceneBundle {
@@ -23,6 +23,7 @@ pub struct SceneBundle {
 pub struct Scene {
     pub name: String,
     pub entities: Vec<Entity>,
+    pub entity_serialize_data: String,
 }
 
 struct LoadSceneCommand {
@@ -61,6 +62,7 @@ impl Scene {
         Self {
             name,
             entities: Vec::new(),
+            entity_serialize_data: String::new(),
         }
     }
 
@@ -104,4 +106,26 @@ pub struct SceneTag {
 pub struct SceneData {
     pub root_scene: String,
     pub other_components: Vec<ComponentId>,
+}
+
+impl Serialize for Scene {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut serialize_struct = serializer.serialize_struct("Scene", 2)?;
+        serialize_struct.serialize_field("name", &self.name);
+        let value: Vec<Entity> = Vec::new();
+        serialize_struct.serialize_field("entities", &value);
+        serialize_struct.end()
+    }
+}
+
+impl<'de> Deserialize<'de> for Scene {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        todo!()
+    }
 }

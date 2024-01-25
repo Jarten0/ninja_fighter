@@ -9,7 +9,7 @@ use engine::Engine;
 
 use self::render_type::RenderType;
 
-use super::transform::Transform;
+use engine::space::Transform;
 
 #[derive(bevy_ecs::component::Component)]
 pub struct Renderer {

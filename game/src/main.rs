@@ -47,7 +47,7 @@ mod custom_schedules {
 
         // Systems block
         sched
-            .add_systems(transform::update)
+            .add_systems(engine::systems::update)
             .add_systems(collider::collider_mesh::update)
             .add_systems(debug::update)
             .add_systems(collider::update);

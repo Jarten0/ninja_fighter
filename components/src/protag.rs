@@ -1,9 +1,6 @@
-use crate::render::render_type::RenderType;
+use crate::{collider::Collider, render::render_type::RenderType, render::Renderer};
 
-use super::collider::Collider;
-use super::render::Renderer;
-use super::transform::Transform;
-use super::transform::TransformSettings;
+use engine::space::{Transform, TransformSettings};
 
 use engine::space;
 use engine::Engine;

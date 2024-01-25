@@ -1,12 +1,23 @@
-mod pos;
-mod rtt;
-mod scl;
-mod vel;
-mod vtx;
+//! main docs, but i aint finishing it rn
+//! transform is split into three components, position, velocity, scale and rotation
+//! this is where those components are hosted so they're pretty much built into the engine
+//! reason being the [`Vector2`] struct is here, and the rest pretty much rely entirely on it (aside from rotation)
+//! anyways this module contains [`Vector2`]
+
+// don't you love it when you have 17 impl blocks in one file yay fun
+// anyways i split them up into several blocks so as to make organization a little bit easier yw
+
+pub(crate) mod pos;
+pub(crate) mod rtt;
+pub(crate) mod scl;
+pub(crate) mod transform;
+pub(crate) mod vel;
+pub(crate) mod vtx;
 
 pub use pos::Position;
 pub use rtt::Rotation;
 pub use scl::Scale;
+pub use transform::{Transform, TransformSettings};
 pub use vel::Velocity;
 pub use vtx::Vertex;
 
@@ -15,10 +26,12 @@ use core::fmt;
 use ggez::graphics::Vertex as DrawVertex;
 use nalgebra::base;
 use serde::{de::Visitor, ser::SerializeStruct, Deserialize, Serialize};
-use std::{
-    ops::{Add, AddAssign, Deref, DerefMut, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
-    time::Duration,
+use std::ops::{
+    Add, AddAssign, Deref, DerefMut, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign,
 };
+use std::time::Duration;
+
+// Struct block //
 
 #[derive(Debug, Clone, Copy)]
 pub struct Vector2(mint::Vector2<f32>);
@@ -40,6 +53,24 @@ impl Vector2 {
         // <Vector2 as Deref>::Target
     }
 }
+
+// Deref block //
+
+impl Deref for Vector2 {
+    type Target = mint::Vector2<f32>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for Vector2 {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+// Initialization block //
 
 impl Vector2 {
     pub fn up() -> Self {
@@ -80,20 +111,6 @@ impl Default for Vector2 {
     }
 }
 
-impl Deref for Vector2 {
-    type Target = mint::Vector2<f32>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl DerefMut for Vector2 {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
-
 impl Into<(f32, f32)> for Vector2 {
     /// Returns the [`Vector2`] as a tuple struct, where 0 = vec.x and 1 = vec.y
     fn into(self) -> (f32, f32) {
@@ -112,6 +129,8 @@ impl fmt::Display for Vector2 {
         write!(f, "({}, {})", self.0.x, self.0.y)
     }
 }
+
+// Operator block //
 
 impl Add for Vector2 {
     type Output = Vector2;
@@ -147,6 +166,8 @@ impl SubAssign for Vector2 {
     }
 }
 
+// Serialize block //
+
 impl Serialize for Vector2 {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -167,7 +188,6 @@ impl<'de> Deserialize<'de> for Vector2 {
         Ok(deserializer.deserialize_struct("Vector2", &["x", "y"], F32Visitor {})?)
     }
 }
-
 struct F32Visitor;
 
 impl<'de> Visitor<'de> for F32Visitor {
