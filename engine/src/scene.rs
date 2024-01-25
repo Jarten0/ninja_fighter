@@ -2,7 +2,7 @@ use std::{
     env::current_dir,
     fmt::Display,
     fs::File,
-    io::{BufWriter, Write},
+    io::{self, BufWriter, Write},
     ops::{Deref, DerefMut},
     path::PathBuf,
 };
@@ -14,6 +14,7 @@ use bevy_ecs::{
     system::{Command, Commands, EntityCommand, EntityCommands, Spawn},
     world::World,
 };
+use erased_serde::Serialize as ErasedSerialize;
 use serde::{de::Visitor, ser::SerializeStruct, Deserialize, Serialize};
 
 use std::{collections::HashMap, hash::Hash, sync::atomic::AtomicUsize};
@@ -100,27 +101,48 @@ impl Scene {
                 entity
             ))?;
 
-            let vecc: String = String::new();
-            for component_id in &mut scene_data.serializeable_components {
-                let writer = BufWriter::new(std::fs::File::create("A").unwrap());
-                let serializer = serde_json::Serializer::new(writer);
-                let component_id = erased_serde::serialize(component_id, serializer);
-                let to_string = serde_json::to_string(component_id);
-                if let Err(err) = to_string {
-                    return Err(err.to_string());
-                }
-                vecc.push_str(to_string.unwrap());
-                // this is where I would access each component
-                // I would then call `.serialize()` on each component
-                // then I would take that and store it-
+            let inner_file: Vec<u8> = Vec::new();
+            // let inner_file = match std::fs::File::create(path) {
+            //     Ok(v) => v,
+            //     Err(e) => return Err(String::from(format!("Failed to create file: {:?}", e))),
+            // };
+            let mut writer = BufWriter::with_capacity(8000, inner_file); //wrote it this way so it wont have to be re-written later :)
+            let typed_json = &mut serde_json::Serializer::new(writer);
+            let mut erased_json = <dyn erased_serde::Serializer>::erase(typed_json);
 
-                // but how do I work around Rust's type system to call a method on an unknown component?
-                // It must implement `serde::serialize`, but I'm not sure how exactly to express that
-                // since trait objects dont seem to work from what I've tried
+            for component_id in &scene_data.serializeable_components {
+                let component =
+                    match Self::serialize_entity(component_id, &mut writer, &mut erased_json) {
+                        Err(value) => {
+                            eprintln!("Component failed to serialize! [{}]", value);
+                            return Err(value);
+                        }
+                        _ => (),
+                    };
             }
+
+            let e = writer.flush().unwrap();
+            match String::from_utf8() {
+                Ok(ok) => Ok(ok),
+                Err(err) => Err(err.to_string()),
+            };
         }
 
         todo!()
+    }
+
+    /// Finds a file, creates a buffer to that file, gives it to the serializer, has the serializer write into the buffer, then flushes the buffer into the file.
+    /// ez
+    fn serialize_entity(
+        component_id: &Box<dyn SerializableComponent>,
+        writer: &mut impl Write,
+        erased_json: &mut impl erased_serde::Serializer,
+    ) -> Result<(), String> {
+        if let Err(err) = ErasedSerialize::erased_serialize(&component_id, erased_json) {
+            return Err(err.to_string());
+        };
+
+        Ok(())
     }
 
     /// The comparison operator (`==`) but with entity comparison.
@@ -255,12 +277,15 @@ impl<'de> Visitor<'de> for SceneVisitor {
 ///
 /// A trait for implementing [`Scene`] serialization behaviour for your component
 ///
-pub trait SerializableComponent
+pub trait SerializableComponent: erased_serde::Serialize
 where
-    Self: erased_serde::Serialize,
     Self: Component<Storage = bevy_ecs::component::TableStorage>,
 {
+    /// Returns the path of where the component will be saved and loaded from.
+    fn path(&self) -> PathBuf;
 }
+
+erased_serde::serialize_trait_object!(SerializableComponent);
 
 pub struct SerializedComponent {}
 
