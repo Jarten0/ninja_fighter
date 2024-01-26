@@ -96,7 +96,7 @@ fn convert_action_to_str_test() {
         default_keys: Vec::new(),
     };
 
-    let test_action = String::from("|") + test_name + "/" + test_keys_str;
+    let test_action = String::new() + test_name + "/" + test_keys_str + "|";
 
     // Test Functions
     let string_action = Action::to_string(&instantiated_action.clone());

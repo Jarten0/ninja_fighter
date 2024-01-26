@@ -167,10 +167,11 @@ impl Action {
 }
 
 impl ToString for Action {
+    /// Return value example: `TestActionName/key1;key2;key3;|`
     fn to_string(&self) -> String {
         let mut output: String = String::new();
 
-        output.push('|');
+        // output.push('|');
         output.push_str(&self.name);
         output.push('/');
 
@@ -178,8 +179,7 @@ impl ToString for Action {
             output.push_str(keycode_to_str(key_type.clone()).unwrap());
             output.push_str(";")
         }
-
-        // output.push('|');
+        output.push('|');
 
         // todo!();
 
