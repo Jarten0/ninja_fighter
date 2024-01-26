@@ -14,7 +14,7 @@ fn main() -> ! {
         .build()
         .expect("aieee, could not create ggez context!");
 
-    let scheduler = engine::schedule::Scheduler::new(custom_schedules::create_schedules());
+    let _scheduler = engine::schedule::Scheduler::new(custom_schedules::create_schedules());
     let root = engine::GameRoot::new(&mut context);
 
     ggez::event::run(context, event_loop, root);

@@ -43,7 +43,7 @@ impl DebugComponent {
 
 pub fn update(
     mut query: Query<&mut DebugComponent>,
-    mut collider_query: Query<&mut ColliderMesh>,
+    collider_query: Query<&mut ColliderMesh>,
     engine: ResMut<Engine>,
     mut input: ResMut<Input>,
     mut commands: Commands,
@@ -70,7 +70,7 @@ pub fn update(
                     debug.update_place_state(PlaceState::Placing(0, entity))
                 }
             }
-            PlaceState::Placing(stage, entity) => {
+            PlaceState::Placing(_stage, _entity) => {
                 if !is_just_pressed {
                     continue;
                 }
