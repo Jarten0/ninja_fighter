@@ -5,7 +5,8 @@ resolver = "2"
 members = [
     "game",
     "engine",
-    "components"
+    "components",
+    "editor"
 ]
 
 

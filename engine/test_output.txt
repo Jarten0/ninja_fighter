@@ -1,1 +1,1 @@
-{"name":"TestScene","entity_data":"[0]"}
+{"name":"TestScene","entity_data":[""]}

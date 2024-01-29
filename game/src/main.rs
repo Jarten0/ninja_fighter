@@ -32,13 +32,6 @@ mod custom_schedules {
         vec![tick_schedule, frame_schedule, init_schedule]
     }
 
-    pub(crate) static TICK_SETTINGS: ScheduleBuildSettings = ScheduleBuildSettings {
-        ambiguity_detection: LogLevel::Warn,
-        hierarchy_detection: LogLevel::Warn,
-        use_shortnames: false,
-        report_sets: true,
-    };
-
     pub(crate) fn tick_schedule(sched: &mut Schedule) -> ScheduleTag {
         // Configuration block
         sched
@@ -55,13 +48,6 @@ mod custom_schedules {
         ScheduleTag::Tick
     }
 
-    pub(crate) static FRAME_SETTINGS: ScheduleBuildSettings = ScheduleBuildSettings {
-        ambiguity_detection: LogLevel::Warn,
-        hierarchy_detection: LogLevel::Warn,
-        use_shortnames: false,
-        report_sets: true,
-    };
-
     pub(crate) fn frame_schedule(draw_sched: &mut Schedule) -> ScheduleTag {
         draw_sched
             .set_build_settings(FRAME_SETTINGS.clone())
@@ -74,13 +60,6 @@ mod custom_schedules {
         ScheduleTag::Frame
     }
 
-    pub(crate) static INIT_SETTINGS: ScheduleBuildSettings = ScheduleBuildSettings {
-        ambiguity_detection: LogLevel::Warn,
-        hierarchy_detection: LogLevel::Warn,
-        use_shortnames: false,
-        report_sets: true,
-    };
-
     pub(crate) fn init_schedule(init_sched: &mut Schedule) -> ScheduleTag {
         init_sched
             .set_build_settings(INIT_SETTINGS.clone())
@@ -92,4 +71,23 @@ mod custom_schedules {
 
         ScheduleTag::Init
     }
+
+    pub(crate) static TICK_SETTINGS: ScheduleBuildSettings = ScheduleBuildSettings {
+        ambiguity_detection: LogLevel::Warn,
+        hierarchy_detection: LogLevel::Warn,
+        use_shortnames: false,
+        report_sets: true,
+    };
+    pub(crate) static FRAME_SETTINGS: ScheduleBuildSettings = ScheduleBuildSettings {
+        ambiguity_detection: LogLevel::Warn,
+        hierarchy_detection: LogLevel::Warn,
+        use_shortnames: false,
+        report_sets: true,
+    };
+    pub(crate) static INIT_SETTINGS: ScheduleBuildSettings = ScheduleBuildSettings {
+        ambiguity_detection: LogLevel::Warn,
+        hierarchy_detection: LogLevel::Warn,
+        use_shortnames: false,
+        report_sets: true,
+    };
 }

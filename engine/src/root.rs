@@ -38,10 +38,6 @@ where
 impl GameRoot {
     /// Loads and initialized essential data for [`bevy_ecs`] operations, specifically the [`GameRoot`] and [`MainCanvas`] structs
     pub fn new(context: &mut Context) -> Self {
-        if false {
-            super::input_cli_editor();
-        }
-
         let debug = false;
 
         let (schedule, draw_schedule, init_schedule) = todo!();
