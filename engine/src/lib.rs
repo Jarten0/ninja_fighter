@@ -1,12 +1,9 @@
-#![allow(dead_code)]
-#![allow(unused)]
-
 //! The main module for having game logic through components interact with [`bevy_ecs`] and [`ggez`]
 //! If you need to access the main engine, this is how you do it.
 //!
 //! Several components are stored here as well, built directly into the engine.
 //! The [`Transform`] and [`camera::Camera`] are good examples of that.
-
+#![allow(unused)]
 mod assets;
 mod camera;
 mod engine;
