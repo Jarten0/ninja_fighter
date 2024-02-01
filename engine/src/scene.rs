@@ -4,7 +4,7 @@ use std::{
     fs::File,
     io::{self, BufWriter, Write},
     ops::{Deref, DerefMut},
-    path::PathBuf,
+    path::{self, PathBuf},
 };
 
 use bevy_ecs::{
@@ -12,7 +12,7 @@ use bevy_ecs::{
     component::{Component, ComponentId},
     entity::Entity,
     system::{Command, Commands, EntityCommand, EntityCommands, Resource, Spawn},
-    world::World,
+    world::{EntityWorldMut, World},
 };
 use erased_serde::Serialize as ErasedSerialize;
 use serde::{de::Visitor, ser::SerializeStruct, Deserialize, Serialize};
@@ -55,7 +55,7 @@ impl Scene {
     /// Does not contain any [`Entity`]'s and does not load any. To do that, wait until its ready.
     ///
     ///
-    // TODO: When done, update these docs
+    /// // TODO: When done, update these docs
     pub fn new(name: String) -> Self {
         Self {
             name,
@@ -69,7 +69,7 @@ impl Scene {
     ///
     /// Does not give any time or calls any methods on or before despawn.
     /// If you want that, use a better (currently non-existent) method.
-    // fix that later maybe
+    /// // fix that later maybe
     ///
     /// Does not save before unloading! Make sure to call `save()` if anything in the scene must be serialized and stored.
     /// If you don't have any non-global game state contained inside though, you're free to ignore that and unload as you please.
@@ -86,72 +86,6 @@ impl Scene {
         let new_file = File::create(path)?;
 
         serde_json::to_writer(new_file, self)?;
-
-        Ok(())
-    }
-
-    /// Takes all of the entities from [`Scene`], takes the [`SceneData`] of each one, and iterates over every [`Component`] that is designated to be serialized.
-    /// It then serializes each component and stores that data as `JSON` inside of the `Scene`'s `serialized_entity_component_data` as a [`String`].
-    ///
-    /// Later, when serializing the `Scene` itself, it will pull from there and store that data inside of the new serialized [`SerializedScene`] created.
-    ///
-    /// Be careful when calling, as every call will overwrite the previous save data.
-    pub fn serialize_entity_components<'a>(&'a mut self, world: &'a World) -> Result<(), String> {
-        let mut new_serialized_data: Vec<String> = Vec::new();
-
-        for entity in &self.entities {
-            let entity_scene_data = world.get::<SceneData>(entity.to_owned()).ok_or(format!(
-                "Entity {:?} does not have a SceneData component!",
-                entity
-            ))?;
-
-            let mut serialized_data_from_entity: Vec<u8> = Vec::new();
-
-            let typed_json = &mut serde_json::Serializer::new(serialized_data_from_entity.clone());
-            let mut erased_json = <dyn erased_serde::Serializer>::erase(typed_json);
-
-            for component_id in &entity_scene_data.serializeable_components {
-                let serialized_entity = Scene::serialize_entity(
-                    component_id,
-                    &mut serialized_data_from_entity,
-                    &mut erased_json,
-                );
-
-                if let Err(value) = serialized_entity {
-                    eprintln!("Component failed to serialize! [{}]", value);
-                    return Err(value);
-                };
-            }
-
-            let checked_sdfe: String = match String::from_utf8(serialized_data_from_entity) {
-                Ok(string) => string,
-                Err(err) => return Err(err.to_string()),
-            };
-
-            new_serialized_data.push(checked_sdfe);
-        }
-
-        self.serialized_entity_component_data = Some(new_serialized_data);
-
-        Ok(())
-    }
-
-    /// Finds a file, creates a buffer to that file, gives it to the serializer, has the serializer write into the buffer, then flushes the buffer into the file.
-    /// ez
-    ///
-    /// At least it used to, but now it's functionality is reduced for now.
-    /// It just calls `erased_serialized`, thats it.
-    /// If it fails, it returns the error as a string instead of an [`erased_serde::error::Error`], since thats what I'm rolling with while prototyping.
-    // TODO: Figure out what to do with this function or inline it everywhere and remove this.
-    fn serialize_entity(
-        component_id: &Box<dyn SerializableComponent>,
-        writer: &mut impl Write,
-        erased_json: &mut impl erased_serde::Serializer,
-    ) -> Result<(), String> {
-        let erased_serialize = ErasedSerialize::erased_serialize(&component_id, erased_json);
-        if let Err(err) = erased_serialize {
-            return Err(err.to_string());
-        };
 
         Ok(())
     }
@@ -217,6 +151,61 @@ pub fn add_entity_to_scene<'a>(
     scene.entities.push(entity_to_add.clone());
 
     Ok(())
+}
+
+/// Takes all of the entities from [`Scene`], takes the [`SceneData`] of each one, and iterates over every [`Component`] that is designated to be serialized.
+/// It then serializes each component and stores that data as `JSON` inside of the `Scene`'s `serialized_entity_component_data` as a [`String`].
+///
+/// Later, when serializing the `Scene` itself, it will pull from there and store that data inside of the new serialized [`SerializedScene`] created.
+///
+/// Be careful when calling, as every call will overwrite the previous save data.
+pub fn to_serialized_scene<'a>(
+    world: &'a mut World,
+    scene_entity: Entity,
+) -> Result<SerializedScene, String> {
+    let mut new_serialized_data: Vec<String> = Vec::new();
+
+    let scene = world.entity_mut(scene_entity);
+
+    let vec = scene.get::<Scene>().unwrap().entities.clone();
+    drop(scene);
+    for entity in &vec {
+        let entity_scene_data = World::entity(&world, entity.to_owned())
+            .get::<SceneData>()
+            .ok_or(format!(
+                "Entity {:?} does not have a SceneData component!",
+                entity
+            ))?;
+
+        let mut serialized_data_from_entity: Vec<u8> = Vec::new();
+
+        let typed_json = &mut serde_json::Serializer::new(serialized_data_from_entity.clone());
+        let mut erased_json = <dyn erased_serde::Serializer>::erase(typed_json);
+
+        for component_id in &entity_scene_data.serializeable_components {
+            let serialized_entity =
+                ErasedSerialize::erased_serialize(&component_id, &mut erased_json);
+
+            if let Err(value) = serialized_entity {
+                eprintln!("Component failed to serialize! [{}]", value);
+                return Err(value.to_string());
+            };
+        }
+
+        let checked_sdfe: String = match String::from_utf8(serialized_data_from_entity) {
+            Ok(string) => string,
+            Err(err) => return Err(err.to_string()),
+        };
+
+        new_serialized_data.push(checked_sdfe);
+    }
+
+    let mut scene = world.get_mut::<Scene>(scene_entity).unwrap();
+    scene.serialized_entity_component_data = Some(new_serialized_data);
+    Ok(SerializedScene {
+        name: scene.name.clone(),
+        entity_data: scene.serialized_entity_component_data.clone().unwrap(),
+    })
 }
 
 impl PartialEq for Scene {
@@ -296,8 +285,6 @@ impl<'de> Visitor<'de> for SceneVisitor {
             name: String::new(),
             entity_data: Vec::new(),
         };
-
-        // let key = map.next_key::<String>()?.unwrap();
 
         // This at one point was like 20 lines long
         while let Some((key)) = map.next_key::<String>()? {
@@ -387,13 +374,7 @@ fn scene_test() {
     let mut scene_component: Scene = Scene::new("TestScene".to_string());
     let mut scene_entity_id = World::spawn(&mut world, scene_component).id();
 
-    // = Scene {
-    //     name: "TestScene",
-    //     entities: [],
-    //     serialized_entity_component_data: None,
-    //     save_data_path: "",
-    // }
-    // At an unknown amount of time later, add an entity to the scene
+    // At an unknown amount of time later, create an entity
     let test_entity = world.spawn(transform::Transform::default()).id().clone();
 
     let bundle = TestComponent {
@@ -403,36 +384,24 @@ fn scene_test() {
 
     world.entity_mut(test_entity).insert(bundle);
 
-    let mut scene_entity = world.entity_mut(scene_entity_id);
+    // Add the entity to the scene
+    let mut scene_entity = World::entity_mut(&mut world, scene_entity_id).id();
 
-    if let Err(err) = add_entity_to_scene(&mut world, scene_entity.id(), test_entity) {
+    if let Err(err) = add_entity_to_scene(&mut world, scene_entity, test_entity) {
         panic!("Adding entity failed! [{}]", err)
     }
 
-    if let Err(err) = Scene::serialize_entity_components(&mut scene_component, &world) {
+    // Serialize the scene
+    let mut entity_mut = World::entity_mut(&mut world, scene_entity).id();
+
+    if let Err(err) = to_serialized_scene(&mut world, entity_mut) {
         panic!("Serializing entity failed! [{}]", err)
     }
 
-    // let bundle = dbg!(SceneBundle {
-    //     scene: scene.clone()
-    // });
-    // SceneBundle { scene: scene.clone() } = SceneBundle {
-    //     scene: Scene {
-    //         name: "TestScene",
-    //         entities: [
-    //             0v0,
-    //         ],
-    //         serialized_entity_component_data: Some(
-    //             [
-    //                 "",
-    //             ],
-    //         ),
-    //         save_data_path: "",
-    //     },
-    // }
+    let mut scene_component = world.get::<Scene>(entity_mut).unwrap();
 
-    let to_string: String = serde_json::to_string(&scene_entity.get::<Scene>())
-        .expect("jesoon should have serialized properly");
+    let to_string: String =
+        serde_json::to_string(&scene_component).expect("jesoon should have serialized properly");
 
     println!(
         "The stringified jesoon, to be stored in file: {:#?}",
@@ -440,7 +409,6 @@ fn scene_test() {
     );
 
     // Assume we make some sys calls to store and retrieve that data here
-
     let serialized_scene: SerializedScene =
         serde_json::from_str::<SerializedScene>(&to_string.clone())
             .expect("jesoon should have deserialized properly");
@@ -453,12 +421,16 @@ fn scene_test() {
     let result_scene: Scene =
         dbg!(SerializedScene::initialize(serialized_scene, &mut world).unwrap());
 
+    // assert!(Scene::entity_eq(
+    //     &scene_component,
+    //     &result_scene,
+    //     &mut world
+    // )); // Fails if serde_json::from_str::<SerializedScene>(&to_string.clone()) returns incorrect scene data.
+
     let mut path_buf = current_dir().unwrap();
-    path_buf.push("test_output.txt");
+    path_buf.pop();
+    path_buf.push("test_output");
+    path_buf.push("scene_serialization.txt");
+    println!("{}", path_buf.to_str().unwrap());
     File::create(path_buf).unwrap().write(to_string.as_bytes());
-    assert!(Scene::entity_eq(
-        &scene_component,
-        &result_scene,
-        &mut world
-    )); // Fails if serde_json::from_str::<SerializedScene>(&to_string.clone()) returns incorrect scene data.
 }
