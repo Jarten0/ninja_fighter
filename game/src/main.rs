@@ -14,19 +14,27 @@ fn main() -> ! {
         .build()
         .expect("aieee, could not create ggez context!");
 
-    let _scheduler = engine::schedule::Scheduler::new(custom_schedules::create_schedules());
-    let root = engine::GameRoot::new(&mut context);
+    let root = engine::GameRoot::new(
+        &mut context,
+        game_data::init_components_and_resources,
+        game_data::create_schedules,
+    );
 
     ggez::event::run(context, event_loop, root);
 }
 
-mod custom_schedules {
+mod game_data {
     use bevy_ecs::schedule::ExecutorKind;
     use bevy_ecs::schedule::LogLevel;
     use bevy_ecs::schedule::Schedule;
     use bevy_ecs::schedule::ScheduleBuildSettings;
+    use bevy_ecs::world::World;
     use components::*;
     use engine::schedule::ScheduleTag;
+
+    pub fn init_components_and_resources(world: &mut World) {
+        components::init_components(world);
+    }
 
     pub fn create_schedules() -> Vec<fn(&mut Schedule) -> ScheduleTag> {
         vec![tick_schedule, frame_schedule, init_schedule]

@@ -169,8 +169,8 @@ pub fn to_serialized_scene<'a>(
             let component_ptr = world
                 .get_by_id(entity.to_owned(), component_id.to_owned())
                 .unwrap();
-            let component =
-                unsafe { Box::new(component_ptr.deref::<dyn erased_serde::Serialize>()) };
+            let component = todo!();
+            // unsafe { Box::new(component_ptr.deref::<dyn erased_serde::Serialize>()) };
             let serialized_entity =
                 erased_serde::Serialize::erased_serialize(&component, &mut erased_json);
 

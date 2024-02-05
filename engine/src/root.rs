@@ -3,6 +3,8 @@
 //! * [`GameRoot`] - Creates the main game state, initializes modules and libraries, and communicates between [`ggez`]'s engine and [`bevy_ecs`]'s world
 
 use crate::input::KeycodeType;
+use crate::schedule::ScheduleTag;
+use crate::schedule::Scheduler;
 use crate::Engine;
 use crate::Input;
 
@@ -37,8 +39,14 @@ where
 
 impl GameRoot {
     /// Loads and initialized essential data for [`bevy_ecs`] operations, specifically the [`GameRoot`] and [`MainCanvas`] structs
-    pub fn new(context: &mut Context) -> Self {
+    pub fn new(
+        context: &mut Context,
+        world_init: fn(&mut World) -> (),
+        schedule_builders: fn() -> Vec<fn(&mut Schedule) -> ScheduleTag>,
+    ) -> Self {
         let debug = false;
+
+        let _scheduler = Scheduler::new(schedule_builders());
 
         let (schedule, draw_schedule, init_schedule) = todo!();
         // super::schedule::create_schedules(todo!(), todo!(), todo!()); // TODO: Get schedules from game main.rs

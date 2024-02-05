@@ -44,5 +44,6 @@
     },
     "explorerExclude.backup": {},
     "python.analysis.typeCheckingMode": "off",
-    "python.analysis.autoImportCompletions": false
+    "python.analysis.autoImportCompletions": false,
+    "rust-analyzer.showUnlinkedFileNotification": false
 }
