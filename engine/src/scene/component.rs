@@ -1,13 +1,21 @@
+use crate::scene::traits::SceneData;
+
 use super::serialize;
 use super::traits;
 use bevy_ecs::component::Component;
 use bevy_ecs::entity::Entity;
+use bevy_ecs::query::With;
 use bevy_ecs::system::Commands;
 use bevy_ecs::world::World;
+use bevy_trait_query::All;
+use bevy_trait_query::One;
+use core::panic;
+use erased_serde::Serializer;
 use serde::Serialize;
 use std;
 use std::env::current_dir;
 use std::fs::File;
+use std::ops::Deref;
 use std::path::PathBuf;
 
 /// Entity managment for loading and unloading in batches rather than having everything loaded at once.
@@ -119,12 +127,10 @@ pub fn add_entity_to_scene<'a>(
     scene_entity: Entity,
     entity_to_add: Entity,
 ) -> Result<(), String> {
-    let scene_data = World::entity(&world, entity_to_add).get::<traits::SceneData>();
-    if let None = scene_data {
+    if let None = World::entity(&world, entity_to_add).get::<traits::SceneData>() {
         world.entity_mut(entity_to_add).insert(traits::SceneData {
-            root_scene: String::from("scene.name.clone()"), //man i aint dealin with that rn
+            object_name: String::from("scene.name.clone()"), //man i aint dealin with that rn
             scene_id: 0, // TODO: Make use of scene_ids or get rid of them idk why i added them
-            serializeable_components: Vec::new(),
         });
     }
     let mut scene_entity = World::entity_mut(world, scene_entity);
@@ -146,47 +152,51 @@ pub fn to_serialized_scene<'a>(
     scene_entity: Entity,
 ) -> Result<serialize::SerializedSceneData, String> {
     let mut new_serialized_data: Vec<String> = Vec::new();
+    let scene = world.entity(scene_entity);
 
-    let scene = world.entity_mut(scene_entity);
+    let entities_in_scene = scene.get::<Scene>().unwrap().entities.clone();
 
-    let vec = scene.get::<Scene>().unwrap().entities.clone();
+    let mut entities_serialized_count: u64 = 0;
+    let mut components_serialized_count: u64 = 0;
 
-    for entity in &vec {
-        let entity_scene_data = World::entity(&world, entity.to_owned())
-            .get::<traits::SceneData>()
-            .ok_or(format!(
-                "Entity {:?} does not have a SceneData component!",
-                entity
-            ))?;
+    let mut serialized_data_from_entity: Vec<u8> = Vec::new();
 
-        let mut serialized_data_from_entity: Vec<u8> = Vec::new();
+    let mut typed_json = serde_json::Serializer::new(serialized_data_from_entity);
 
-        let typed_json = &mut serde_json::Serializer::new(serialized_data_from_entity.clone());
-        let mut erased_json = <dyn erased_serde::Serializer>::erase(typed_json);
+    {
+        let mut erased_json = <dyn erased_serde::Serializer>::erase(&mut typed_json);
+        for (entity, components) in world
+            .query::<(Entity, &dyn traits::TestSuperTrait)>()
+            .iter(world)
+        {
+            if !entities_in_scene.contains(&entity) {
+                continue;
+            }
+            let obj_name = &world.get::<SceneData>(entity).unwrap().object_name;
 
-        // TODO: FIX
-        for component_id in &entity_scene_data.serializeable_components {
-            let component_ptr = world
-                .get_by_id(entity.to_owned(), component_id.to_owned())
-                .unwrap();
-            let component =
-                unsafe { Box::new(component_ptr.deref::<dyn erased_serde::Serialize>()) };
-            let serialized_entity =
-                erased_serde::Serialize::erased_serialize(&component, &mut erased_json);
+            erased_json.erased_serialize_str(obj_name);
 
-            if let Err(value) = serialized_entity {
-                eprintln!("Component failed to serialize! [{}]", value);
-                return Err(value.to_string());
-            };
+            for component in components {
+                component.erased_serialize(&mut erased_json);
+                components_serialized_count += 1;
+            }
+            entities_serialized_count += 1;
         }
-
-        let checked_sdfe: String = match String::from_utf8(serialized_data_from_entity) {
-            Ok(string) => string,
-            Err(err) => return Err(err.to_string()),
-        };
-
-        new_serialized_data.push(checked_sdfe);
     }
+
+    let serialized_data_from_entity = typed_json.into_inner();
+
+    let checked_sdfe: String = match String::from_utf8(serialized_data_from_entity) {
+        Ok(string) => string,
+        Err(err) => return Err(err.to_string()),
+    };
+
+    new_serialized_data.push(checked_sdfe);
+
+    println!(
+        "Data: {:#?}, Entities serialized: {}, Components serialized: {}",
+        new_serialized_data, entities_serialized_count, components_serialized_count
+    );
 
     let mut scene = world.get_mut::<Scene>(scene_entity).unwrap();
     scene.serialized_entity_component_data = Some(new_serialized_data);

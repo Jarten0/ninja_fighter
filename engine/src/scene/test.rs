@@ -2,6 +2,8 @@ use bevy_ecs::{
     component::{Component, ComponentDescriptor},
     world::World,
 };
+use bevy_trait_query::TraitQuery;
+use erased_serde::Serializer;
 use serde::Serialize;
 
 use std::{fs::File, io::Write, path::PathBuf};
@@ -16,7 +18,7 @@ use crate::{
     space::transform,
 };
 
-use super::traits::SerializableComponent;
+use super::traits::{SerializableComponent, TestSuperTrait};
 
 #[derive(Debug, Component, Serialize)]
 struct TestComponent {
@@ -24,11 +26,7 @@ struct TestComponent {
     serialize_value_2: i32,
 }
 
-impl SerializableComponent for TestComponent {
-    fn path(&self) -> PathBuf {
-        PathBuf::from("Teeheetaahaa")
-    }
-}
+impl TraitQuery for TestComponent {}
 
 #[test]
 fn scene_test() {
@@ -38,6 +36,10 @@ fn scene_test() {
     world.init_component::<SceneData>();
     world.init_component::<TestComponent>();
 
+    // Init traits for querying
+    use bevy_trait_query::RegisterExt;
+    world.register_component_as::<dyn TestSuperTrait, TestComponent>();
+
     // Init scene
     let mut scene_component: Scene = Scene::new("TestScene".to_string());
     let mut scene_entity_id = World::spawn(&mut world, scene_component).id();
@@ -45,14 +47,14 @@ fn scene_test() {
     // At an unknown amount of time later, create an entity
     let test_entity = world.spawn(transform::Transform::default()).id().clone();
 
-    let bundle = TestComponent {
+    let test_component = TestComponent {
         serialize_value: String::from("Myy name is morje"),
         serialize_value_2: 654101, // sixty ie fo te ti
     };
 
-    world.entity_mut(test_entity).insert(bundle);
+    world.entity_mut(test_entity).insert(test_component);
 
-    // Add the entity to the scene
+    // Add the test entity to the scene
     let mut scene_entity = World::entity_mut(&mut world, scene_entity_id).id();
 
     if let Err(err) = component::add_entity_to_scene(&mut world, scene_entity, test_entity) {
@@ -64,21 +66,29 @@ fn scene_test() {
 
     let serialized_scene = match component::to_serialized_scene(&mut world, entity_mut) {
         Ok(serialized_scene) => serialized_scene,
-        Err(err) => panic!("Serializing entity failed! [{}]", err),
+        Err(err) => panic!("Serializing scene failed! [{}]", err),
     };
 
     let msg = "jesoon should have serialized properly";
     let to_string: String = serde_json::to_string(&serialized_scene).expect(msg);
 
     println!(
-        "The stringified jesoon, to be stored in file: {:#?}",
+        "The stringified jesoon, to be stored in file: {}",
         to_string
     );
+
+    // Save txt for analysis
+    let mut path_buf = std::env::current_dir().unwrap();
+    path_buf.pop();
+    path_buf.push("test_output");
+    path_buf.push("scene_serialization.json");
+    println!("{}", path_buf.to_str().unwrap());
+    File::create(path_buf).unwrap().write(to_string.as_bytes());
 
     // Assume we make some sys calls to store and retrieve that data here
     let msg = "jesoon should have deserialized properly";
     let serialized_scene: SerializedSceneData =
-        serde_json::from_str(&to_string.clone()).expect(msg);
+        dbg!(serde_json::from_str(&to_string.clone()).expect(msg));
 
     // Deserialized the retrieved data
     let result_scene: Scene =
@@ -93,11 +103,4 @@ fn scene_test() {
         dbg!(world);
     }
     assert!(var); // Fails if serde_json::from_str::<SerializedScene>(&to_string.clone()) returns incorrect scene data.
-
-    let mut path_buf = std::env::current_dir().unwrap();
-    path_buf.pop();
-    path_buf.push("test_output");
-    path_buf.push("scene_serialization.txt");
-    println!("{}", path_buf.to_str().unwrap());
-    File::create(path_buf).unwrap().write(to_string.as_bytes());
 }

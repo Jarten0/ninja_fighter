@@ -9,7 +9,5 @@ mod resource {
     use super::traits::SerializableComponent;
 
     #[derive(Resource, Default, Debug)]
-    pub struct SceneManager {
-        pub serializable_components: Vec<ComponentId>,
-    }
+    pub struct SceneManager {}
 }

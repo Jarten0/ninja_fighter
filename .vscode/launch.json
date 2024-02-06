@@ -1,5 +1,6 @@
 {
     "configurations": [   
+        
         {
             "type": "lldb",
             "request": "attach",
@@ -7,7 +8,6 @@
             "program": "${workspaceFolder}/target/debug/ninja_fighter.exe"
         },
         
-
         {
             "type": "lldb",
             "request": "launch",
@@ -19,30 +19,28 @@
             },
             "args": []
         },
-    {
-        "type": "lldb",
-        "request": "launch",
-        "name": "Cargo test",
-        "cargo": {
-            "args": [
-                "test",
-            ]
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Cargo test",
+            "cargo": {
+                "args": [
+                    "test",
+                ]
+            },
+            "args": []
         },
-        "args": []
-    },
-
-    {
-        "type": "lldb",
-        "request": "launch",
-        "name": "Cargo run",
-        "cargo": {
-            "args": [
-                "run",
-            ]
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Cargo run",
+            "cargo": {
+                "args": [
+                    "run",
+                ]
+            },
+            "args": [],
+            "env": {"RUST_BACKTRACE": "1"},
         },
-        "args": [],
-        "env": {"RUST_BACKTRACE": "1"},
-    },
-
     ]
 }
