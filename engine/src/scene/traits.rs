@@ -36,8 +36,12 @@ erased_serde::serialize_trait_object!(SerializableComponent);
 // TODO: finish [`SceneData`] docs
 #[derive(Component)]
 pub struct SceneData {
+    /// Describes the name of the entity that this component belongs to.
+    ///
+    /// Is used for serialization, so using this is quite important.
     pub object_name: String,
     /// The ID of the current scene that the component holder belongs to.
+    ///
     /// Not to be confused with the [`SceneObjectID`], which is a seperate thing uhh
     // TODO: figure that out
     pub scene_id: usize,

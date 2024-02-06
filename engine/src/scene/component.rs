@@ -1,3 +1,4 @@
+use crate::scene::serialize::SerializedSceneData;
 use crate::scene::traits::SceneData;
 
 use super::serialize;
@@ -31,13 +32,22 @@ use std::path::PathBuf;
 /// If you want a true eq operation that checks if the entities match, use [`Scene`]`::entity_eq()`. This does require [`World`] access though.
 #[derive(Debug, Component, Clone)]
 pub struct Scene {
+    /// The name of the scene
+    ///
+    /// Primarily used for serialization, but can also be handy for organization and managing active scenes.
+    ///
+    /// Ideally, no two scenes should share the same name. Handling that is the responsibility of the [`SceneManager`]
     pub name: String,
-    pub entities: Vec<Entity>,
-    /// When serializing a scene, the component data must be serialized before the `serialize()` component is run.
-    /// Since `serialize()` can't take in a [`World`] during the functionality, it instead must be taken care of beforehand.
-    /// This means the responsibility falls on the caller to take care of this before every serialization.
-    /// To do so, a simple call to `Scene::`
+    /// Contains an [`Entity`] id for every entity that this [`Scene`] is responsible for.
+    /// Be careful when manually adjusting which entities are stored,
+    /// since every entity is required to own one [`SceneData`] component.
+    ///
+    /// Using the API to add or remove entities ensures that every entity has a [`SceneData`] component,
+    /// and ensures that no entity is orphaned and never unloaded. (unless requested)
+    pub(crate) entities: Vec<Entity>,
+    /// The current stored save data.
     pub(crate) serialized_entity_component_data: Option<Vec<String>>,
+    /// The path where the scene's save data is stored when calling [`save_scene`]
     pub(crate) save_data_path: PathBuf,
 }
 
@@ -45,41 +55,19 @@ impl Scene {
     /// Creates a new blank [`Scene`] using the provided name.
     ///
     /// Does not contain any [`Entity`]'s and does not load any. To do that, wait until its ready.
-    ///
-    ///
     /// // TODO: When done, update these docs
     pub fn new(name: String) -> Self {
+        let mut save_data_path = PathBuf::new();
+        save_data_path.push(current_dir().unwrap());
+        save_data_path.pop();
+        save_data_path.push("test_output");
+        save_data_path.push("test_save.json");
         Self {
             name,
             entities: Vec::new(),
             serialized_entity_component_data: None,
-            save_data_path: PathBuf::new(),
+            save_data_path,
         }
-    }
-
-    /// Instantly despawns every entity belonging to the scene before despawning the scene entity.
-    ///
-    /// Does not give any time or calls any methods on or before despawn.
-    /// If you want that, use a better (currently non-existent) method.
-    /// // fix that later maybe
-    ///
-    /// Does not save before unloading! Make sure to call `save()` if anything in the scene must be serialized and stored.
-    /// If you don't have any non-global game state contained inside though, you're free to ignore that and unload as you please.
-    pub fn unload(&self, commands: &mut Commands) {
-        for entity in &self.entities {
-            commands.entity(entity.to_owned()).despawn();
-        }
-    }
-
-    /// Serializes all of the
-    pub fn save(&self, world: &mut World) -> Result<(), std::io::Error> {
-        let mut path = PathBuf::new();
-        path.push(current_dir()?);
-        let new_file = File::create(path)?;
-
-        // serde_json::to_writer(new_file, self)?;
-
-        Ok(())
     }
 
     /// The comparison operator (`==`) but with entity comparison.
@@ -122,6 +110,54 @@ impl Scene {
     }
 }
 
+impl PartialEq for Scene {
+    /// Compares the names of the two scenes to check if they are the same scene.
+    ///
+    /// Incredibly fallible, but works reasonably within the confines of the [`Scene`] system
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name
+    }
+}
+
+/// Serializes all of the entities with their components and stores it to a file (currently a temporary one)
+pub fn save_scene(entity: Entity, world: &mut World) -> Result<(), std::io::Error> {
+    let mut path = &world.get::<Scene>(entity).unwrap().save_data_path;
+    let new_file = File::create(path)?;
+
+    let value = to_serialized_scene(world, entity);
+    serde_json::to_writer(new_file, &value.unwrap())?;
+
+    Ok(())
+}
+
+pub fn load_scene(path: PathBuf, world: &mut World) -> Result<Entity, ()> {
+    use std::io::prelude::*;
+    let mut buf = String::new();
+    let s = File::open(path).unwrap().read_to_string(&mut buf).unwrap();
+    let deserialize = serde_json::from_str::<SerializedSceneData>(&buf).unwrap();
+    let scene_component = deserialize.initialize(world).unwrap();
+
+    Ok(world.spawn(scene_component).id())
+}
+
+/// Instantly despawns every entity belonging to the scene before despawning the scene entity.
+///
+/// Does not give any time or calls any methods on or before despawn.
+/// If you want that, use a better (currently non-existent) method.
+/// // fix that later maybe
+///
+/// Does not save before unloading! Make sure to call [`save_scene`] if anything in the scene must be serialized and stored.
+/// If you don't have any non-global game state contained inside though, you're free to ignore that and unload as you please.
+pub fn unload(scene_entity: Entity, world: &mut World) {
+    for entity in world.get::<Scene>(scene_entity).unwrap().entities.clone() {
+        world.despawn(entity.to_owned());
+    }
+    world.despawn(scene_entity);
+}
+
+/// Adds a new entity to the scene
+///
+/// Ensures that the component has a [`SceneData`] component. If it doesn't, then one gets added automatically.
 pub fn add_entity_to_scene<'a>(
     world: &'a mut World,
     scene_entity: Entity,
@@ -129,7 +165,7 @@ pub fn add_entity_to_scene<'a>(
 ) -> Result<(), String> {
     if let None = World::entity(&world, entity_to_add).get::<traits::SceneData>() {
         world.entity_mut(entity_to_add).insert(traits::SceneData {
-            object_name: String::from("scene.name.clone()"), //man i aint dealin with that rn
+            object_name: String::from("New entity"),
             scene_id: 0, // TODO: Make use of scene_ids or get rid of them idk why i added them
         });
     }
@@ -141,12 +177,7 @@ pub fn add_entity_to_scene<'a>(
     Ok(())
 }
 
-/// Takes all of the entities from [`Scene`], takes the [`SceneData`] of each one, and iterates over every [`Component`] that is designated to be serialized.
-/// It then serializes each component and stores that data as `JSON` inside of the `Scene`'s `serialized_entity_component_data` as a [`String`].
-///
-/// Later, when serializing the `Scene` itself, it will pull from there and store that data inside of the new serialized [`SerializedScene`] created.
-///
-/// Be careful when calling, as every call will overwrite the previous save data.
+// TODO: Fix docs
 pub fn to_serialized_scene<'a>(
     world: &'a mut World,
     scene_entity: Entity,
@@ -204,10 +235,4 @@ pub fn to_serialized_scene<'a>(
         name: scene.name.clone(),
         entity_data: scene.serialized_entity_component_data.clone().unwrap(),
     })
-}
-
-impl PartialEq for Scene {
-    fn eq(&self, other: &Self) -> bool {
-        self.name == other.name
-    }
 }
