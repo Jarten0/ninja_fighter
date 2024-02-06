@@ -205,7 +205,7 @@ pub fn to_serialized_scene<'a>(
             }
             let obj_name = &world.get::<SceneData>(entity).unwrap().object_name;
 
-            erased_json.erased_serialize_str(obj_name);
+            // erased_json.erased_serialize_str(obj_name);
 
             for component in components {
                 component.erased_serialize(&mut erased_json);

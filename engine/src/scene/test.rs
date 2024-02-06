@@ -36,7 +36,7 @@ fn scene_test() {
     world.init_component::<SceneData>();
     world.init_component::<TestComponent>();
 
-    // Init traits for querying
+    // Init component traits for querying
     use bevy_trait_query::RegisterExt;
     world.register_component_as::<dyn TestSuperTrait, TestComponent>();
 

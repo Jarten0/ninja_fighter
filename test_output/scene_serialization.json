@@ -1,6 +1,1 @@
-{
-    "name":"TestScene",
-    "entity_data":[
-        "{\"serialize_value\":\"Myy name is morje\",\"serialize_value_2\":654101}"
-    ]
-}
+{"name":"TestScene","entity_data":["{\"serialize_value\":\"Myy name is morje\",\"serialize_value_2\":654101}"]}
