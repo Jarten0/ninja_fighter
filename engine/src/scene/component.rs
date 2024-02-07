@@ -177,42 +177,46 @@ pub fn add_entity_to_scene<'a>(
     Ok(())
 }
 
-// TODO: Fix docs
+// TODO: Fix documentation
 pub fn to_serialized_scene<'a>(
     world: &'a mut World,
     scene_entity: Entity,
 ) -> Result<serialize::SerializedSceneData, String> {
-    let mut new_serialized_data: Vec<String> = Vec::new();
-    let scene = world.entity(scene_entity);
-
-    let entities_in_scene = scene.get::<Scene>().unwrap().entities.clone();
-
-    let mut entities_serialized_count: u64 = 0;
-    let mut components_serialized_count: u64 = 0;
+    let scene_entity_list: Vec<Entity> = world
+        .entity(scene_entity)
+        .get::<Scene>()
+        .unwrap()
+        .entities
+        .clone();
 
     let mut serialized_data_from_entity: Vec<u8> = Vec::new();
-
     let mut typed_json = serde_json::Serializer::new(serialized_data_from_entity);
 
+    for (entity, serializable_components) in world
+        .query::<(Entity, &dyn traits::TestSuperTrait)>()
+        .iter(world)
     {
         let mut erased_json = <dyn erased_serde::Serializer>::erase(&mut typed_json);
-        for (entity, components) in world
-            .query::<(Entity, &dyn traits::TestSuperTrait)>()
-            .iter(world)
-        {
-            if !entities_in_scene.contains(&entity) {
-                continue;
-            }
-            let obj_name = &world.get::<SceneData>(entity).unwrap().object_name;
 
-            // erased_json.erased_serialize_str(obj_name);
-
-            for component in components {
-                component.erased_serialize(&mut erased_json);
-                components_serialized_count += 1;
-            }
-            entities_serialized_count += 1;
+        if !scene_entity_list.contains(&entity) {
+            continue;
         }
+
+        let obj_name = world
+            .get::<SceneData>(entity)
+            .unwrap()
+            .object_name
+            .to_owned();
+
+        let erased_serialize_struct = erased_json.erased_serialize_struct("&obj_name", 0).unwrap();
+
+        // erased_serialize_struct.erased_serialize_field("key", value);
+
+        for component in serializable_components {
+            component.erased_serialize(&mut erased_json);
+        }
+
+        erased_serialize_struct.erased_end();
     }
 
     let serialized_data_from_entity = typed_json.into_inner();
@@ -222,11 +226,12 @@ pub fn to_serialized_scene<'a>(
         Err(err) => return Err(err.to_string()),
     };
 
+    let mut new_serialized_data: Vec<String> = Vec::new();
     new_serialized_data.push(checked_sdfe);
 
     println!(
         "Data: {:#?}, Entities serialized: {}, Components serialized: {}",
-        new_serialized_data, entities_serialized_count, components_serialized_count
+        new_serialized_data, "N/A", "N/A"
     );
 
     let mut scene = world.get_mut::<Scene>(scene_entity).unwrap();

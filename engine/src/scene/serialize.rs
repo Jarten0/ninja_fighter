@@ -5,13 +5,21 @@ use serde::de::Visitor;
 use serde::ser::SerializeStruct;
 use serde::Deserialize;
 use serde::Serialize;
-
 /// A string based data type that stores useful data to convert [`Scene`]'s and bevy_ecs [`Entity`]'s to strings and back.
 #[derive(Debug)]
 pub struct SerializedSceneData {
     pub name: String,
     pub entity_data: Vec<String>,
 }
+
+///
+/// Entity {
+///     ComponentId {
+///         field1: _
+///     
+///
+///     }
+/// }
 
 impl SerializedSceneData {
     pub fn initialize(self, world: &mut World) -> serde_json::Result<component::Scene> {

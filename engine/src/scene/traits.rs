@@ -3,7 +3,7 @@ use bevy_ecs::{
     entity::Entity,
     query::{FilteredAccess, ReadOnlyWorldQuery, WorldQuery},
     storage::TableRow,
-    world::unsafe_world_cell::UnsafeWorldCell,
+    world::{unsafe_world_cell::UnsafeWorldCell, World},
 };
 use bevy_trait_query::{All, WriteTraits};
 use erased_serde::{Error, Serializer};
@@ -50,10 +50,39 @@ pub struct SceneData {
 #[bevy_trait_query::queryable]
 pub trait TestSuperTrait {
     fn erased_serialize(&self, serializer: &mut dyn Serializer) -> Result<(), Error>;
+
+    fn get_component_id(world: &World) -> Option<ComponentId>
+    where
+        Self: Sized + bevy_ecs::component::Component;
+
+    fn component_id(world: &World) -> ComponentId
+    where
+        Self: Sized + bevy_ecs::component::Component;
 }
 
-impl<T: erased_serde::Serialize + 'static> TestSuperTrait for T {
+impl<T> TestSuperTrait for T
+where
+    T: erased_serde::Serialize + 'static + bevy_ecs::component::Component,
+{
     fn erased_serialize(&self, serializer: &mut dyn Serializer) -> Result<(), erased_serde::Error> {
         <T as erased_serde::Serialize>::erased_serialize(self, serializer)
+    }
+
+    /// Gets the current [`ComponentId`] for the object
+    fn get_component_id(world: &World) -> Option<ComponentId>
+    where
+        Self: Sized + bevy_ecs::component::Component,
+    {
+        world.component_id::<Self>()
+    }
+
+    /// Get the current [`ComponentId`] of the object.
+    ///
+    /// Panicking version of [`TestSuperTrait::get_component_id`], fails when the component has yet to be initialized in the world.
+    fn component_id(world: &World) -> ComponentId
+    where
+        Self: Sized + bevy_ecs::component::Component,
+    {
+        world.component_id::<Self>().unwrap()
     }
 }
