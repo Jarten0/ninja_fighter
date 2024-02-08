@@ -5,6 +5,7 @@ use bevy_ecs::{
     storage::TableRow,
     world::{unsafe_world_cell::UnsafeWorldCell, World},
 };
+use bevy_reflect::Reflect;
 use bevy_trait_query::{All, WriteTraits};
 use erased_serde::{Error, Serializer};
 use std::{alloc::Layout, borrow::Cow, path::PathBuf};
@@ -53,16 +54,16 @@ pub trait TestSuperTrait {
 
     fn get_component_id(world: &World) -> Option<ComponentId>
     where
-        Self: Sized + bevy_ecs::component::Component;
+        Self: Sized + Component;
 
     fn component_id(world: &World) -> ComponentId
     where
-        Self: Sized + bevy_ecs::component::Component;
+        Self: Sized + Component;
 }
 
 impl<T> TestSuperTrait for T
 where
-    T: erased_serde::Serialize + 'static + bevy_ecs::component::Component,
+    T: erased_serde::Serialize + 'static + Component + Reflect,
 {
     fn erased_serialize(&self, serializer: &mut dyn Serializer) -> Result<(), erased_serde::Error> {
         <T as erased_serde::Serialize>::erased_serialize(self, serializer)
@@ -71,7 +72,7 @@ where
     /// Gets the current [`ComponentId`] for the object
     fn get_component_id(world: &World) -> Option<ComponentId>
     where
-        Self: Sized + bevy_ecs::component::Component,
+        Self: Sized + Component,
     {
         world.component_id::<Self>()
     }
@@ -81,7 +82,7 @@ where
     /// Panicking version of [`TestSuperTrait::get_component_id`], fails when the component has yet to be initialized in the world.
     fn component_id(world: &World) -> ComponentId
     where
-        Self: Sized + bevy_ecs::component::Component,
+        Self: Sized + Component,
     {
         world.component_id::<Self>().unwrap()
     }

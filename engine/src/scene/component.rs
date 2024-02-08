@@ -1,5 +1,6 @@
 use crate::scene::serialize::SerializedSceneData;
 use crate::scene::traits::SceneData;
+use crate::scene::traits::TestSuperTrait;
 
 use super::serialize;
 use super::traits;
@@ -7,6 +8,7 @@ use bevy_ecs::component::Component;
 use bevy_ecs::entity::Entity;
 use bevy_ecs::query::With;
 use bevy_ecs::system::Commands;
+use bevy_ecs::world::Ref;
 use bevy_ecs::world::World;
 use bevy_trait_query::All;
 use bevy_trait_query::One;
@@ -192,47 +194,23 @@ pub fn to_serialized_scene<'a>(
     let mut serialized_data_from_entity: Vec<u8> = Vec::new();
     let mut typed_json = serde_json::Serializer::new(serialized_data_from_entity);
 
-    for (entity, serializable_components) in world
+    for (entity, serializable_components_data) in world
         .query::<(Entity, &dyn traits::TestSuperTrait)>()
         .iter(world)
     {
-        let mut erased_json = <dyn erased_serde::Serializer>::erase(&mut typed_json);
-
         if !scene_entity_list.contains(&entity) {
             continue;
         }
 
-        let obj_name = world
-            .get::<SceneData>(entity)
-            .unwrap()
-            .object_name
-            .to_owned();
-
-        let erased_serialize_struct = erased_json.erased_serialize_struct("&obj_name", 0).unwrap();
-
-        // erased_serialize_struct.erased_serialize_field("key", value);
-
-        for component in serializable_components {
-            component.erased_serialize(&mut erased_json);
-        }
-
-        erased_serialize_struct.erased_end();
+        fun_name(&mut typed_json, serializable_components_data);
     }
 
     let serialized_data_from_entity = typed_json.into_inner();
 
-    let checked_sdfe: String = match String::from_utf8(serialized_data_from_entity) {
-        Ok(string) => string,
-        Err(err) => return Err(err.to_string()),
+    let new_serialized_data = match check_string(serialized_data_from_entity) {
+        Ok(value) => value,
+        Err(value) => return value,
     };
-
-    let mut new_serialized_data: Vec<String> = Vec::new();
-    new_serialized_data.push(checked_sdfe);
-
-    println!(
-        "Data: {:#?}, Entities serialized: {}, Components serialized: {}",
-        new_serialized_data, "N/A", "N/A"
-    );
 
     let mut scene = world.get_mut::<Scene>(scene_entity).unwrap();
     scene.serialized_entity_component_data = Some(new_serialized_data);
@@ -240,4 +218,40 @@ pub fn to_serialized_scene<'a>(
         name: scene.name.clone(),
         entity_data: scene.serialized_entity_component_data.clone().unwrap(),
     })
+}
+
+fn fun_name(
+    typed_json: &mut serde_json::Serializer<Vec<u8>>,
+    serializable_components_data: bevy_trait_query::ReadTraits<'_, dyn TestSuperTrait>,
+) {
+    let mut erased_json = <dyn erased_serde::Serializer>::erase(typed_json);
+
+    let erased_serialize_struct = erased_json.erased_serialize_map(None).unwrap();
+
+    for component in serializable_components_data.iter() {
+        erased_serialize_struct
+            .erased_serialize_entry(&"Componnent", &serialize_component(component));
+    }
+
+    erased_serialize_struct.erased_end();
+}
+
+fn serialize_component(component: Ref<dyn TestSuperTrait>) -> String {
+    todo!()
+}
+
+fn check_string(
+    serialized_data_from_entity: Vec<u8>,
+) -> Result<Vec<String>, Result<SerializedSceneData, String>> {
+    let checked_sdfe: String = match String::from_utf8(serialized_data_from_entity) {
+        Ok(string) => string,
+        Err(err) => return Err(Err(err.to_string())),
+    };
+    let mut new_serialized_data: Vec<String> = Vec::new();
+    new_serialized_data.push(checked_sdfe);
+    println!(
+        "Data: {:#?}, Entities serialized: {}, Components serialized: {}",
+        new_serialized_data, "N/A", "N/A"
+    );
+    Ok(new_serialized_data)
 }

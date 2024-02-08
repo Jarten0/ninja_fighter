@@ -20,7 +20,7 @@ use crate::{
 
 use super::traits::{SerializableComponent, TestSuperTrait};
 
-#[derive(Debug, Component, Serialize)]
+#[derive(Debug, Component, Serialize, bevy_reflect::Reflect)]
 struct TestComponent {
     serialize_value: String,
     serialize_value_2: i32,
@@ -48,7 +48,7 @@ fn scene_test() {
     let test_entity = world.spawn(transform::Transform::default()).id().clone();
 
     let test_component = TestComponent {
-        serialize_value: String::from("Myy name is morje"),
+        serialize_value: String::from("My name is :3"),
         serialize_value_2: 654101, // sixty ie fo te ti
     };
 
