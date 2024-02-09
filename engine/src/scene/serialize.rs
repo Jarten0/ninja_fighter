@@ -1,10 +1,14 @@
 use super::component;
 use bevy_ecs::world::World;
+use bevy_reflect::Reflect;
+use bevy_reflect::TypeRegistry;
 use serde;
 use serde::de::Visitor;
 use serde::ser::SerializeStruct;
 use serde::Deserialize;
 use serde::Serialize;
+use std::any::TypeId;
+
 /// A string based data type that stores useful data to convert [`Scene`]'s and bevy_ecs [`Entity`]'s to strings and back.
 #[derive(Debug)]
 pub struct SerializedSceneData {
@@ -12,12 +16,15 @@ pub struct SerializedSceneData {
     pub entity_data: Vec<String>,
 }
 
-///
-/// Entity {
-///     ComponentId {
-///         field1: _
-///     
-///
+// Template for how entity json should be handled
+/// {
+///     "SceneName" {
+///         name: String
+///     }
+///     "EntityName" {
+///         [`TypeId`] {
+///             fields: Any,
+///         },
 ///     }
 /// }
 
@@ -26,8 +33,13 @@ impl SerializedSceneData {
         let scene = component::Scene::new(self.name.to_owned());
         // TODO: Deserialize entity data here and add it to the scene
 
-        // let v: serde_json::Value = serde_json::from_str(&self.entity_data)?;
-        // let entity = world.spawn_empty();
+        let typee = TypeId::of::<component::Scene>();
+
+        let component: Box<dyn Reflect> = {
+            // bevy_reflect::Reflect::
+            todo!()
+        };
+
         for component in self.entity_data {}
 
         // dbg!(v);

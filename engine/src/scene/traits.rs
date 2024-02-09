@@ -35,7 +35,7 @@ erased_serde::serialize_trait_object!(SerializableComponent);
 /// An entity cannot be serialized by the [`Scene`] if it does not have this component.
 ///
 // TODO: finish [`SceneData`] docs
-#[derive(Component)]
+#[derive(Component, Reflect)]
 pub struct SceneData {
     /// Describes the name of the entity that this component belongs to.
     ///

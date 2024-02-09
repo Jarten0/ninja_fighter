@@ -2,6 +2,7 @@ use bevy_ecs::{
     component::{Component, ComponentDescriptor},
     world::World,
 };
+use bevy_reflect::{serde::ReflectSerializer, TypeRegistry};
 use bevy_trait_query::TraitQuery;
 use erased_serde::Serializer;
 use serde::Serialize;
@@ -40,6 +41,10 @@ fn scene_test() {
     use bevy_trait_query::RegisterExt;
     world.register_component_as::<dyn TestSuperTrait, TestComponent>();
 
+    let mut registery = TypeRegistry::empty();
+    registery.register::<SceneData>();
+    registery.register::<TestComponent>();
+
     // Init scene
     let mut scene_component: Scene = Scene::new("TestScene".to_string());
     let mut scene_entity_id = World::spawn(&mut world, scene_component).id();
@@ -64,10 +69,11 @@ fn scene_test() {
     // Serialize the scene
     let mut entity_mut = World::entity_mut(&mut world, scene_entity).id();
 
-    let serialized_scene = match component::to_serialized_scene(&mut world, entity_mut) {
-        Ok(serialized_scene) => serialized_scene,
-        Err(err) => panic!("Serializing scene failed! [{}]", err),
-    };
+    let serialized_scene =
+        match component::to_serialized_scene(&mut world, entity_mut, &mut registery) {
+            Ok(serialized_scene) => serialized_scene,
+            Err(err) => panic!("Serializing scene failed! [{}]", err),
+        };
 
     let msg = "jesoon should have serialized properly";
     let to_string: String = serde_json::to_string(&serialized_scene).expect(msg);
@@ -77,6 +83,7 @@ fn scene_test() {
         to_string
     );
 
+    let to_string: String = todo!();
     // Save txt for analysis
     let mut path_buf = std::env::current_dir().unwrap();
     path_buf.pop();
