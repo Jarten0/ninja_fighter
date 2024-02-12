@@ -59,6 +59,8 @@ pub trait TestSuperTrait {
     fn component_id(world: &World) -> ComponentId
     where
         Self: Sized + Component;
+
+    fn as_reflect(&self) -> &dyn Reflect;
 }
 
 impl<T> TestSuperTrait for T
@@ -85,5 +87,12 @@ where
         Self: Sized + Component,
     {
         world.component_id::<Self>().unwrap()
+    }
+
+    fn as_reflect(&self) -> &dyn Reflect
+    where
+        Self: Reflect,
+    {
+        self.as_reflect()
     }
 }

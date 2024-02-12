@@ -1,8 +1,12 @@
+use crate::scene::resource::SceneManager;
+
 use super::component;
 use bevy_ecs::world::World;
+use bevy_reflect::serde::UntypedReflectDeserializer;
 use bevy_reflect::Reflect;
 use bevy_reflect::TypeRegistry;
 use serde;
+use serde::de::DeserializeSeed;
 use serde::de::Visitor;
 use serde::ser::SerializeStruct;
 use serde::Deserialize;
@@ -35,10 +39,13 @@ impl SerializedSceneData {
 
         let typee = TypeId::of::<component::Scene>();
 
-        let component: Box<dyn Reflect> = {
-            // bevy_reflect::Reflect::
-            todo!()
-        };
+        let registry = &world.resource::<SceneManager>().registry;
+
+        let reflect_deserializer = UntypedReflectDeserializer::new(registry);
+
+        // SerializedSceneData::deserialize(todo!());
+
+        todo!();
 
         for component in self.entity_data {}
 

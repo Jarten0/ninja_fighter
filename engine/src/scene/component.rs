@@ -4,24 +4,18 @@ use crate::scene::traits::TestSuperTrait;
 
 use super::serialize;
 use super::traits;
+
 use bevy_ecs::component::Component;
 use bevy_ecs::entity::Entity;
-use bevy_ecs::query::With;
-use bevy_ecs::system::Commands;
 use bevy_ecs::world::Ref;
 use bevy_ecs::world::World;
+
 use bevy_reflect::serde::ReflectSerializer;
-use bevy_reflect::serde::UntypedReflectDeserializer;
 use bevy_reflect::TypeRegistry;
-use bevy_trait_query::All;
-use bevy_trait_query::One;
-use core::panic;
-use erased_serde::Serializer;
 use serde::Serialize;
-use std;
+
 use std::env::current_dir;
 use std::fs::File;
-use std::ops::Deref;
 use std::path::PathBuf;
 
 /// Entity managment for loading and unloading in batches rather than having everything loaded at once.
@@ -206,16 +200,17 @@ pub fn to_serialized_scene<'a>(
             continue;
         }
 
-        let mut serializer = ReflectSerializer::new(todo!(), registry);
-        let serialized_value = serde_json::to_string(&serializer);
-        serializer.value = &world.get::<SceneData>(entity).unwrap().object_name;
-        let name = serde_json::to_string(&serializer);
-
         for component in serializable_components_data.iter() {
-            component.erased_serialize(serializer);
+            if let Err(err) =
+                ReflectSerializer::new(component.as_reflect(), registry).serialize(&mut typed_json)
+            {
+                panic!(
+                    "Failed to serialize `{}` component! [{}]",
+                    component.as_reflect().reflect_type_path(),
+                    err.to_string()
+                )
+            }
         }
-
-        // fun_name(&mut typed_json, serializable_components_data, registry);
     }
 
     let serialized_data_from_entity = typed_json.into_inner();
@@ -231,31 +226,6 @@ pub fn to_serialized_scene<'a>(
         name: scene.name.clone(),
         entity_data: scene.serialized_entity_component_data.clone().unwrap(),
     })
-}
-
-fn fun_name(
-    typed_json: &mut serde_json::Serializer<Vec<u8>>,
-    serializable_components_data: bevy_trait_query::ReadTraits<'_, dyn TestSuperTrait>,
-    registry: &mut TypeRegistry,
-) {
-    // let mut erased_json = <dyn erased_serde::Serializer>::erase(typed_json);
-
-    // let erased_serialize_struct = erased_json.erased_serialize_map(None).unwrap();
-
-    for component in serializable_components_data.iter() {
-        // let mut erased_json = ReflectSerializer::new(component, registry)
-        // let mut erased_json = ReflectSerializer::new(component, registry);
-
-        // component.erased_serialize(erased_json);
-        // erased_serialize_struct
-        // .erased_serialize_entry(&"Componnent", &serialize_component(component));
-    }
-
-    // erased_serialize_struct.erased_end();
-}
-
-fn serialize_component(component: Ref<dyn TestSuperTrait>) -> String {
-    todo!()
 }
 
 fn check_string(

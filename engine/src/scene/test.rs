@@ -2,7 +2,7 @@ use bevy_ecs::{
     component::{Component, ComponentDescriptor},
     world::World,
 };
-use bevy_reflect::{serde::ReflectSerializer, TypeRegistry};
+use bevy_reflect::{serde::ReflectSerializer, ReflectSerialize, TypeRegistry};
 use bevy_trait_query::TraitQuery;
 use erased_serde::Serializer;
 use serde::Serialize;
@@ -21,9 +21,13 @@ use crate::{
 
 use super::traits::{SerializableComponent, TestSuperTrait};
 
+struct WrappedString(String);
+
+// impl ReflectSerialize for WrappedString {}
+
 #[derive(Debug, Component, Serialize, bevy_reflect::Reflect)]
 struct TestComponent {
-    serialize_value: String,
+    serialize_value_1: String,
     serialize_value_2: i32,
 }
 
@@ -33,8 +37,8 @@ impl TraitQuery for TestComponent {}
 fn scene_test() {
     // Init world
     let mut world = World::new();
-    world.init_resource::<SceneManager>();
-    world.init_component::<SceneData>();
+    super::register(&mut world);
+
     world.init_component::<TestComponent>();
 
     // Init component traits for querying
@@ -44,6 +48,8 @@ fn scene_test() {
     let mut registery = TypeRegistry::empty();
     registery.register::<SceneData>();
     registery.register::<TestComponent>();
+    registery.register::<i32>();
+    registery.register::<String>();
 
     // Init scene
     let mut scene_component: Scene = Scene::new("TestScene".to_string());
@@ -53,7 +59,7 @@ fn scene_test() {
     let test_entity = world.spawn(transform::Transform::default()).id().clone();
 
     let test_component = TestComponent {
-        serialize_value: String::from("My name is :3"),
+        serialize_value_1: String::from("My name is :3"),
         serialize_value_2: 654101, // sixty ie fo te ti
     };
 
@@ -83,7 +89,6 @@ fn scene_test() {
         to_string
     );
 
-    let to_string: String = todo!();
     // Save txt for analysis
     let mut path_buf = std::env::current_dir().unwrap();
     path_buf.pop();
