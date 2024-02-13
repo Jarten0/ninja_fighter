@@ -1,21 +1,17 @@
 use bevy_ecs::{
-    component::{Component, ComponentDescriptor, ComponentId, Tick},
-    entity::Entity,
-    query::{FilteredAccess, ReadOnlyWorldQuery, WorldQuery},
-    storage::TableRow,
-    world::{unsafe_world_cell::UnsafeWorldCell, World},
+    component::{Component, ComponentDescriptor, ComponentId},
+    world::World,
 };
 use bevy_reflect::Reflect;
-use bevy_trait_query::{All, WriteTraits};
 use erased_serde::{Error, Serializer};
-use std::{alloc::Layout, borrow::Cow, path::PathBuf};
+use std::path::PathBuf;
 
 /// UGHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 /// so not excited to do this
 ///
 /// A trait for implementing [`Scene`] serialization behaviour for your component
 ///
-pub trait SerializableComponent: erased_serde::Serialize
+trait SerializableComponent: erased_serde::Serialize
 where
     Self: Component<Storage = bevy_ecs::component::TableStorage>,
 {

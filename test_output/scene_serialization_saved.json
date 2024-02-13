@@ -1,0 +1,43 @@
+{
+    "entity_data": [
+        {
+            "engine::scene::test::TestComponent": {
+                "serialize_value_1": "My name is :3",
+                "serialize_value_2": 654101
+            }
+        },
+        {
+            "engine::scene::test::TestComponent2": {
+                "ineedafunnynameforthis": "",
+                "peepeedoodookaka": true,
+                "the_real_test": "u0000"
+            }
+        },
+        {
+            "engine::scene::test::TestComponent": {
+                "serialize_value_1": "My name is :3c",
+                "serialize_value_2": 4226363
+            }
+        }
+    ],
+    "entity_data_better": {
+        "obj": {
+            "engine::scene::test::TestComponent": {
+                "serialize_value_1": "My name is :3",
+                "serialize_value_2": 654101
+            }
+        },
+        "obj2": {
+            "engine::scene::test::TestComponent2": {
+                "ineedafunnynameforthis": "",
+                "peepeedoodookaka": true,
+                "the_real_test": "u0000"
+            },
+            "engine::scene::test::TestComponent": {
+                "serialize_value_1": "My name is :3c",
+                "serialize_value_2": 4226363
+            }
+        }
+    },
+    "name": "TestScene"
+}

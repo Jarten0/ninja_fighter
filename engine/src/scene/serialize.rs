@@ -12,12 +12,17 @@ use serde::ser::SerializeStruct;
 use serde::Deserialize;
 use serde::Serialize;
 use std::any::TypeId;
+use std::collections::HashMap;
+
+pub type DataHashmap = HashMap<String, EntityHashmap>;
+pub type EntityHashmap = HashMap<String, ComponentHashmap>;
+pub type ComponentHashmap = HashMap<String, String>;
 
 /// A string based data type that stores useful data to convert [`Scene`]'s and bevy_ecs [`Entity`]'s to strings and back.
 #[derive(Debug)]
 pub struct SerializedSceneData {
     pub name: String,
-    pub entity_data: Vec<String>,
+    pub entity_data: DataHashmap,
 }
 
 // Template for how entity json should be handled
@@ -46,8 +51,6 @@ impl SerializedSceneData {
         // SerializedSceneData::deserialize(todo!());
 
         todo!();
-
-        for component in self.entity_data {}
 
         // dbg!(v);
 
@@ -96,7 +99,7 @@ impl<'de> Visitor<'de> for SceneVisitor {
     {
         let mut serialized_scene = SerializedSceneData {
             name: String::new(),
-            entity_data: Vec::new(),
+            entity_data: HashMap::new(),
         };
 
         // This at one point was like 20 lines long

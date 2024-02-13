@@ -24,3 +24,15 @@ pub use root::GameRoot;
 pub mod systems {
     pub use crate::space::transform::update;
 }
+
+#[allow(dead_code)]
+fn having_fun() {
+    let mut world = bevy_ecs::world::World::new();
+    scene::register_scene_types(&mut world);
+}
+
+/// Initializes all of the types used by the engine for any given world.
+/// Automatically called during engine operation, unless directly requested not to.
+fn register_types(world: &mut bevy_ecs::world::World) {
+    scene::register_scene_types(world);
+}

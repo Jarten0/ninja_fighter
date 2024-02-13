@@ -1,1 +1,1 @@
-{"name":"TestScene","entity_data":["{\"engine::scene::test::TestComponent\":{\"serialize_value_1\":\"My name is :3\",\"serialize_value_2\":654101}}"]}
+{"engine::scene::test::TestComponent":{"serialize_value_1":"My name is :3","serialize_value_2":654101}}

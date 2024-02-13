@@ -1,8 +1,14 @@
+//! The [`Scene`] component, which allows managment of loading and unloading entities and components dynamically.
+//! It can also serialize and deserialize component data and instantiate entities using it to provide full building functionality.
+
 use crate::scene::serialize::SerializedSceneData;
 use crate::scene::traits::SceneData;
 use crate::scene::traits::TestSuperTrait;
 
 use super::serialize;
+use super::serialize::ComponentHashmap;
+use super::serialize::DataHashmap;
+use super::serialize::EntityHashmap;
 use super::traits;
 
 use bevy_ecs::component::Component;
@@ -12,10 +18,15 @@ use bevy_ecs::world::World;
 
 use bevy_reflect::serde::ReflectSerializer;
 use bevy_reflect::TypeRegistry;
+use ggez::context::Has;
 use serde::Serialize;
+use serde::Serializer;
 
+use std::any::Any;
+use std::collections::HashMap;
 use std::env::current_dir;
 use std::fs::File;
+use std::io::Write;
 use std::path::PathBuf;
 
 /// Entity managment for loading and unloading in batches rather than having everything loaded at once.
@@ -120,7 +131,7 @@ impl PartialEq for Scene {
 
 /// Serializes all of the entities with their components and stores it to a file (currently a temporary one)
 pub fn save_scene(entity: Entity, world: &mut World) -> Result<(), std::io::Error> {
-    let mut path = &world.get::<Scene>(entity).unwrap().save_data_path;
+    let path = &world.get::<Scene>(entity).unwrap().save_data_path;
     let new_file = File::create(path)?;
 
     let value: Result<SerializedSceneData, String> = todo!(); //to_serialized_scene(world, entity);
@@ -147,7 +158,7 @@ pub fn load_scene(path: PathBuf, world: &mut World) -> Result<Entity, ()> {
 ///
 /// Does not save before unloading! Make sure to call [`save_scene`] if anything in the scene must be serialized and stored.
 /// If you don't have any non-global game state contained inside though, you're free to ignore that and unload as you please.
-pub fn unload(scene_entity: Entity, world: &mut World) {
+pub fn unload_scene(scene_entity: Entity, world: &mut World) {
     for entity in world.get::<Scene>(scene_entity).unwrap().entities.clone() {
         world.despawn(entity.to_owned());
     }
@@ -189,8 +200,7 @@ pub fn to_serialized_scene<'a>(
         .entities
         .clone();
 
-    let mut serialized_data_from_entity: Vec<u8> = Vec::new();
-    let mut typed_json = serde_json::Serializer::new(serialized_data_from_entity);
+    let mut entity_data: DataHashmap = HashMap::new();
 
     for (entity, serializable_components_data) in world
         .query::<(Entity, &dyn traits::TestSuperTrait)>()
@@ -200,9 +210,16 @@ pub fn to_serialized_scene<'a>(
             continue;
         }
 
+        let mut entity_hashmap: EntityHashmap = HashMap::new();
+
         for component in serializable_components_data.iter() {
+            let mut component_serialized_data: Vec<u8> = Vec::new();
+
+            // To swap out serializers, simply replace serde_json::Serializer with another serializer of your choice
+            let mut serializer = serde_json::Serializer::new(component_serialized_data);
+
             if let Err(err) =
-                ReflectSerializer::new(component.as_reflect(), registry).serialize(&mut typed_json)
+                ReflectSerializer::new(component.as_reflect(), registry).serialize(&mut serializer)
             {
                 panic!(
                     "Failed to serialize `{}` component! [{}]",
@@ -210,36 +227,49 @@ pub fn to_serialized_scene<'a>(
                     err.to_string()
                 )
             }
+
+            let serialized_component_json = serializer.into_inner();
+
+            let check_string = check_string(serialized_component_json).unwrap();
+
+            let from_str = serde_json::from_str::<ComponentHashmap>(&check_string);
+
+            to_writer(&check_string);
+
+            let component_hashmap: ComponentHashmap = match from_str {
+                Ok(t) => t,
+                Err(e) => panic!(
+                    "called `Result::unwrap()` on an `Err` value: {} [{}]",
+                    &e, &check_string
+                ),
+            };
+
+            entity_hashmap.insert(String::from("obj"), component_hashmap);
         }
+        entity_data.insert(String::from("objName"), entity_hashmap);
     }
 
-    let serialized_data_from_entity = typed_json.into_inner();
-
-    let new_serialized_data = match check_string(serialized_data_from_entity) {
-        Ok(value) => value,
-        Err(value) => return value,
-    };
-
     let mut scene = world.get_mut::<Scene>(scene_entity).unwrap();
-    scene.serialized_entity_component_data = Some(new_serialized_data);
     Ok(serialize::SerializedSceneData {
         name: scene.name.clone(),
-        entity_data: scene.serialized_entity_component_data.clone().unwrap(),
+        entity_data,
     })
 }
 
 fn check_string(
     serialized_data_from_entity: Vec<u8>,
-) -> Result<Vec<String>, Result<SerializedSceneData, String>> {
-    let checked_sdfe: String = match String::from_utf8(serialized_data_from_entity) {
+) -> Result<String, Result<SerializedSceneData, String>> {
+    Ok(match String::from_utf8(serialized_data_from_entity) {
         Ok(string) => string,
         Err(err) => return Err(Err(err.to_string())),
-    };
-    let mut new_serialized_data: Vec<String> = Vec::new();
-    new_serialized_data.push(checked_sdfe);
-    println!(
-        "Data: {:#?}, Entities serialized: {}, Components serialized: {}",
-        new_serialized_data, "N/A", "N/A"
-    );
-    Ok(new_serialized_data)
+    })
+}
+
+fn to_writer(to_string: &str) {
+    let mut path_buf = std::env::current_dir().unwrap();
+    path_buf.pop();
+    path_buf.push("test_output");
+    path_buf.push("scene_serialization.json");
+    println!("{}", path_buf.to_str().unwrap());
+    File::create(path_buf).unwrap().write(to_string.as_bytes());
 }

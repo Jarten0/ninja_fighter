@@ -53,6 +53,8 @@ impl GameRoot {
 
         let mut world = World::new();
 
+        crate::register_types(&mut world);
+
         let game_info = Engine::new(context);
         World::insert_resource(&mut world, game_info);
 

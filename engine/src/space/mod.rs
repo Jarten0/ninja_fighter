@@ -21,10 +21,7 @@ pub use transform::{Transform, TransformSettings};
 pub use vel::Velocity;
 pub use vtx::Vertex;
 
-use bevy_ecs::component::Component;
 use core::fmt;
-use ggez::graphics::Vertex as DrawVertex;
-use nalgebra::base;
 use serde::{de::Visitor, ser::SerializeStruct, Deserialize, Serialize};
 use std::ops::{
     Add, AddAssign, Deref, DerefMut, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign,
@@ -51,6 +48,7 @@ impl Vector2 {
     /// Linear
     pub fn lerp(&mut self, translation: &Vector2, time: Duration) {
         // <Vector2 as Deref>::Target
+        todo!()
     }
 }
 
