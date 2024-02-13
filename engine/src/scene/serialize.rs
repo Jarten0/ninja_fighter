@@ -1,22 +1,25 @@
 use crate::scene::resource::SceneManager;
 
 use super::component;
+use bevy_ecs::reflect::ReflectComponent;
+use bevy_ecs::world::Ref;
 use bevy_ecs::world::World;
 use bevy_reflect::serde::UntypedReflectDeserializer;
 use bevy_reflect::Reflect;
 use bevy_reflect::TypeRegistry;
-use serde;
+use core::panic;
 use serde::de::DeserializeSeed;
 use serde::de::Visitor;
 use serde::ser::SerializeStruct;
 use serde::Deserialize;
 use serde::Serialize;
+use serde_json::Value;
 use std::any::TypeId;
 use std::collections::HashMap;
 
 pub type DataHashmap = HashMap<String, EntityHashmap>;
 pub type EntityHashmap = HashMap<String, ComponentHashmap>;
-pub type ComponentHashmap = HashMap<String, String>;
+pub type ComponentHashmap = HashMap<String, Value>;
 
 /// A string based data type that stores useful data to convert [`Scene`]'s and bevy_ecs [`Entity`]'s to strings and back.
 #[derive(Debug)]
@@ -25,34 +28,35 @@ pub struct SerializedSceneData {
     pub entity_data: DataHashmap,
 }
 
-// Template for how entity json should be handled
-/// {
-///     "SceneName" {
-///         name: String
-///     }
-///     "EntityName" {
-///         [`TypeId`] {
-///             fields: Any,
-///         },
-///     }
-/// }
-
 impl SerializedSceneData {
     pub fn initialize(self, world: &mut World) -> serde_json::Result<component::Scene> {
         let scene = component::Scene::new(self.name.to_owned());
         // TODO: Deserialize entity data here and add it to the scene
 
-        let typee = TypeId::of::<component::Scene>();
-
         let registry = &world.resource::<SceneManager>().registry;
 
-        let reflect_deserializer = UntypedReflectDeserializer::new(registry);
+        let reflect_deserializer = UntypedReflectDeserializer::new(&registry);
 
-        // SerializedSceneData::deserialize(todo!());
+        for (entity_name, entity_hashmap) in self.entity_data {
+            for (component_path, component_data) in entity_hashmap {
+                let serialized_value = &component_data;
+                let type_registry_data = match registry.get_with_type_path(&component_path) {
+                    Some(value) => value,
+                    None => {
+                        panic!(
+                            "Failed to deserialize {component_path}! This type is not registered."
+                        )
+                    }
+                };
+                // let type_data = type_registry_data.data().unwrap();
 
-        todo!();
+                let deserialized_value: Box<dyn Reflect> = todo!();
+            }
+        }
 
-        // dbg!(v);
+        // Convert
+        // let converted_value =
+        // <MyStruct as FromReflect>::from_reflect(&*deserialized_value).unwrap();
 
         Ok(scene)
     }

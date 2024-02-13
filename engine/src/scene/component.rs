@@ -13,14 +13,19 @@ use super::traits;
 
 use bevy_ecs::component::Component;
 use bevy_ecs::entity::Entity;
+use bevy_ecs::query::With;
 use bevy_ecs::world::Ref;
 use bevy_ecs::world::World;
 
 use bevy_reflect::serde::ReflectSerializer;
 use bevy_reflect::TypeRegistry;
 use ggez::context::Has;
+use serde::de::Visitor;
+use serde::Deserializer;
 use serde::Serialize;
 use serde::Serializer;
+use serde_json::json;
+use serde_json::Value;
 
 use std::any::Any;
 use std::collections::HashMap;
@@ -167,24 +172,67 @@ pub fn unload_scene(scene_entity: Entity, world: &mut World) {
 
 /// Adds a new entity to the scene
 ///
-/// Ensures that the component has a [`SceneData`] component. If it doesn't, then one gets added automatically.
+/// This function takes several steps to validate the entity before appending to the list.
+/// * Ensures that the component has a [`SceneData`] component. If it doesn't, then one gets added automatically.
+/// * Checks that no other entity in the scene has the same [`SceneData`] name. If there is, it will be adjusted to ensure absolute uniqueness of names.
 pub fn add_entity_to_scene<'a>(
     world: &'a mut World,
     scene_entity: Entity,
     entity_to_add: Entity,
 ) -> Result<(), String> {
-    if let None = World::entity(&world, entity_to_add).get::<traits::SceneData>() {
+    // Very specific way this following code is blocked, since we need a list of entity names that DOESN'T include the entity currently being added
+    let mut entity_names: Vec<String> = Vec::new();
+    for (component, entity) in world.query::<(&mut SceneData, Entity)>().iter(world) {
+        if !world
+            .get::<Scene>(scene_entity)
+            .unwrap()
+            .entities
+            .contains(&entity)
+        {
+            continue;
+        }
+        entity_names.push(component.object_name.to_owned());
+    }
+
+    if let None = world.get::<SceneData>(entity_to_add) {
+        let mut object_name = String::from("New entity");
+
         world.entity_mut(entity_to_add).insert(traits::SceneData {
-            object_name: String::from("New entity"),
+            object_name,
             scene_id: 0, // TODO: Make use of scene_ids or get rid of them idk why i added them
         });
     }
+
+    validate_scene_data_name(
+        entity_names,
+        &mut world
+            .get_mut::<SceneData>(entity_to_add)
+            .unwrap()
+            .object_name,
+    );
+
     let mut scene_entity = World::entity_mut(world, scene_entity);
     let mut scene = scene_entity.get_mut::<Scene>().unwrap();
 
     scene.entities.push(entity_to_add.clone());
 
     Ok(())
+}
+
+pub fn validate_scene_data_name(entity_names: Vec<String>, object_name: &mut String) {
+    let mut i = 0;
+    loop {
+        if !entity_names.contains(&object_name) {
+            break;
+        }
+
+        println!("{:?} contains {}", &entity_names, &object_name);
+
+        let suffix = format!("({})", i);
+        object_name.strip_suffix(&suffix);
+        i += 1;
+        object_name.push_str(&format!("({})", i))
+    }
 }
 
 // TODO: Fix documentation
@@ -232,21 +280,21 @@ pub fn to_serialized_scene<'a>(
 
             let check_string = check_string(serialized_component_json).unwrap();
 
-            let from_str = serde_json::from_str::<ComponentHashmap>(&check_string);
+            let from_str: HashMap<String, HashMap<String, Value>> =
+                serde_json::from_str(&check_string).unwrap();
 
             to_writer(&check_string);
 
-            let component_hashmap: ComponentHashmap = match from_str {
-                Ok(t) => t,
-                Err(e) => panic!(
-                    "called `Result::unwrap()` on an `Err` value: {} [{}]",
-                    &e, &check_string
-                ),
-            };
+            let component_name_hashmap = from_str.iter().next().unwrap();
 
-            entity_hashmap.insert(String::from("obj"), component_hashmap);
+            entity_hashmap.insert(
+                component_name_hashmap.0.to_owned(),
+                component_name_hashmap.1.to_owned(),
+            );
         }
-        entity_data.insert(String::from("objName"), entity_hashmap);
+        let k = world.get::<SceneData>(entity).unwrap().object_name.clone();
+
+        entity_data.insert(k, entity_hashmap);
     }
 
     let mut scene = world.get_mut::<Scene>(scene_entity).unwrap();

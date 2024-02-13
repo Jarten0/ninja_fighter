@@ -1,7 +1,10 @@
 mod component;
 mod scene_object;
 mod serialize;
+
+#[cfg(test)]
 mod test;
+
 mod traits;
 mod resource {
     use bevy_ecs::system::Resource;
