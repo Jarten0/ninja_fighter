@@ -5,6 +5,7 @@ use bevy_ecs::reflect::ReflectComponent;
 use bevy_ecs::world::Ref;
 use bevy_ecs::world::World;
 use bevy_reflect::serde::UntypedReflectDeserializer;
+use bevy_reflect::DynamicStruct;
 use bevy_reflect::Reflect;
 use bevy_reflect::TypeRegistry;
 use core::panic;
@@ -12,7 +13,9 @@ use serde::de::DeserializeSeed;
 use serde::de::Visitor;
 use serde::ser::SerializeStruct;
 use serde::Deserialize;
+use serde::Deserializer;
 use serde::Serialize;
+use serde_json::json;
 use serde_json::Value;
 use std::any::TypeId;
 use std::collections::HashMap;
@@ -40,14 +43,16 @@ impl SerializedSceneData {
         for (entity_name, entity_hashmap) in self.entity_data {
             for (component_path, component_data) in entity_hashmap {
                 let serialized_value = &component_data;
-                let type_registry_data = match registry.get_with_type_path(&component_path) {
-                    Some(value) => value,
-                    None => {
-                        panic!(
-                            "Failed to deserialize {component_path}! This type is not registered."
-                        )
-                    }
-                };
+                let mut component_patch = DynamicStruct::default();
+
+                let reflect_deserializer = UntypedReflectDeserializer::new(registry);
+
+                for (name, field) in component_data {
+                    let s = String::new();
+                    let mut json = serde_json::Deserializer::from_str(&s);
+                    let value = reflect_deserializer.deserialize(&mut json).unwrap();
+                    component_patch.insert::<dyn Reflect>(&name, value.into());
+                }
                 // let type_data = type_registry_data.data().unwrap();
 
                 let deserialized_value: Box<dyn Reflect> = todo!();
