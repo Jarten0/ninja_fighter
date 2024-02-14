@@ -2,6 +2,7 @@ use crate::scene::resource::SceneManager;
 
 use super::component;
 use bevy_ecs::reflect::ReflectComponent;
+use bevy_ecs::schedule::DynEq;
 use bevy_ecs::world::Ref;
 use bevy_ecs::world::World;
 use bevy_reflect::serde::UntypedReflectDeserializer;
@@ -34,28 +35,17 @@ pub struct SerializedSceneData {
 impl SerializedSceneData {
     pub fn initialize(self, world: &mut World) -> serde_json::Result<component::Scene> {
         let scene = component::Scene::new(self.name.to_owned());
-        // TODO: Deserialize entity data here and add it to the scene
 
         let registry = &world.resource::<SceneManager>().registry;
 
-        let reflect_deserializer = UntypedReflectDeserializer::new(&registry);
+        // let reflect_deserializer = UntypedReflectDeserializer::new(&registry);
 
         for (entity_name, entity_hashmap) in self.entity_data {
             for (component_path, component_data) in entity_hashmap {
-                let serialized_value = &component_data;
-                let mut component_patch = DynamicStruct::default();
-
-                let reflect_deserializer = UntypedReflectDeserializer::new(registry);
-
                 for (name, field) in component_data {
-                    let s = String::new();
-                    let mut json = serde_json::Deserializer::from_str(&s);
-                    let value = reflect_deserializer.deserialize(&mut json).unwrap();
-                    component_patch.insert::<dyn Reflect>(&name, value.into());
-                }
-                // let type_data = type_registry_data.data().unwrap();
+                    let mut component_patch = // DynamicStruct created based upon a component obtained via it's component path.
 
-                let deserialized_value: Box<dyn Reflect> = todo!();
+                }
             }
         }
 
