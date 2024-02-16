@@ -1,6 +1,7 @@
 use crate::scene::resource::SceneManager;
 
 use super::component;
+use bevy_ecs::component::ComponentId;
 use bevy_ecs::reflect::ReflectComponent;
 use bevy_ecs::schedule::DynEq;
 use bevy_ecs::world::Ref;
@@ -43,8 +44,9 @@ impl SerializedSceneData {
         for (entity_name, entity_hashmap) in self.entity_data {
             for (component_path, component_data) in entity_hashmap {
                 for (name, field) in component_data {
-                    let mut component_patch = // DynamicStruct created based upon a component obtained via it's component path.
-
+                    let id = dbg!(registry.get_with_type_path(dbg!(&component_path))).unwrap();
+                    // world.components().get_info(id);
+                    // let mut component_patch = // DynamicStruct created based upon a component obtained via it's component path.
                 }
             }
         }

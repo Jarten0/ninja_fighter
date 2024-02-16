@@ -5,6 +5,7 @@ use crate::scene::serialize::SerializedSceneData;
 use crate::scene::traits::SceneData;
 use crate::scene::traits::TestSuperTrait;
 
+use super::resource::SceneManager;
 use super::serialize;
 use super::serialize::ComponentHashmap;
 use super::serialize::DataHashmap;
@@ -239,7 +240,6 @@ pub fn validate_scene_data_name(entity_names: Vec<String>, object_name: &mut Str
 pub fn to_serialized_scene<'a>(
     world: &'a mut World,
     scene_entity: Entity,
-    registry: &mut TypeRegistry,
 ) -> Result<serialize::SerializedSceneData, String> {
     let scene_entity_list: Vec<Entity> = world
         .entity(scene_entity)
@@ -254,6 +254,8 @@ pub fn to_serialized_scene<'a>(
         .query::<(Entity, &dyn traits::TestSuperTrait)>()
         .iter(world)
     {
+        let registry = &world.resource::<SceneManager>().registry;
+
         if !scene_entity_list.contains(&entity) {
             continue;
         }
