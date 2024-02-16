@@ -1,15 +1,15 @@
 //! The [`Scene`] component, which allows managment of loading and unloading entities and components dynamically.
 //! It can also serialize and deserialize component data and instantiate entities using it to provide full building functionality.
 
-use crate::scene::serialize::SerializedSceneData;
+use crate::scene::serialized_scene::SerializedSceneData;
 use crate::scene::traits::SceneData;
 use crate::scene::traits::TestSuperTrait;
 
 use super::resource::SceneManager;
-use super::serialize;
-use super::serialize::ComponentHashmap;
-use super::serialize::DataHashmap;
-use super::serialize::EntityHashmap;
+use super::serialized_scene;
+use super::serialized_scene::ComponentHashmap;
+use super::serialized_scene::DataHashmap;
+use super::serialized_scene::EntityHashmap;
 use super::traits;
 
 use bevy_ecs::component::Component;
@@ -240,7 +240,7 @@ pub fn validate_scene_data_name(entity_names: Vec<String>, object_name: &mut Str
 pub fn to_serialized_scene<'a>(
     world: &'a mut World,
     scene_entity: Entity,
-) -> Result<serialize::SerializedSceneData, String> {
+) -> Result<serialized_scene::SerializedSceneData, String> {
     let scene_entity_list: Vec<Entity> = world
         .entity(scene_entity)
         .get::<Scene>()
@@ -300,7 +300,7 @@ pub fn to_serialized_scene<'a>(
     }
 
     let mut scene = world.get_mut::<Scene>(scene_entity).unwrap();
-    Ok(serialize::SerializedSceneData {
+    Ok(serialized_scene::SerializedSceneData {
         name: scene.name.clone(),
         entity_data,
     })

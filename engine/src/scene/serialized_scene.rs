@@ -1,6 +1,7 @@
 use crate::scene::resource::SceneManager;
 
 use super::component;
+use super::traits::SceneData;
 use bevy_ecs::component::ComponentId;
 use bevy_ecs::reflect::ReflectComponent;
 use bevy_ecs::schedule::DynEq;
@@ -8,7 +9,9 @@ use bevy_ecs::world::Ref;
 use bevy_ecs::world::World;
 use bevy_reflect::serde::UntypedReflectDeserializer;
 use bevy_reflect::DynamicStruct;
+use bevy_reflect::Enum;
 use bevy_reflect::Reflect;
+use bevy_reflect::TypeData;
 use bevy_reflect::TypeRegistry;
 use core::panic;
 use serde::de::DeserializeSeed;
@@ -19,8 +22,10 @@ use serde::Deserializer;
 use serde::Serialize;
 use serde_json::json;
 use serde_json::Value;
+use std::any::Any;
 use std::any::TypeId;
 use std::collections::HashMap;
+use std::ops::Deref;
 
 pub type DataHashmap = HashMap<String, EntityHashmap>;
 pub type EntityHashmap = HashMap<String, ComponentHashmap>;
@@ -33,27 +38,71 @@ pub struct SerializedSceneData {
     pub entity_data: DataHashmap,
 }
 
+trait ToReflect {
+    fn to_reflect(&self) -> Box<dyn Reflect>;
+}
+
+impl ToReflect for serde_json::Value {
+    fn to_reflect(&self) -> Box<dyn Reflect> {
+        match self {
+            Value::Null => todo!(),
+            Value::Bool(_) => todo!(),
+            Value::Number(_) => todo!(),
+            Value::String(_) => todo!(),
+            Value::Array(_) => todo!(),
+            Value::Object(_) => todo!(),
+        }
+    }
+}
+
+trait Clonable {
+    fn clon(&self) -> Self;
+}
+
+impl Clonable for TypeRegistry {
+    fn clon(&self) -> Self {
+        // self.deref().clone()
+    }
+}
+
 impl SerializedSceneData {
     pub fn initialize(self, world: &mut World) -> serde_json::Result<component::Scene> {
         let scene = component::Scene::new(self.name.to_owned());
 
-        let registry = &world.resource::<SceneManager>().registry;
-
-        // let reflect_deserializer = UntypedReflectDeserializer::new(&registry);
+        let registry = world.resource::<SceneManager>().registry;
 
         for (entity_name, entity_hashmap) in self.entity_data {
+            let bundle = SceneData {
+                object_name: entity_name,
+                scene_id: 0,
+            };
+            let mut entity = world.spawn(bundle);
             for (component_path, component_data) in entity_hashmap {
+                let component_registration: &bevy_reflect::TypeRegistration =
+                    registry.get_with_type_path(&component_path).unwrap();
+
+                let fields = match component_registration.type_info() {
+                    bevy_reflect::TypeInfo::Struct(struct_info) => struct_info.field_names(),
+                    bevy_reflect::TypeInfo::TupleStruct(_) => todo!(), // These `todo!()` 's shouldn't be hit, but if they are, implement something here.
+                    bevy_reflect::TypeInfo::Tuple(_) => todo!(),
+                    bevy_reflect::TypeInfo::List(_) => todo!(),
+                    bevy_reflect::TypeInfo::Array(_) => todo!(),
+                    bevy_reflect::TypeInfo::Map(_) => todo!(),
+                    bevy_reflect::TypeInfo::Enum(_) => todo!(),
+                    bevy_reflect::TypeInfo::Value(_) => todo!(),
+                };
+
+                let mut component_patch = DynamicStruct::default();
+
+                let reflect_component = component_registration.data::<ReflectComponent>().unwrap();
+
                 for (name, field) in component_data {
-                    let id = dbg!(registry.get_with_type_path(dbg!(&component_path))).unwrap();
-                    // world.components().get_info(id);
-                    // let mut component_patch = // DynamicStruct created based upon a component obtained via it's component path.
+                    component_patch.insert_boxed(&name, field.to_reflect());
                 }
+
+                reflect_component.apply_or_insert(&mut entity, &component_patch);
             }
         }
-
-        // Convert
-        // let converted_value =
-        // <MyStruct as FromReflect>::from_reflect(&*deserialized_value).unwrap();
 
         Ok(scene)
     }

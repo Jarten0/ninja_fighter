@@ -6,27 +6,6 @@ use bevy_reflect::Reflect;
 use erased_serde::{Error, Serializer};
 use std::path::PathBuf;
 
-/// UGHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
-/// so not excited to do this
-///
-/// A trait for implementing [`Scene`] serialization behaviour for your component
-///
-trait SerializableComponent: erased_serde::Serialize
-where
-    Self: Component<Storage = bevy_ecs::component::TableStorage>,
-{
-    /// Returns the path of where the component will be saved and loaded from.
-    fn path(&self) -> PathBuf;
-
-    fn descriptor() -> ComponentDescriptor
-    where
-        Self: Sized,
-    {
-        ComponentDescriptor::new::<Self>()
-    }
-}
-erased_serde::serialize_trait_object!(SerializableComponent);
-
 /// Holds data for the assigned [`Scene`] to operate upon.
 /// An entity cannot be serialized by the [`Scene`] if it does not have this component.
 ///

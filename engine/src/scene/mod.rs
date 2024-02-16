@@ -1,6 +1,6 @@
 mod component;
 mod scene_object;
-mod serialize;
+mod serialized_scene;
 
 #[cfg(test)]
 mod test;
