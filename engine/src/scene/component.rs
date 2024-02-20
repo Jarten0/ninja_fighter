@@ -146,12 +146,12 @@ pub fn save_scene(entity: Entity, world: &mut World) -> Result<(), std::io::Erro
     Ok(())
 }
 
-pub fn load_scene(path: PathBuf, world: &mut World) -> Result<Entity, ()> {
+pub fn load_scene(path: PathBuf, world: &mut World, registry: &TypeRegistry) -> Result<Entity, ()> {
     use std::io::prelude::*;
     let mut buf = String::new();
     let s = File::open(path).unwrap().read_to_string(&mut buf).unwrap();
     let deserialize = serde_json::from_str::<SerializedSceneData>(&buf).unwrap();
-    let scene_component = deserialize.initialize(world).unwrap();
+    let scene_component = deserialize.initialize(world, registry).unwrap();
 
     Ok(world.spawn(scene_component).id())
 }
@@ -239,6 +239,7 @@ pub fn validate_scene_data_name(entity_names: Vec<String>, object_name: &mut Str
 // TODO: Fix documentation
 pub fn to_serialized_scene<'a>(
     world: &'a mut World,
+    registry: &TypeRegistry,
     scene_entity: Entity,
 ) -> Result<serialized_scene::SerializedSceneData, String> {
     let scene_entity_list: Vec<Entity> = world
@@ -254,8 +255,6 @@ pub fn to_serialized_scene<'a>(
         .query::<(Entity, &dyn traits::TestSuperTrait)>()
         .iter(world)
     {
-        let registry = &world.resource::<SceneManager>().registry;
-
         if !scene_entity_list.contains(&entity) {
             continue;
         }

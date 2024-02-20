@@ -12,6 +12,7 @@ use bevy_reflect::DynamicStruct;
 use bevy_reflect::Enum;
 use bevy_reflect::Reflect;
 use bevy_reflect::TypeData;
+use bevy_reflect::TypeRegistration;
 use bevy_reflect::TypeRegistry;
 use core::panic;
 use serde::de::DeserializeSeed;
@@ -44,42 +45,46 @@ trait ToReflect {
 
 impl ToReflect for serde_json::Value {
     fn to_reflect(&self) -> Box<dyn Reflect> {
-        match self {
-            Value::Null => todo!(),
-            Value::Bool(_) => todo!(),
-            Value::Number(_) => todo!(),
-            Value::String(_) => todo!(),
-            Value::Array(_) => todo!(),
-            Value::Object(_) => todo!(),
-        }
-    }
-}
-
-trait Clonable {
-    fn clon(&self) -> Self;
-}
-
-impl Clonable for TypeRegistry {
-    fn clon(&self) -> Self {
-        // self.deref().clone()
+        let value = match self {
+            Value::Null => Reflect::reflect_owned(Box::new(())),
+            Value::Bool(bool) => Reflect::reflect_owned(Box::new(bool.to_owned())),
+            Value::Number(number) => Reflect::reflect_owned(Box::new(number.as_f64())),
+            Value::String(string) => Reflect::reflect_owned(Box::new(string.to_owned())),
+            Value::Array(array) => todo!(),
+            Value::Object(object) => todo!(),
+        };
+        Box::<dyn Reflect>::from(match value {
+            bevy_reflect::ReflectOwned::Struct(e) => todo!(),
+            bevy_reflect::ReflectOwned::TupleStruct(_) => todo!(),
+            bevy_reflect::ReflectOwned::Tuple(_) => todo!(),
+            bevy_reflect::ReflectOwned::List(_) => todo!(),
+            bevy_reflect::ReflectOwned::Array(_) => todo!(),
+            bevy_reflect::ReflectOwned::Map(_) => todo!(),
+            bevy_reflect::ReflectOwned::Enum(_) => todo!(),
+            bevy_reflect::ReflectOwned::Value(e) => e,
+        })
     }
 }
 
 impl SerializedSceneData {
-    pub fn initialize(self, world: &mut World) -> serde_json::Result<component::Scene> {
+    pub fn initialize(
+        self,
+        world: &mut World,
+        type_registry: &TypeRegistry,
+    ) -> serde_json::Result<component::Scene> {
         let scene = component::Scene::new(self.name.to_owned());
-
-        let registry = world.resource::<SceneManager>().registry;
 
         for (entity_name, entity_hashmap) in self.entity_data {
             let bundle = SceneData {
                 object_name: entity_name,
                 scene_id: 0,
             };
+
             let mut entity = world.spawn(bundle);
+
             for (component_path, component_data) in entity_hashmap {
                 let component_registration: &bevy_reflect::TypeRegistration =
-                    registry.get_with_type_path(&component_path).unwrap();
+                    type_registry.get_with_type_path(&component_path).unwrap();
 
                 let fields = match component_registration.type_info() {
                     bevy_reflect::TypeInfo::Struct(struct_info) => struct_info.field_names(),
@@ -94,10 +99,12 @@ impl SerializedSceneData {
 
                 let mut component_patch = DynamicStruct::default();
 
+                component_patch.set_represented_type(Some(component_registration.type_info()));
+
                 let reflect_component = component_registration.data::<ReflectComponent>().unwrap();
 
                 for (name, field) in component_data {
-                    component_patch.insert_boxed(&name, field.to_reflect());
+                    component_patch.insert(&name, *field.to_reflect());
                 }
 
                 reflect_component.apply_or_insert(&mut entity, &component_patch);

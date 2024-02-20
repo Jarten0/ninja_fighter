@@ -11,9 +11,7 @@ mod resource {
     use bevy_reflect::TypeRegistry;
 
     #[derive(Resource, Default)]
-    pub struct SceneManager {
-        pub registry: TypeRegistry,
-    }
+    pub struct SceneManager {}
 }
 
 pub use component::{
