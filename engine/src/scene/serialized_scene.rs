@@ -1,10 +1,13 @@
+use super::add_entity_to_scene;
 use super::component;
 use super::traits::SceneData;
+use bevy_ecs::component::Component;
 use bevy_ecs::reflect::ReflectComponent;
 use bevy_ecs::world::World;
 use bevy_reflect::DynamicStruct;
 use bevy_reflect::Reflect;
 use bevy_reflect::Struct;
+use bevy_reflect::TypeData;
 use bevy_reflect::TypePath;
 use bevy_reflect::TypeRegistry;
 use serde::de::Visitor;
@@ -49,20 +52,8 @@ impl ToReflect for serde_json::Value {
         let value = match self {
             Value::Null => Reflect::reflect_owned(Box::new(())),
             Value::Bool(bool) => Reflect::reflect_owned(Box::new(bool.to_owned())),
-            Value::Number(number) => {
-                let value: Box<dyn Reflect> = if let Some(int) = number.as_i64() {
-                    downcast_int(expected_type, int)
-                } else {
-                    let x = number.as_f64().unwrap_or(0.0);
-                    if expected_type == Some(f32::type_path()) {
-                        downcast_float(x)
-                    } else {
-                        Box::new(x)
-                    }
-                };
-                Reflect::reflect_owned(value)
-            }
-            Value::String(string) => Reflect::reflect_owned(Box::new(string.to_owned())),
+            Value::Number(number) => convert_number(number, expected_type),
+            Value::String(string) => convert_string(string, expected_type),
             Value::Array(array) => todo!(),
             Value::Object(object) => todo!(),
         };
@@ -80,6 +71,31 @@ impl ToReflect for serde_json::Value {
             bevy_reflect::ReflectOwned::Value(e) => e,
         }))
     }
+}
+
+fn convert_string(string: &String, expected_type: Option<&str>) -> bevy_reflect::ReflectOwned {
+    if expected_type == Some(char::type_path()) {
+        return Reflect::reflect_owned(Box::new(*string.as_bytes().get(0).unwrap() as char));
+    }
+
+    Reflect::reflect_owned(Box::new(string.to_owned()))
+}
+
+fn convert_number(
+    number: &serde_json::Number,
+    expected_type: Option<&str>,
+) -> bevy_reflect::ReflectOwned {
+    let value: Box<dyn Reflect> = if let Some(int) = number.as_i64() {
+        downcast_int(expected_type, int)
+    } else {
+        let x = number.as_f64().unwrap_or(0.0);
+        if expected_type == Some(f32::type_path()) {
+            downcast_float(x)
+        } else {
+            Box::new(x)
+        }
+    };
+    Reflect::reflect_owned(value)
 }
 
 /// Downcasts an int to the expected type
@@ -154,19 +170,27 @@ impl SerializedSceneData {
 
                 component_patch.set_represented_type(Some(component_registration.type_info()));
 
-                let reflect_component = component_registration.data::<ReflectComponent>().unwrap();
-
-                for (name, field) in component_data {
+                for (name, field) in &component_data {
+                    println!("!");
                     let f = || {
                         panic!(
-                            "No expected type found! tried to find [{}] on {}",
+                            "No expected type found! tried to find the field named [{:?}] on {:?}. ",
                             name, component_path
                         )
                     };
-                    let expected_type = component_patch
-                        .field(&name)
-                        .unwrap_or_else(f)
-                        .reflect_type_path();
+
+                    let type_info = match component_registration.type_info() {
+                        bevy_reflect::TypeInfo::Struct(struct_info) => struct_info,
+                        bevy_reflect::TypeInfo::TupleStruct(_) => todo!(),
+                        bevy_reflect::TypeInfo::Tuple(_) => todo!(),
+                        bevy_reflect::TypeInfo::List(_) => todo!(),
+                        bevy_reflect::TypeInfo::Array(_) => todo!(),
+                        bevy_reflect::TypeInfo::Map(_) => todo!(),
+                        bevy_reflect::TypeInfo::Enum(_) => todo!(),
+                        bevy_reflect::TypeInfo::Value(_) => todo!(),
+                    };
+
+                    let expected_type = type_info.field(name).unwrap_or_else(f).type_path();
 
                     let value = match field.to_reflect(Some(expected_type)) {
                         Ok(ok) => ok,
@@ -175,9 +199,12 @@ impl SerializedSceneData {
 
                     component_patch.insert_boxed(&name, value);
                 }
+                let reflect_component = component_registration.data::<ReflectComponent>().unwrap();
 
-                reflect_component.apply_or_insert(&mut entity, &dbg!(component_patch));
+                reflect_component.apply_or_insert(&mut entity, &component_patch);
             }
+
+            add_entity_to_scene(world, scene, entity.id())
         }
 
         Ok(scene)
