@@ -5,6 +5,7 @@ use bevy_ecs::world::World;
 use bevy_reflect::DynamicStruct;
 use bevy_reflect::Reflect;
 use bevy_reflect::Struct;
+use bevy_reflect::TypePath;
 use bevy_reflect::TypeRegistry;
 use serde::de::Visitor;
 use serde::ser::SerializeStruct;
@@ -50,12 +51,14 @@ impl ToReflect for serde_json::Value {
             Value::Bool(bool) => Reflect::reflect_owned(Box::new(bool.to_owned())),
             Value::Number(number) => {
                 let value: Box<dyn Reflect> = if let Some(int) = number.as_i64() {
-                    if let None = expected_type {
-                        Box::new(int)
-                    } else {
-                    }
+                    downcast_int(expected_type, int)
                 } else {
-                    Box::new(number.as_f64().unwrap_or(0.0))
+                    let x = number.as_f64().unwrap_or(0.0);
+                    if expected_type == Some(f32::type_path()) {
+                        downcast_float(x)
+                    } else {
+                        Box::new(x)
+                    }
                 };
                 Reflect::reflect_owned(value)
             }
@@ -76,6 +79,43 @@ impl ToReflect for serde_json::Value {
             }
             bevy_reflect::ReflectOwned::Value(e) => e,
         }))
+    }
+}
+
+/// Downcasts an int to the expected type
+fn downcast_int(expected_type: Option<&str>, int: i64) -> Box<dyn Reflect> {
+    match expected_type {
+        None => Box::new(int),
+        Some(expected_type) => {
+            if expected_type == i32::type_path() {
+                Box::new(int as i32)
+            } else if expected_type == i16::type_path() {
+                Box::new(int as i16)
+            } else if expected_type == i8::type_path() {
+                Box::new(int as i8)
+            } else if expected_type == u128::type_path() {
+                Box::new(int as u128)
+            } else if expected_type == u64::type_path() {
+                Box::new(int as u64)
+            } else if expected_type == u32::type_path() {
+                Box::new(int as u32)
+            } else if expected_type == u16::type_path() {
+                Box::new(int as u16)
+            } else if expected_type == u8::type_path() {
+                Box::new(int as u8)
+            } else {
+                Box::new(int)
+            }
+        }
+    }
+}
+
+/// Downcasts a float to an f32, if possible
+fn downcast_float(float: f64) -> Box<dyn Reflect> {
+    if float < (f32::MIN as f64) || float > (f32::MAX as f64) {
+        Box::new(float)
+    } else {
+        Box::new(float as f32)
     }
 }
 
@@ -117,7 +157,16 @@ impl SerializedSceneData {
                 let reflect_component = component_registration.data::<ReflectComponent>().unwrap();
 
                 for (name, field) in component_data {
-                    let expected_type = component_patch.field(&name).unwrap().reflect_type_path();
+                    let f = || {
+                        panic!(
+                            "No expected type found! tried to find [{}] on {}",
+                            name, component_path
+                        )
+                    };
+                    let expected_type = component_patch
+                        .field(&name)
+                        .unwrap_or_else(f)
+                        .reflect_type_path();
 
                     let value = match field.to_reflect(Some(expected_type)) {
                         Ok(ok) => ok,
