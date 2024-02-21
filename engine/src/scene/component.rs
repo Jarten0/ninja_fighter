@@ -237,6 +237,7 @@ pub fn validate_scene_data_name(entity_names: Vec<String>, object_name: &mut Str
 }
 
 // TODO: Fix documentation
+/// Creates a [`SerializableScene`] using the scene's component data
 pub fn to_serialized_scene<'a>(
     world: &'a mut World,
     registry: &TypeRegistry,

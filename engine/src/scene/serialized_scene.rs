@@ -1,36 +1,37 @@
-use crate::scene::resource::SceneManager;
-
 use super::component;
 use super::traits::SceneData;
-use bevy_ecs::component::ComponentId;
 use bevy_ecs::reflect::ReflectComponent;
-use bevy_ecs::schedule::DynEq;
-use bevy_ecs::world::Ref;
 use bevy_ecs::world::World;
-use bevy_reflect::serde::UntypedReflectDeserializer;
 use bevy_reflect::DynamicStruct;
-use bevy_reflect::Enum;
 use bevy_reflect::Reflect;
-use bevy_reflect::TypeData;
-use bevy_reflect::TypeRegistration;
+use bevy_reflect::Struct;
 use bevy_reflect::TypeRegistry;
-use core::panic;
-use serde::de::DeserializeSeed;
 use serde::de::Visitor;
 use serde::ser::SerializeStruct;
 use serde::Deserialize;
-use serde::Deserializer;
 use serde::Serialize;
-use serde_json::json;
 use serde_json::Value;
-use std::any::Any;
-use std::any::TypeId;
 use std::collections::HashMap;
-use std::ops::Deref;
 
 pub type DataHashmap = HashMap<String, EntityHashmap>;
 pub type EntityHashmap = HashMap<String, ComponentHashmap>;
 pub type ComponentHashmap = HashMap<String, Value>;
+
+/// Private trait that converts [`serde_json::Value`] to [`Reflect`]
+trait ToReflect {
+    /// Converts a [`serde_json::Value`] to a [`Reflect`] value.
+    ///
+    /// Use `expected_type_path` to denote what type you might be expecting in case of ambiguity.
+    /// For example, whether to return an [`i64`] or whether to downcast it to an [`i32`].
+    ///
+    /// Returns the result regardless or success or failure, but how you handle that is up to you.
+    ///
+    /// If you don't use an `expected_type_path`, then it should always return [`Ok`]. Feel free to `unwrap()` then if so
+    fn to_reflect(
+        &self,
+        expected_type_path: Option<&str>,
+    ) -> Result<Box<dyn Reflect>, Box<dyn Reflect>>;
+}
 
 /// A string based data type that stores useful data to convert [`Scene`]'s and bevy_ecs [`Entity`]'s to strings and back.
 #[derive(Debug)]
@@ -39,30 +40,42 @@ pub struct SerializedSceneData {
     pub entity_data: DataHashmap,
 }
 
-trait ToReflect {
-    fn to_reflect(&self) -> Box<dyn Reflect>;
-}
-
 impl ToReflect for serde_json::Value {
-    fn to_reflect(&self) -> Box<dyn Reflect> {
+    fn to_reflect(
+        &self,
+        expected_type: Option<&str>,
+    ) -> Result<Box<dyn Reflect>, Box<dyn Reflect>> {
         let value = match self {
             Value::Null => Reflect::reflect_owned(Box::new(())),
             Value::Bool(bool) => Reflect::reflect_owned(Box::new(bool.to_owned())),
-            Value::Number(number) => Reflect::reflect_owned(Box::new(number.as_f64())),
+            Value::Number(number) => {
+                let value: Box<dyn Reflect> = if let Some(int) = number.as_i64() {
+                    if let None = expected_type {
+                        Box::new(int)
+                    } else {
+                    }
+                } else {
+                    Box::new(number.as_f64().unwrap_or(0.0))
+                };
+                Reflect::reflect_owned(value)
+            }
             Value::String(string) => Reflect::reflect_owned(Box::new(string.to_owned())),
             Value::Array(array) => todo!(),
             Value::Object(object) => todo!(),
         };
-        Box::<dyn Reflect>::from(match value {
+        Ok(Box::<dyn Reflect>::from(match value {
             bevy_reflect::ReflectOwned::Struct(e) => todo!(),
             bevy_reflect::ReflectOwned::TupleStruct(_) => todo!(),
             bevy_reflect::ReflectOwned::Tuple(_) => todo!(),
             bevy_reflect::ReflectOwned::List(_) => todo!(),
             bevy_reflect::ReflectOwned::Array(_) => todo!(),
             bevy_reflect::ReflectOwned::Map(_) => todo!(),
-            bevy_reflect::ReflectOwned::Enum(_) => todo!(),
+            bevy_reflect::ReflectOwned::Enum(en) => {
+                dbg!(en.reflect_type_path());
+                todo!()
+            }
             bevy_reflect::ReflectOwned::Value(e) => e,
-        })
+        }))
     }
 }
 
@@ -104,10 +117,17 @@ impl SerializedSceneData {
                 let reflect_component = component_registration.data::<ReflectComponent>().unwrap();
 
                 for (name, field) in component_data {
-                    component_patch.insert(&name, *field.to_reflect());
+                    let expected_type = component_patch.field(&name).unwrap().reflect_type_path();
+
+                    let value = match field.to_reflect(Some(expected_type)) {
+                        Ok(ok) => ok,
+                        Err(ok) => ok,
+                    };
+
+                    component_patch.insert_boxed(&name, value);
                 }
 
-                reflect_component.apply_or_insert(&mut entity, &component_patch);
+                reflect_component.apply_or_insert(&mut entity, &dbg!(component_patch));
             }
         }
 
