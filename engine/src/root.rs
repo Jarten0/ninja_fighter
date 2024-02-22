@@ -2,7 +2,10 @@
 //!
 //! * [`GameRoot`] - Creates the main game state, initializes modules and libraries, and communicates between [`ggez`]'s engine and [`bevy_ecs`]'s world
 
+use crate::debug;
 use crate::input::KeycodeType;
+use crate::scene;
+use crate::scene::SceneManager;
 use crate::schedule::ScheduleTag;
 use crate::schedule::Scheduler;
 use crate::Engine;
@@ -10,6 +13,7 @@ use crate::Input;
 
 use bevy_ecs::schedule::Schedule;
 use bevy_ecs::world::*;
+use bevy_reflect::TypeRegistry;
 use ggez::event::{self, EventHandler};
 use ggez::graphics::{self, Color};
 use ggez::{Context, GameResult};
@@ -30,8 +34,8 @@ pub struct GameRoot
 where
     Self: 'static,
 {
-    world: World,
-    debug: bool,
+    pub(crate) world: World,
+    debug_mode: bool,
 }
 
 impl GameRoot {
@@ -58,7 +62,13 @@ impl GameRoot {
         let assets = Assets::new();
         World::insert_resource(&mut world, assets);
 
-        let mut root = GameRoot { world, debug };
+        let scene_manager = SceneManager::default();
+        World::insert_resource(&mut world, scene_manager);
+
+        let mut root = GameRoot {
+            world,
+            debug_mode: debug,
+        };
         GameRoot::update_context(&mut root, context);
 
         root.world.resource_scope(|world, mut a: Mut<Scheduler>| {
@@ -82,6 +92,12 @@ impl GameRoot {
 
 impl EventHandler for GameRoot {
     fn update(&mut self, ctx: &mut Context) -> GameResult {
+        if self.debug_mode {
+            debug::debug_cli(self);
+            self.debug_mode = false;
+            return Ok(());
+        }
+
         self.update_context(ctx);
 
         self.world.resource_mut::<Input>().process_key_queue();
@@ -196,6 +212,8 @@ impl EventHandler for GameRoot {
     ) -> Result<(), ggez::GameError> {
         if input.keycode == Some(ggez::winit::event::VirtualKeyCode::Escape) {
             ctx.request_quit();
+        } else if input.keycode == Some(ggez::winit::event::VirtualKeyCode::Grave) {
+            self.debug_mode = true;
         };
 
         let virtual_key_code = match input.keycode {

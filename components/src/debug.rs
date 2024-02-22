@@ -48,8 +48,6 @@ pub fn update(
     mut input: ResMut<Input>,
     mut commands: Commands,
 ) {
-    println!("{:?}", input);
-
     let is_just_pressed = input
         .get_action("Click")
         .unwrap()

@@ -45,5 +45,6 @@
     "explorerExclude.backup": {},
     "python.analysis.typeCheckingMode": "off",
     "python.analysis.autoImportCompletions": false,
-    "rust-analyzer.showUnlinkedFileNotification": false
+    "rust-analyzer.showUnlinkedFileNotification": false,
+    "godot_tools.scene_file_config": "d:\\morkeborkeeeeeeeeeeee\\ninja_fighter\\engine\\src\\camera.rs"
 }

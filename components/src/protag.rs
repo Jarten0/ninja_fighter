@@ -12,32 +12,32 @@ pub fn init(mut commands: Commands, engine: Res<Engine>) {
     commands.spawn(ProtagBundle::new(&engine));
 }
 
-#[derive(Default, Component)]
+#[derive(Default, Component, Reflect)]
 pub struct Protag;
 
 #[derive(Bundle)]
 pub struct ProtagBundle {
     protag: Protag,
+    controller: ProtagController,
     transform: Transform,
     renderer: Renderer,
     collider: Collider,
 }
 
+#[derive(Default, Debug, Component)]
+pub struct ProtagController;
+
 impl ProtagBundle {
     pub fn new(engine: &Engine) -> Self {
         let protag = Protag {};
 
-        let mut transform = Transform {
+        let transform = Transform {
             position: space::Position::new(10.0, 10.0),
             velocity: space::Velocity::default(),
             rotation: space::Rotation::default(),
             scale: space::Scale::default(),
-            settings: TransformSettings::default(),
+            settings: TransformSettings { auto_update: true },
         };
-
-        transform.settings = TransformSettings { auto_update: true };
-
-        // transform.
 
         let gfx = &Engine::get_context(&engine).gfx;
         let mut renderer = Renderer::new(
@@ -61,6 +61,7 @@ impl ProtagBundle {
             transform,
             renderer,
             collider,
+            controller: ProtagController,
         }
     }
 }

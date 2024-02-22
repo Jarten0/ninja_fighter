@@ -11,10 +11,12 @@ use super::serialized_scene::ComponentHashmap;
 use super::serialized_scene::DataHashmap;
 use super::serialized_scene::EntityHashmap;
 use super::traits;
+use super::SceneError;
 
 use bevy_ecs::component::Component;
 use bevy_ecs::entity::Entity;
 use bevy_ecs::query::With;
+use bevy_ecs::world::Mut;
 use bevy_ecs::world::Ref;
 use bevy_ecs::world::World;
 
@@ -136,17 +138,32 @@ impl PartialEq for Scene {
 }
 
 /// Serializes all of the entities with their components and stores it to a file (currently a temporary one)
-pub fn save_scene(entity: Entity, world: &mut World) -> Result<(), std::io::Error> {
+pub fn save_scene(
+    entity: Entity,
+    world: &mut World,
+    registry: &TypeRegistry,
+) -> Result<(), SceneError> {
     let path = &world.get::<Scene>(entity).unwrap().save_data_path;
-    let new_file = File::create(path)?;
 
-    let value: Result<SerializedSceneData, String> = todo!(); //to_serialized_scene(world, entity);
-    serde_json::to_writer(new_file, &value.unwrap())?;
+    let new_file = match File::create(path) {
+        Ok(ok) => ok,
+        Err(err) => return Err(SceneError::IOError(err.to_string())),
+    };
+
+    let value = to_serialized_scene(world, registry, entity);
+
+    if let Err(err) = serde_json::to_writer(new_file, &value.unwrap()) {
+        return Err(SceneError::IOError(err.to_string()));
+    }
 
     Ok(())
 }
 
-pub fn load_scene(path: PathBuf, world: &mut World, registry: &TypeRegistry) -> Result<Entity, ()> {
+pub fn load_scene(
+    path: PathBuf,
+    world: &mut World,
+    registry: &TypeRegistry,
+) -> Result<Entity, SceneError> {
     use std::io::prelude::*;
     let mut buf = String::new();
     let s = File::open(path).unwrap().read_to_string(&mut buf).unwrap();

@@ -19,7 +19,6 @@ use engine::space::Transform;
 pub struct Collider {
     gravity: gravity_settings::GravitySettings,
     mesh: collider_mesh::ColliderMesh,
-    transform: Transform,
 }
 
 impl Collider {
@@ -34,7 +33,6 @@ impl Collider {
         Self {
             gravity,
             mesh: ColliderMesh::new(&engine.get_context().gfx),
-            transform,
         }
     }
 }
