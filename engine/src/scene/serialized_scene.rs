@@ -2,6 +2,7 @@ use super::add_entity_to_scene;
 use super::component;
 use super::traits::SceneData;
 use bevy_ecs::component::Component;
+use bevy_ecs::entity::Entity;
 use bevy_ecs::reflect::ReflectComponent;
 use bevy_ecs::world::World;
 use bevy_reflect::DynamicStruct;
@@ -65,7 +66,7 @@ impl ToReflect for serde_json::Value {
             bevy_reflect::ReflectOwned::Array(_) => todo!(),
             bevy_reflect::ReflectOwned::Map(_) => todo!(),
             bevy_reflect::ReflectOwned::Enum(en) => {
-                dbg!(en.reflect_type_path());
+                en.reflect_type_path();
                 todo!()
             }
             bevy_reflect::ReflectOwned::Value(e) => e,
@@ -140,9 +141,10 @@ impl SerializedSceneData {
         self,
         world: &mut World,
         type_registry: &TypeRegistry,
-    ) -> serde_json::Result<component::Scene> {
+    ) -> Result<Entity, String> {
         let scene = component::Scene::new(self.name.to_owned());
 
+        let mut entities: Vec<Entity> = Vec::new();
         for (entity_name, entity_hashmap) in self.entity_data {
             let bundle = SceneData {
                 object_name: entity_name,
@@ -204,10 +206,16 @@ impl SerializedSceneData {
                 reflect_component.apply_or_insert(&mut entity, &component_patch);
             }
 
-            add_entity_to_scene(world, scene, entity.id())
+            entities.push(entity.id());
         }
 
-        Ok(scene)
+        let scene_entity = world.spawn(scene).id();
+
+        // We have to wait until after the scene entity is spawned before we can start adding entities to the scene component
+        for entity in entities {
+            add_entity_to_scene(world, scene_entity, entity);
+        }
+        Ok(scene_entity)
     }
 }
 

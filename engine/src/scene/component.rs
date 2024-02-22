@@ -5,7 +5,7 @@ use crate::scene::serialized_scene::SerializedSceneData;
 use crate::scene::traits::SceneData;
 use crate::scene::traits::TestSuperTrait;
 
-use super::resource::SceneManager;
+use super::scene_manager::SceneManager;
 use super::serialized_scene;
 use super::serialized_scene::ComponentHashmap;
 use super::serialized_scene::DataHashmap;
@@ -151,9 +151,9 @@ pub fn load_scene(path: PathBuf, world: &mut World, registry: &TypeRegistry) -> 
     let mut buf = String::new();
     let s = File::open(path).unwrap().read_to_string(&mut buf).unwrap();
     let deserialize = serde_json::from_str::<SerializedSceneData>(&buf).unwrap();
-    let scene_component = deserialize.initialize(world, registry).unwrap();
+    let scene_entity = deserialize.initialize(world, registry).unwrap();
 
-    Ok(world.spawn(scene_component).id())
+    Ok(scene_entity)
 }
 
 /// Instantly despawns every entity belonging to the scene before despawning the scene entity.
@@ -320,6 +320,5 @@ fn to_writer(to_string: &str) {
     path_buf.pop();
     path_buf.push("test_output");
     path_buf.push("scene_serialization.json");
-    println!("{}", path_buf.to_str().unwrap());
     File::create(path_buf).unwrap().write(to_string.as_bytes());
 }

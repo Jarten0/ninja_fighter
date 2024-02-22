@@ -37,7 +37,10 @@
             "cargo": {
                 "args": [
                     "run",
-                ]
+                    "--bin",
+                    "game"
+                ],
+
             },
             "args": [],
             "env": {"RUST_BACKTRACE": "1"},

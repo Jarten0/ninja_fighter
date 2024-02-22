@@ -30,9 +30,6 @@ pub struct GameRoot
 where
     Self: 'static,
 {
-    schedule: Schedule,
-    draw_schedule: Schedule,
-    init_schedule: Schedule,
     world: World,
     debug: bool,
 }
@@ -44,16 +41,13 @@ impl GameRoot {
         world_init: fn(&mut World) -> (),
         schedule_builders: fn() -> Vec<fn(&mut Schedule) -> ScheduleTag>,
     ) -> Self {
-        let debug = false;
-
-        let _scheduler = Scheduler::new(schedule_builders());
-
-        let (schedule, draw_schedule, init_schedule) = todo!();
-        // super::schedule::create_schedules(todo!(), todo!(), todo!()); // TODO: Get schedules from game main.rs
-
         let mut world = World::new();
 
         crate::register_types(&mut world);
+        let debug = false;
+
+        let scheduler = Scheduler::new(schedule_builders());
+        World::insert_resource(&mut world, scheduler);
 
         let game_info = Engine::new(context);
         World::insert_resource(&mut world, game_info);
@@ -64,16 +58,14 @@ impl GameRoot {
         let assets = Assets::new();
         World::insert_resource(&mut world, assets);
 
-        let mut root = GameRoot {
-            schedule,
-            draw_schedule,
-            init_schedule,
-            world,
-            debug,
-        };
+        let mut root = GameRoot { world, debug };
         GameRoot::update_context(&mut root, context);
 
-        root.init_schedule.run(&mut root.world);
+        root.world.resource_scope(|world, mut a: Mut<Scheduler>| {
+            a.get_schedule_mut(ScheduleTag::Init)
+                .expect("a schedule that has the Init tag")
+                .run(world);
+        });
 
         root
     }
@@ -94,7 +86,11 @@ impl EventHandler for GameRoot {
 
         self.world.resource_mut::<Input>().process_key_queue();
 
-        self.schedule.run(&mut self.world);
+        self.world.resource_scope(|world, mut a: Mut<Scheduler>| {
+            a.get_schedule_mut(ScheduleTag::Tick)
+                .expect("there should be a schedule with the Tick ScheduleTag")
+                .run(world);
+        });
         Ok(())
     }
 
@@ -104,7 +100,11 @@ impl EventHandler for GameRoot {
 
         self.update_context(ctx);
 
-        self.draw_schedule.run(&mut self.world);
+        self.world.resource_scope(|world, mut a: Mut<Scheduler>| {
+            a.get_schedule_mut(ScheduleTag::Frame)
+                .expect("there should be a schedule with the Frame ScheduleTag")
+                .run(world);
+        });
 
         self.engine()
         .take_canvas()

@@ -167,7 +167,7 @@ impl Input {
         };
 
         let file_path = dir.join(PathBuf::from(match filetype {
-            input_hashmap::InputFile::KeyFile1 => "assets\\engine\\input\\keyData.txt",
+            input_hashmap::InputFile::KeyFile1 => "game\\assets\\input\\keyData.txt",
         }));
 
         match File::open(file_path.clone()) {

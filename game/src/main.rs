@@ -17,7 +17,7 @@ fn main() -> ! {
     let root = engine::GameRoot::new(
         &mut context,
         game_data::init_components_and_resources,
-        game_data::create_schedules,
+        game_data::schedule_builders,
     );
 
     ggez::event::run(context, event_loop, root);
@@ -36,7 +36,7 @@ mod game_data {
         components::init_components(world);
     }
 
-    pub fn create_schedules() -> Vec<fn(&mut Schedule) -> ScheduleTag> {
+    pub fn schedule_builders() -> Vec<fn(&mut Schedule) -> ScheduleTag> {
         vec![tick_schedule, frame_schedule, init_schedule]
     }
 
