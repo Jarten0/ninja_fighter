@@ -1,6 +1,7 @@
 use super::add_entity_to_scene;
 use super::component;
 use super::traits::SceneData;
+use super::SceneError;
 use bevy_ecs::component::Component;
 use bevy_ecs::entity::Entity;
 use bevy_ecs::reflect::ReflectComponent;
@@ -137,11 +138,14 @@ fn downcast_float(float: f64) -> Box<dyn Reflect> {
 }
 
 impl SerializedSceneData {
+    /// Turns the [`SerializedSceneData`] into a [`Scene`], initializing every component and entity, and putting them into the world.
+    ///
+    /// Can throw a [`SceneError`] if no type registry for a type is found. Make sure to call `type_registry.register::<T>()` on your types.
     pub fn initialize(
         self,
         world: &mut World,
         type_registry: &TypeRegistry,
-    ) -> Result<Entity, String> {
+    ) -> Result<Entity, SceneError> {
         let scene = component::Scene::new(self.name.to_owned());
 
         let mut entities: Vec<Entity> = Vec::new();
@@ -154,8 +158,9 @@ impl SerializedSceneData {
             let mut entity = world.spawn(bundle);
 
             for (component_path, component_data) in entity_hashmap {
-                let component_registration: &bevy_reflect::TypeRegistration =
-                    type_registry.get_with_type_path(&component_path).unwrap();
+                let component_registration: &bevy_reflect::TypeRegistration = type_registry
+                    .get_with_type_path(&component_path)
+                    .ok_or(SceneError::MissingTypeRegistry(component_path.clone()))?;
 
                 let fields = match component_registration.type_info() {
                     bevy_reflect::TypeInfo::Struct(struct_info) => struct_info.field_names(),
@@ -192,7 +197,10 @@ impl SerializedSceneData {
                         bevy_reflect::TypeInfo::Value(_) => todo!(),
                     };
 
-                    let expected_type = type_info.field(name).unwrap_or_else(f).type_path();
+                    let expected_type = type_info
+                        .field(name)
+                        .ok_or(SceneError::MissingTypeRegistry(component_path.clone()))?
+                        .type_path();
 
                     let value = match field.to_reflect(Some(expected_type)) {
                         Ok(ok) => ok,

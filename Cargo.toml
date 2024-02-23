@@ -16,6 +16,7 @@ dev.debug = "full"
 [workspace.dependencies]
 ggez = "0.9.3"
 bevy_ecs = "0.12.1"
+bevy_reflect = "0.12.1"
 serde = { version = "1.0.189", features = ["derive"] }
 erased-serde = "0.4.0"
 serde_json = "1.0.0"

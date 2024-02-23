@@ -8,11 +8,16 @@ mod test;
 mod scene_manager;
 mod traits;
 
+#[derive(Debug)]
 pub enum SceneError {
-    /// No scene was selected as the target when saving
+    /// No scene was selected as the target when saving.
     NoTargetScene,
-    /// Something went wrong while parsing a file
+    /// Something went wrong while parsing a file.
+    /// [`String`] is the IO error message, formatted as a string
     IOError(String),
+    /// A scene that was loaded contained a component that has not been registered by the directory.
+    /// [`String`] is the path of the missing component.
+    MissingTypeRegistry(String),
 }
 
 pub use component::{

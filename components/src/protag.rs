@@ -6,6 +6,7 @@ use engine::space;
 use engine::Engine;
 
 use bevy_ecs::prelude::*;
+use bevy_reflect::Reflect;
 use ggez::graphics::{self, Color, DrawParam, Image, Rect};
 
 pub fn init(mut commands: Commands, engine: Res<Engine>) {

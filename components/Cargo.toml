@@ -12,4 +12,4 @@ bevy_ecs = "0.12.1"
 mint = "0.5.9"
 nalgebra = { version = "0.32.3", features = ["serde-serialize"] }
 serde.workspace = true
-bevy_reflect = "0.13.0"
+bevy_reflect = "0.12.1"
