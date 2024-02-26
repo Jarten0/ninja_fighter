@@ -13,6 +13,7 @@ use crate::Input;
 
 use bevy_ecs::schedule::Schedule;
 use bevy_ecs::world::*;
+use bevy_reflect::TypeData;
 use bevy_reflect::TypeRegistry;
 use ggez::event::{self, EventHandler};
 use ggez::graphics::{self, Color};
@@ -36,6 +37,7 @@ where
 {
     pub(crate) world: World,
     debug_mode: bool,
+    print_key_errors: bool,
 }
 
 impl GameRoot {
@@ -49,6 +51,7 @@ impl GameRoot {
 
         crate::register_types(&mut world);
         let debug = false;
+        let pke = false;
 
         let scheduler = Scheduler::new(schedule_builders());
         World::insert_resource(&mut world, scheduler);
@@ -68,6 +71,7 @@ impl GameRoot {
         let mut root = GameRoot {
             world,
             debug_mode: debug,
+            print_key_errors: pke,
         };
         GameRoot::update_context(&mut root, context);
 
@@ -218,7 +222,12 @@ impl EventHandler for GameRoot {
 
         let virtual_key_code = match input.keycode {
             Some(keycode) => keycode,
-            None => return Err(ggez::GameError::GamepadError(String::from("Wut"))),
+            None => {
+                if self.print_key_errors {
+                    eprintln!("Invalid keycode entered! Debug info: [{:#?}]", input)
+                };
+                return Ok(());
+            }
         };
 
         self.world
@@ -235,7 +244,12 @@ impl EventHandler for GameRoot {
     ) -> Result<(), ggez::GameError> {
         let virtual_key_code = match input.keycode {
             Some(keycode) => keycode,
-            None => return Err(ggez::GameError::GamepadError(String::from("Wut"))),
+            None => {
+                if self.print_key_errors {
+                    eprintln!("Invalid keycode entered! Debug info: [{:#?}]", input)
+                };
+                return Ok(());
+            }
         };
 
         self.world

@@ -18,10 +18,14 @@ pub enum SceneError {
     /// A scene that was loaded contained a component that has not been registered by the directory.
     /// [`String`] is the path of the missing component.
     MissingTypeRegistry(String),
+    /// Failed to instantiate a scene, though not because of an IO error.
+    /// Might be because of an ECS failure somewhere.
+    LoadFailure(&'static str),
 }
 
-pub use component::{
-    add_entity_to_scene, load_scene, save_scene, to_serialized_scene, unload_scene,
+pub(self) use component::{
+    add_entity_to_scene, load_scene, new_scene, save_scene, to_serialized_scene, unload_scene,
+    validate_name,
 };
 
 pub use scene_manager::SceneManager;

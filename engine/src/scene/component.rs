@@ -22,6 +22,7 @@ use bevy_ecs::world::World;
 
 use bevy_reflect::serde::ReflectSerializer;
 use bevy_reflect::TypeRegistry;
+use clap::builder::Str;
 use ggez::context::Has;
 use serde::de::Visitor;
 use serde::Deserializer;
@@ -159,6 +160,15 @@ pub fn save_scene(
     Ok(())
 }
 
+/// Creates a new scene component and spawns an entity with it
+///
+/// Does no validation to check if it shares a name, that's on the caller of the function
+pub fn new_scene(world: &mut World, name: String) -> Result<Entity, SceneError> {
+    let scene = Scene::new(name);
+    let entity = world.spawn(scene).id();
+    Ok(entity)
+}
+
 pub fn load_scene(
     path: PathBuf,
     world: &mut World,
@@ -168,7 +178,7 @@ pub fn load_scene(
     let mut buf = String::new();
     let s = File::open(path).unwrap().read_to_string(&mut buf).unwrap();
     let deserialize = serde_json::from_str::<SerializedSceneData>(&buf).unwrap();
-    let scene_entity = deserialize.initialize(world, registry).unwrap();
+    let scene_entity = deserialize.initialize(world, registry)?;
 
     Ok(scene_entity)
 }
@@ -221,8 +231,8 @@ pub fn add_entity_to_scene<'a>(
         });
     }
 
-    validate_scene_data_name(
-        entity_names,
+    validate_name(
+        &mut entity_names.iter(),
         &mut world
             .get_mut::<SceneData>(entity_to_add)
             .unwrap()
@@ -237,19 +247,32 @@ pub fn add_entity_to_scene<'a>(
     Ok(())
 }
 
-pub fn validate_scene_data_name(entity_names: Vec<String>, object_name: &mut String) {
+/// Runs through the list of names, and checks to see if the name is a duplicate of any inside the list
+///
+/// If it is, the function will automatically append a new ID and try again.
+///
+/// Operation is currently worst case of `O(n^2)`
+pub fn validate_name(names: &mut dyn Iterator<Item = &String>, name_to_check: &mut String) {
     let mut i = 0;
     loop {
-        if !entity_names.contains(&object_name) {
+        let mut contains = false;
+        for name in &mut *names {
+            if name == name_to_check {
+                contains = true;
+                break;
+            }
+        }
+
+        if contains == false {
             break;
         }
 
-        println!("{:?} contains {}", &entity_names, &object_name);
+        println!("{:?} contains {}", "Som", &name_to_check);
 
         let suffix = format!("({})", i);
-        object_name.strip_suffix(&suffix);
+        name_to_check.strip_suffix(&suffix);
         i += 1;
-        object_name.push_str(&format!("({})", i))
+        name_to_check.push_str(&format!("({})", i))
     }
 }
 
