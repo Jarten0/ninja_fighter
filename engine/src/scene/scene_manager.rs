@@ -9,7 +9,8 @@ use bevy_reflect::TypeRegistry;
 
 use crate::scene::validate_name;
 
-use super::{component::Scene, load_scene, save_scene, SceneError};
+use super::error;
+use super::{component::Scene, load_scene, save_scene};
 
 #[derive(Resource, Default)]
 pub struct SceneManager {
@@ -33,7 +34,11 @@ impl Debug for SceneManager {
 }
 
 impl SceneManager {
-    pub fn new_scene(&self, world: &mut World, mut name: String) -> Result<(), SceneError> {
+    pub fn new_scene(
+        &mut self,
+        world: &mut World,
+        mut name: String,
+    ) -> Result<(), error::SceneError> {
         let names: Vec<&String> = self.current_scenes.keys().collect();
         {
             let mut i = 0;
@@ -58,26 +63,31 @@ impl SceneManager {
                 name.push_str(&format!("({})", i))
             }
         };
-        super::new_scene(world, name);
-
-        todo!()
+        let new_scene = super::new_scene(world, name.clone());
+        self.current_scenes.insert(name, new_scene);
+        self.target_scene = Some(new_scene);
+        Ok(())
     }
 
-    pub fn save_scene(&self, world: &mut World) -> Result<(), SceneError> {
+    pub fn save_scene(&self, world: &mut World) -> Result<(), error::SceneError> {
         match self.target_scene {
-            None => Err(SceneError::NoTargetScene),
+            None => Err(error::SceneError::NoTargetScene),
             Some(scene) => save_scene(scene, world, &self.type_registry),
         }
     }
 
-    pub fn load_scene(&mut self, world: &mut World, path: PathBuf) -> Result<Entity, SceneError> {
+    pub fn load_scene(
+        &mut self,
+        world: &mut World,
+        path: PathBuf,
+    ) -> Result<Entity, error::SceneError> {
         let result = load_scene(path, world, &self.type_registry);
 
         if let Ok(entity) = result {
             let scene_name = world
                 .get::<Scene>(entity)
-                .ok_or(SceneError::LoadFailure(
-                    "Failed to find the scene component on the newly instantiated scene",
+                .ok_or(error::SceneError::LoadFailure(
+                    "Failed to find the scene component on the newly instantiated scene".to_owned(),
                 ))?
                 .name
                 .to_owned();

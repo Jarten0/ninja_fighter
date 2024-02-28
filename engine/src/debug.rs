@@ -1,9 +1,14 @@
 use std::{collections::HashMap, path::PathBuf};
 
-use crate::{input::key::keycode_converter::keycode_to_str, scene::SceneManager, GameRoot};
+use crate::{
+    input::key::keycode_converter::keycode_to_str,
+    scene::{Scene, SceneData, SceneManager},
+    GameRoot,
+};
 
 use bevy_ecs::world::{Mut, World};
-use inquire::{validator::Validation, Confirm, CustomType, Text};
+use clap::builder::Str;
+use inquire::{validator::Validation, Confirm, CustomType, InquireError, Select, Text};
 
 const HOME_HELP_TEXT: &str = "
 Welcome to my humble abode
@@ -37,8 +42,12 @@ pub fn debug_cli(root: &mut GameRoot) {
 
     let commands: Vec<(&str, fn(&mut GameRoot) -> Result<(), String>)> = vec![
         ("help", help),
+        ("newscene", new_scene),
         ("savescene", save_scene),
         ("loadscene", load_scene),
+        ("changescene", change_target_scene),
+        ("listscenes", list_scenes),
+        ("listentities", list),
     ];
 
     for (input, func) in commands {
@@ -57,8 +66,11 @@ pub fn debug_cli(root: &mut GameRoot) {
 
         if user_input == String::from("exit") {
             break;
-        } else if let Some(f) = action_to_function.get(user_input.as_str()) {
-            f(root).unwrap()
+        }
+        if let Some(f) = action_to_function.get(user_input.as_str()) {
+            if let Err(err) = f(root) {
+                eprintln!("{}", err);
+            };
         } else {
             println!("Invalid input.");
         }
@@ -72,21 +84,18 @@ fn help(_: &mut GameRoot) -> Result<(), String> {
 
 fn save_scene(root: &mut GameRoot) -> Result<(), String> {
     match Confirm::new("Are you sure? This will overwrite any previous saved data").prompt() {
-        Ok(_response_yes) if _response_yes => {
-            let scene_manager =
-                root.world
-                    .resource_scope(|world, mut scene_manager: Mut<SceneManager>| {
-                        dbg!(&scene_manager).save_scene(world);
-                        dbg!(&scene_manager);
-                    });
-        }
-        Ok(_response_no) => println!("Save aborted."),
-        Err(err) => {
-            eprintln!("Inquire error! Save aborted. [{}]", err);
-            return Err(err.to_string());
-        }
-    };
-    Ok(())
+        Ok(_response_yes) if _response_yes => root
+            .world
+            .resource_scope(|world, mut scene_manager: Mut<SceneManager>| {
+                scene_manager.save_scene(world)
+            })
+            .map_err(|err| err.into()),
+        Ok(_response_no) => Err("Save aborted.".to_owned()),
+        Err(err) => Err(format!(
+            "Inquire error! Save aborted. [{}]",
+            err.to_string()
+        )),
+    }
 }
 
 fn load_scene(root: &mut GameRoot) -> Result<(), String> {
@@ -95,13 +104,17 @@ fn load_scene(root: &mut GameRoot) -> Result<(), String> {
         Err(err) => todo!(),
     };
 
-    let scene_manager = root
-        .world
-        .resource_scope(|world, mut scene_manager: Mut<SceneManager>| {
-            scene_manager.load_scene(world, path);
-        });
+    root.world.resource_scope(
+        |world, mut scene_manager: Mut<SceneManager>| -> Result<(), String> {
+            scene_manager.target_scene = Some(
+                scene_manager
+                    .load_scene(world, path)
+                    .map_err(|err| -> String { err.to_string() })?,
+            );
 
-    Ok(())
+            Ok(())
+        },
+    )
 }
 
 fn new_scene(root: &mut GameRoot) -> Result<(), String> {
@@ -119,11 +132,62 @@ fn new_scene(root: &mut GameRoot) -> Result<(), String> {
 }
 
 fn change_target_scene(root: &mut GameRoot) -> Result<(), String> {
-    root.world
-        .resource_scope(|world: &mut World, mut resource: Mut<SceneManager>| {});
+    let op = |err: InquireError| -> String { err.to_string() };
 
-    Ok(())
+    root.world.resource_scope(
+        |world: &mut World, mut resource: Mut<SceneManager>| -> Result<(), String> {
+            let target = Select::new("message", resource.current_scenes.keys().collect())
+                .prompt()
+                .map_err(op)?;
+
+            resource.target_scene = resource.current_scenes.get(target).copied();
+
+            Ok(())
+        },
+    )
+}
+
+fn list_scenes(root: &mut GameRoot) -> Result<(), String> {
+    root.world.resource_scope(
+        |world: &mut World, mut res: Mut<SceneManager>| -> Result<(), String> {
+            let scenestrings = res.current_scenes.keys().collect::<Vec<&String>>();
+            if scenestrings.len() == 0 {
+                println!("No scenes found!");
+                return Ok(());
+            }
+
+            for scene in scenestrings {
+                println!("\n{}", scene);
+                dbg!(res.current_scenes.get(scene));
+            }
+            Ok(())
+        },
+    )
 }
 
 /// Lists the current entities in the target scene
-fn list(root: &mut GameRoot) {}
+fn list(root: &mut GameRoot) -> Result<(), String> {
+    root.world.resource_scope(
+        |world: &mut World, mut res: Mut<SceneManager>| -> Result<(), String> {
+            let scene = world
+                .get::<Scene>(res.target_scene.ok_or("No target scene found!")?)
+                .ok_or("No scene component found for the current target scene!")?;
+
+            if scene.entities.len() == 0 {
+                println!("No entities found!");
+                return Ok(());
+            }
+
+            for entity in scene.entities.clone() {
+                let scene_data = match world.get::<SceneData>(entity) {
+                    Some(ok) => ok,
+                    None => continue,
+                };
+
+                println!("{}", scene_data.object_name);
+            }
+
+            Ok(())
+        },
+    )
+}

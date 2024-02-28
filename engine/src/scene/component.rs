@@ -3,35 +3,23 @@
 
 use crate::scene::serialized_scene::SerializedSceneData;
 use crate::scene::traits::SceneData;
-use crate::scene::traits::TestSuperTrait;
 
-use super::scene_manager::SceneManager;
+use super::error;
 use super::serialized_scene;
-use super::serialized_scene::ComponentHashmap;
 use super::serialized_scene::DataHashmap;
 use super::serialized_scene::EntityHashmap;
 use super::traits;
-use super::SceneError;
 
 use bevy_ecs::component::Component;
 use bevy_ecs::entity::Entity;
-use bevy_ecs::query::With;
-use bevy_ecs::world::Mut;
-use bevy_ecs::world::Ref;
 use bevy_ecs::world::World;
 
 use bevy_reflect::serde::ReflectSerializer;
 use bevy_reflect::TypeRegistry;
-use clap::builder::Str;
-use ggez::context::Has;
-use serde::de::Visitor;
-use serde::Deserializer;
+use inquire::Text;
 use serde::Serialize;
-use serde::Serializer;
-use serde_json::json;
 use serde_json::Value;
 
-use std::any::Any;
 use std::collections::HashMap;
 use std::env::current_dir;
 use std::fs::File;
@@ -67,7 +55,7 @@ pub struct Scene {
     /// The current stored save data.
     pub(crate) serialized_entity_component_data: Option<Vec<String>>,
     /// The path where the scene's save data is stored when calling [`save_scene`]
-    pub(crate) save_data_path: PathBuf,
+    pub(crate) save_data_path: Option<PathBuf>,
 }
 
 impl Scene {
@@ -76,16 +64,11 @@ impl Scene {
     /// Does not contain any [`Entity`]'s and does not load any. To do that, wait until its ready.
     /// // TODO: When done, update these docs
     pub fn new(name: String) -> Self {
-        let mut save_data_path = PathBuf::new();
-        save_data_path.push(current_dir().unwrap());
-        save_data_path.pop();
-        save_data_path.push("test_output");
-        save_data_path.push("test_save.json");
         Self {
             name,
             entities: Vec::new(),
             serialized_entity_component_data: None,
-            save_data_path,
+            save_data_path: None,
         }
     }
 
@@ -143,18 +126,25 @@ pub fn save_scene(
     entity: Entity,
     world: &mut World,
     registry: &TypeRegistry,
-) -> Result<(), SceneError> {
-    let path = &world.get::<Scene>(entity).unwrap().save_data_path;
+) -> Result<(), error::SceneError> {
+    let f = || PathBuf::from(Text::new("Save data path? >").prompt().unwrap());
+    let path = &world
+        .get::<Scene>(entity)
+        .unwrap()
+        .save_data_path
+        .as_ref()
+        .cloned()
+        .unwrap_or_else(f);
 
     let new_file = match File::create(path) {
         Ok(ok) => ok,
-        Err(err) => return Err(SceneError::IOError(err.to_string())),
+        Err(err) => return Err(error::SceneError::IOError(err.to_string())),
     };
 
     let value = to_serialized_scene(world, registry, entity);
 
     if let Err(err) = serde_json::to_writer(new_file, &value.unwrap()) {
-        return Err(SceneError::IOError(err.to_string()));
+        return Err(error::SceneError::IOError(err.to_string()));
     }
 
     Ok(())
@@ -163,21 +153,25 @@ pub fn save_scene(
 /// Creates a new scene component and spawns an entity with it
 ///
 /// Does no validation to check if it shares a name, that's on the caller of the function
-pub fn new_scene(world: &mut World, name: String) -> Result<Entity, SceneError> {
+pub fn new_scene(world: &mut World, name: String) -> Entity {
     let scene = Scene::new(name);
     let entity = world.spawn(scene).id();
-    Ok(entity)
+    entity
 }
 
 pub fn load_scene(
     path: PathBuf,
     world: &mut World,
     registry: &TypeRegistry,
-) -> Result<Entity, SceneError> {
+) -> Result<Entity, error::SceneError> {
     use std::io::prelude::*;
     let mut buf = String::new();
-    let s = File::open(path).unwrap().read_to_string(&mut buf).unwrap();
-    let deserialize = serde_json::from_str::<SerializedSceneData>(&buf).unwrap();
+    let s = File::open(path)
+        .map_err(|err| -> error::SceneError { error::SceneError::IOError(err.to_string()) })?
+        .read_to_string(&mut buf)
+        .unwrap();
+    let deserialize = serde_json::from_str::<SerializedSceneData>(&buf)
+        .map_err(|err| error::SceneError::LoadFailure(err.to_string()))?;
     let scene_entity = deserialize.initialize(world, registry)?;
 
     Ok(scene_entity)
