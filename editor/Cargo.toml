@@ -8,3 +8,5 @@ edition = "2021"
 [dependencies]
 components = { version = "0.1.0", path = "../components" }
 engine = { version = "0.1.0", path = "../engine" }
+game = { version = "0.1.0", path = "../game" }
+ggez.workspace = true

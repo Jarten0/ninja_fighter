@@ -81,6 +81,11 @@ impl GameRoot {
                 .run(world);
         });
 
+        root.world
+            .resource_scope(|world, mut res: Mut<SceneManager>| {
+                res.load_scene(world, "game/assets/scenes/cheeseland.json".into())
+            });
+
         root
     }
 

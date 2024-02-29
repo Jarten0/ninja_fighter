@@ -52,8 +52,6 @@ pub struct Scene {
     /// Using the API to add or remove entities ensures that every entity has a [`SceneData`] component,
     /// and ensures that no entity is orphaned and never unloaded. (unless requested)
     pub(crate) entities: Vec<Entity>,
-    /// The current stored save data.
-    pub(crate) serialized_entity_component_data: Option<Vec<String>>,
     /// The path where the scene's save data is stored when calling [`save_scene`]
     pub(crate) save_data_path: Option<PathBuf>,
 }
@@ -67,7 +65,6 @@ impl Scene {
         Self {
             name,
             entities: Vec::new(),
-            serialized_entity_component_data: None,
             save_data_path: None,
         }
     }
@@ -109,6 +106,15 @@ impl Scene {
         } // entities presumed to match after this point
 
         true
+    }
+
+    pub fn get_entity(&self, world: &World, name: String) -> Option<Entity> {
+        for entity in &self.entities {
+            if world.get::<SceneData>(*entity).unwrap().object_name == name {
+                return Some(*entity);
+            }
+        }
+        None
     }
 }
 
@@ -300,7 +306,9 @@ pub fn to_serialized_scene<'a>(
             let mut component_serialized_data: Vec<u8> = Vec::new();
 
             // To swap out serializers, simply replace serde_json::Serializer with another serializer of your choice
-            let mut serializer = serde_json::Serializer::new(component_serialized_data);
+            let formatter = serde_json::ser::PrettyFormatter::with_indent("    ".as_bytes());
+            let mut serializer =
+                serde_json::Serializer::with_formatter(component_serialized_data, formatter);
 
             if let Err(err) =
                 ReflectSerializer::new(component.as_reflect(), registry).serialize(&mut serializer)

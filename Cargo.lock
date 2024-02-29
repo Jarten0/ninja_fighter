@@ -1063,6 +1063,8 @@ version = "0.1.0"
 dependencies = [
  "components",
  "engine",
+ "game",
+ "ggez",
 ]
 
 [[package]]
@@ -1095,6 +1097,7 @@ dependencies = [
  "keycode",
  "mint",
  "nalgebra",
+ "once_cell",
  "serde",
  "serde_json",
 ]
