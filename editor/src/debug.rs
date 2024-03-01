@@ -236,7 +236,10 @@ fn add_component(root: &mut GameRoot) -> Result<(), String> {
                 .get::<Scene>(res.target_scene.ok_or("No target scene found!")?)
                 .ok_or("No scene component found for the current target scene!")?;
 
-            dbg!(res.type_registry.());
+            for i in res.type_registry.iter() {
+                println!("{}", i.type_info().type_path())
+            }
+
             let component_path = Text::new("Component path > ").prompt().unwrap();
 
             let component_registration: &bevy_reflect::TypeRegistration = res
@@ -252,7 +255,11 @@ fn add_component(root: &mut GameRoot) -> Result<(), String> {
                 bevy_reflect::TypeInfo::Array(_) => todo!(),
                 bevy_reflect::TypeInfo::Map(_) => todo!(),
                 bevy_reflect::TypeInfo::Enum(_) => todo!(),
-                bevy_reflect::TypeInfo::Value(_) => todo!(),
+                bevy_reflect::TypeInfo::Value(value) => {
+                    return Err(
+                        "expected a component type, found a non-component value type".to_owned(),
+                    )
+                }
             };
 
             let mut component_patch = DynamicStruct::default();

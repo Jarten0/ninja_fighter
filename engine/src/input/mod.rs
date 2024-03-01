@@ -27,6 +27,7 @@ mod input_update_scheduler {
 
 #[allow(unused_imports)]
 pub use action::{Action, KeyStatus};
+pub use ggez::input::keyboard::KeyCode;
 pub use input_resource::Input;
 pub use key::keycode_converter::KeycodeType;
 pub use key::Key;

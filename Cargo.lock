@@ -1061,6 +1061,7 @@ checksum = "545b22097d44f8a9581187cdf93de7a71e4722bf51200cfaba810865b49a495d"
 name = "editor"
 version = "0.1.0"
 dependencies = [
+ "bevy_ecs",
  "components",
  "engine",
  "game",

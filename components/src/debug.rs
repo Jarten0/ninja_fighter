@@ -45,7 +45,7 @@ pub fn update(
     mut query: Query<&mut DebugComponent>,
     collider_query: Query<&mut ColliderMesh>,
     engine: ResMut<Engine>,
-    mut input: ResMut<Input>,
+    input: ResMut<Input>,
     mut commands: Commands,
 ) {
     let is_just_pressed = input

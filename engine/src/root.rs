@@ -2,7 +2,6 @@
 //!
 //! * [`GameRoot`] - Creates the main game state, initializes modules and libraries, and communicates between [`ggez`]'s engine and [`bevy_ecs`]'s world
 
-use crate::debug;
 use crate::input::KeycodeType;
 use crate::scene;
 use crate::scene::SceneManager;
@@ -49,7 +48,6 @@ impl GameRoot {
     ) -> Self {
         let mut world = World::new();
 
-        crate::register_types(&mut world);
         let debug = false;
         let pke = false;
 
@@ -67,6 +65,8 @@ impl GameRoot {
 
         let scene_manager = SceneManager::default();
         World::insert_resource(&mut world, scene_manager);
+
+        crate::register_types(&mut world);
 
         let mut root = GameRoot {
             world,
@@ -102,7 +102,11 @@ impl GameRoot {
 impl EventHandler for GameRoot {
     fn update(&mut self, ctx: &mut Context) -> GameResult {
         if self.debug_mode {
-            debug::debug_cli(self);
+            // Debug schedule is optional
+            self.world
+                .resource_scope(|world, mut a: Mut<Scheduler>| -> Option<()> {
+                    Some(a.get_schedule_mut(ScheduleTag::Debug)?.run(world))
+                });
             self.debug_mode = false;
             return Ok(());
         }
@@ -221,8 +225,6 @@ impl EventHandler for GameRoot {
     ) -> Result<(), ggez::GameError> {
         if input.keycode == Some(ggez::winit::event::VirtualKeyCode::Escape) {
             ctx.request_quit();
-        } else if input.keycode == Some(ggez::winit::event::VirtualKeyCode::Grave) {
-            self.debug_mode = true;
         };
 
         let virtual_key_code = match input.keycode {

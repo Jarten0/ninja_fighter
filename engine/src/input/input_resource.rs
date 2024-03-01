@@ -14,6 +14,8 @@ use std::str::FromStr;
 
 /// A module for dealing with player input. Add it as a [`bevy_ecs::system::Res<>`] or [`bevy_ecs::system::ResMut<>`] parameter inside your system function to make use of it.
 ///
+/// To create a new action, use [`Action::new`].
+///
 /// Unlike other engines, this input module makes use of Rust's rich type system to convey extra information without dealing with invalid state.
 /// Once you have the resource, you can call `get_action(key)`, using `key` to try and find the action you want, ex. "Jump" or "Fire".
 /// Then, you can store a reference to that action. From there, simply query any actions you want using `action_status()` to get a [`KeyStatus`] enum variant.
@@ -122,7 +124,9 @@ impl Input {
 
     /// Wrapper function for `HashMap::Insert` but making sure that the hash key equals the actions name.
     /// Thus, it also returns [`Some(Key)`] if the key already had a value. Otherwise, it returns [`None`].
-    pub(crate) fn new_action(&mut self, action: Action) -> Option<Action> {
+    ///
+    /// [`Action::new`] already lets you create actions, so use that instead.
+    pub fn new_action(&mut self, action: Action) -> Option<Action> {
         HashMap::insert(&mut self.actions, action.name.clone(), action)
     }
 
@@ -132,7 +136,7 @@ impl Input {
     }
 
     /// Wrapper function for `HashMap::get`. Returns [`Some(&Action)`] if the action exists, and returning [`None`] if not.
-    pub fn get_action(&mut self, action_name: &str) -> Option<&Action> {
+    pub fn get_action(&self, action_name: &str) -> Option<&Action> {
         self.actions.get(action_name)
     }
 

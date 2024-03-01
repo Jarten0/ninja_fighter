@@ -6,10 +6,9 @@
 #![allow(unused)]
 mod assets;
 mod camera;
-pub mod debug;
 mod engine;
 mod freeze;
-mod input;
+pub mod input;
 mod render;
 mod root;
 pub mod scene;

@@ -39,4 +39,5 @@ pub enum ScheduleTag {
     Tick,
     Frame,
     Init,
+    Debug,
 }
