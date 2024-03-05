@@ -138,7 +138,7 @@ impl Sequence for KeycodeType {
                     KeyCode::PageDown => KeyCode::PageUp,
                     KeyCode::PageUp => KeyCode::Left,
                     KeyCode::Left => KeyCode::Up,
-                    KeyCode::Up => KeyCode::Right,
+                    KeyCode::Up => KeyCode::Left,
                     KeyCode::Right => KeyCode::Down,
                     KeyCode::Down => KeyCode::Back,
                     KeyCode::Back => KeyCode::Return,
@@ -311,8 +311,8 @@ fn const_keytypes_hashmap() -> &'static HashMap<&'static str, KeycodeType> {
             hash_map.insert("pagedown", KeycodeType::Keyboard(KeyCode::PageDown));
             hash_map.insert("pageup", KeycodeType::Keyboard(KeyCode::PageUp));
             hash_map.insert("left", KeycodeType::Keyboard(KeyCode::Left));
-            hash_map.insert("right", KeycodeType::Keyboard(KeyCode::Up));
-            hash_map.insert("up", KeycodeType::Keyboard(KeyCode::Right));
+            hash_map.insert("right", KeycodeType::Keyboard(KeyCode::Right));
+            hash_map.insert("up", KeycodeType::Keyboard(KeyCode::Up));
             hash_map.insert("down", KeycodeType::Keyboard(KeyCode::Down));
             // Numpad
             hash_map.insert("numlock", KeycodeType::Keyboard(KeyCode::Numlock));
@@ -484,8 +484,8 @@ pub fn keycode_to_str(key_type: KeycodeType) -> Result<&'static str, &'static st
             KeyCode::PageDown => "pagedown",
             KeyCode::PageUp => "pageup",
             KeyCode::Left => "left",
-            KeyCode::Up => "right",
-            KeyCode::Right => "up",
+            KeyCode::Up => "up",
+            KeyCode::Right => "right",
             KeyCode::Down => "down",
 
             // Numpad

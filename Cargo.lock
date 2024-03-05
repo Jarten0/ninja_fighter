@@ -1062,10 +1062,13 @@ name = "editor"
 version = "0.1.0"
 dependencies = [
  "bevy_ecs",
+ "bevy_reflect",
  "components",
  "engine",
  "game",
  "ggez",
+ "inquire",
+ "serde_json",
 ]
 
 [[package]]

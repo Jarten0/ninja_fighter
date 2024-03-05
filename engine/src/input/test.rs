@@ -51,12 +51,12 @@ enum InputModuleType {
 /// `;`: key seperator
 #[test]
 fn convert_action_to_str_test() {
-    use crate::{input::input_resource::Input, Action};
+    use crate::{input::resource::Input, Action};
     use std::str::FromStr;
 
     // Initialize data
     let mut input_module: Input = match INPUT_MODULE {
-        InputModuleType::EmptyInputModule => Input::new(),
+        InputModuleType::EmptyInputModule => Input::default(),
         InputModuleType::MockInputModule(input_fn) => input_fn(),
         InputModuleType::MockInputModuleString(s) => Input::from_str(s).unwrap(),
         InputModuleType::StoredInputModule => Input::load(),

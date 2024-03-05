@@ -3,7 +3,7 @@ pub mod gravity_settings;
 
 use engine::space::{Vector2, Velocity};
 
-use engine::Engine;
+use engine::GgezInterface;
 
 use bevy_ecs::{
     bundle::Bundle,
@@ -22,7 +22,7 @@ pub struct Collider {
 }
 
 impl Collider {
-    pub fn new(engine: &Engine) -> Self {
+    pub fn new(engine: &GgezInterface) -> Self {
         let transform = Transform::default();
 
         let gravity = GravitySettings {
@@ -37,7 +37,7 @@ impl Collider {
     }
 }
 
-pub fn update(mut query: Query<(&mut Velocity, &GravitySettings)>, engine: Res<Engine>) {
+pub fn update(mut query: Query<(&mut Velocity, &GravitySettings)>, engine: Res<GgezInterface>) {
     for (mut velocity, gravity_settings) in query.iter_mut() {
         // velocity.translate(&gravity_settings.force * engine.get_context().time.delta().as_secs())
     }

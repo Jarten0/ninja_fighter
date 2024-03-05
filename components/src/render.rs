@@ -5,7 +5,7 @@ use bevy_ecs::system::ResMut;
 use ggez::graphics::{self as ggraphics, *};
 
 use engine::space;
-use engine::Engine;
+use engine::GgezInterface;
 
 use self::render_type::RenderType;
 
@@ -73,7 +73,7 @@ impl Renderer {
     }
 }
 
-pub fn draw(query: Query<&Renderer>, mut main_canvas: ResMut<Engine>) {
+pub fn draw(query: Query<&Renderer>, mut main_canvas: ResMut<GgezInterface>) {
     for renderer in query.iter() {
         let canvas_option = main_canvas.get_canvas_mut();
 

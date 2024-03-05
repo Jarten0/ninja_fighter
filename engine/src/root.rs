@@ -7,7 +7,7 @@ use crate::scene;
 use crate::scene::SceneManager;
 use crate::schedule::ScheduleTag;
 use crate::schedule::Scheduler;
-use crate::Engine;
+use crate::GgezInterface;
 use crate::Input;
 
 use bevy_ecs::schedule::Schedule;
@@ -34,9 +34,9 @@ pub struct GameRoot
 where
     Self: 'static,
 {
-    pub(crate) world: World,
-    debug_mode: bool,
-    print_key_errors: bool,
+    pub world: World,
+    pub debug_mode: bool,
+    pub print_key_errors: bool,
 }
 
 impl GameRoot {
@@ -54,7 +54,7 @@ impl GameRoot {
         let scheduler = Scheduler::new(schedule_builders());
         World::insert_resource(&mut world, scheduler);
 
-        let game_info = Engine::new(context);
+        let game_info = GgezInterface::new(context);
         World::insert_resource(&mut world, game_info);
 
         let input = Input::load();
@@ -94,9 +94,18 @@ impl GameRoot {
         self.engine().context_ptr = ctx;
     }
 
-    fn engine(&mut self) -> Mut<'_, Engine> {
-        self.world.resource_mut::<Engine>()
+    fn engine(&mut self) -> Mut<'_, GgezInterface> {
+        self.world.resource_mut::<GgezInterface>()
     }
+
+    pub fn context(&mut self) -> &Context {
+        self.world.resource::<GgezInterface>().get_context()
+    }
+
+    // no mut context shortcut since resource_mut returns a temporary value, instead of a borrowed one.
+    // pub fn context_mut(&mut self) -> &mut Context {
+    //     self.world.resource_mut::<GgezInterface>().get_context_mut()
+    // }
 }
 
 impl EventHandler for GameRoot {
@@ -182,8 +191,6 @@ impl EventHandler for GameRoot {
 
         _i.update(false);
 
-        // todo!();
-
         Ok(())
     }
 
@@ -236,6 +243,14 @@ impl EventHandler for GameRoot {
                 return Ok(());
             }
         };
+
+        println!(
+            "{}",
+            crate::input::key::keycode_converter::keycode_to_str(KeycodeType::Keyboard(
+                virtual_key_code
+            ))
+            .unwrap_or("Unknown")
+        );
 
         self.world
             .resource_mut::<Input>()

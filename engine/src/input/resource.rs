@@ -55,10 +55,9 @@ where
     }
 }
 
-// #[allow(dead_code)]
-impl Input {
+impl Default for Input {
     /// Returns a new [`Input`] resource. Should only be used when resetting the engine. Use `Input::load` unless you have a specific reason to use this.
-    pub(crate) fn new() -> Self {
+    fn default() -> Self {
         Self {
             actions: HashMap::new(),
             keylist: HashMap::new(),
@@ -66,7 +65,10 @@ impl Input {
             mouse_pos: space::Vector2::zero(),
         }
     }
+}
 
+// #[allow(dead_code)]
+impl Input {
     /// Returns an [`Input`] resource with the keylist and whatever actions are currently stored in the engine save data. Recommended over `Input::new()`.
     pub(crate) fn load() -> Self {
         let input_result = Input::load_from_keys_file(Input::load_input_file(InputFile::KeyFile1));
@@ -75,7 +77,7 @@ impl Input {
             Ok(ok) => ok,
             Err(err) => {
                 eprintln!("Input failed to load, using default settings. [{}]", err);
-                Input::new()
+                Input::default()
             }
         };
 
@@ -226,7 +228,7 @@ impl FromStr for Input {
     ///
     /// * `;`: key seperator
     fn from_str(value: &str) -> Result<Self, Self::Err> {
-        let mut new_input_module = Self::new();
+        let mut new_input_module = Self::default();
         let mut action_token_buf = String::new();
 
         for character in value.chars() {
@@ -241,8 +243,10 @@ impl FromStr for Input {
                 new_input_module.new_action(action);
 
                 action_token_buf = String::new();
-            } else {
+            } else if character.is_ascii_alphanumeric() || character == ';' || character == '/' {
                 action_token_buf.push(character);
+            } else {
+                println!("Ignored character {}", character)
             }
         }
 

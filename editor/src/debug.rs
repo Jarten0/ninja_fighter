@@ -1,18 +1,16 @@
 use std::{collections::HashMap, path::PathBuf, sync::OnceLock};
 
-use crate::scene::ToReflect;
-use crate::{
-    input::key::keycode_converter::keycode_to_str,
-    scene::{Scene, SceneData, SceneError, SceneManager},
-    GameRoot,
-};
+use engine::input::key::keycode_converter::keycode_to_str;
+use engine::scene::{Scene, SceneData, SceneError, SceneManager};
+use engine::GameRoot;
 
 use bevy_ecs::{
     reflect::ReflectComponent,
     world::{Mut, World},
 };
+
 use bevy_reflect::DynamicStruct;
-use clap::builder::Str;
+use engine::scene::ToReflect;
 use inquire::{validator::Validation, Confirm, CustomType, InquireError, Select, Text};
 
 const HOME_HELP_TEXT: &str = "
@@ -222,7 +220,7 @@ fn new_entity(root: &mut GameRoot) -> Result<(), String> {
 
             let entity = world.spawn_empty().id();
 
-            crate::scene::add_entity_to_scene(world, res.target_scene.unwrap(), entity);
+            engine::scene::add_entity_to_scene(world, res.target_scene.unwrap(), entity);
 
             Ok(())
         },
@@ -350,12 +348,12 @@ fn list_entities(root: &mut GameRoot) -> Result<(), String> {
                 .get::<Scene>(res.target_scene.ok_or("No target scene found!")?)
                 .ok_or("No scene component found for the current target scene!")?;
 
-            if scene.entities.len() == 0 {
+            if scene.get_entities().len() == 0 {
                 println!("No entities found!");
                 return Ok(());
             }
 
-            for entity in scene.entities.clone() {
+            for entity in scene.get_entities().clone() {
                 let scene_data = match world.get::<SceneData>(entity) {
                     Some(ok) => ok,
                     None => continue,

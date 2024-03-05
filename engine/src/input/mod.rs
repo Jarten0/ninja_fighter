@@ -9,13 +9,12 @@
 //!
 //! * [`Action`] - Basic container for assigning [`Key`]'s to user script actions.
 //!
-#[cfg(test)]
-pub(self) mod test;
-
 pub mod action;
-pub mod input_resource;
 pub mod key;
 pub mod main;
+pub mod resource;
+#[cfg(test)]
+mod test;
 
 mod input_update_scheduler {
     pub(crate) struct InputUpdateScheduler {}
@@ -25,10 +24,9 @@ mod input_update_scheduler {
     }
 }
 
-#[allow(unused_imports)]
 pub use action::{Action, KeyStatus};
 pub use ggez::input::keyboard::KeyCode;
-pub use input_resource::Input;
 pub use key::keycode_converter::KeycodeType;
 pub use key::Key;
 pub use main::main as input_cli_editor;
+pub use resource::Input;

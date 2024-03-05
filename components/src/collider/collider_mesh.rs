@@ -1,7 +1,7 @@
 use core::fmt;
 
 use engine::space::Vertex;
-use engine::Engine;
+use engine::GgezInterface;
 
 use bevy_ecs::component::Component;
 use bevy_ecs::system::Query;
@@ -14,7 +14,7 @@ use serde::ser::SerializeSeq;
 use serde::Deserialize;
 use serde::Serialize;
 
-pub fn update(mut query: Query<&mut ColliderMesh>, engine: bevy_ecs::system::Res<Engine>) {
+pub fn update(mut query: Query<&mut ColliderMesh>, engine: bevy_ecs::system::Res<GgezInterface>) {
     for mut collider_mesh in query.iter_mut() {
         let gfx = &engine.get_context().gfx;
         let vertices: Vec<DrawVertex> = collider_mesh

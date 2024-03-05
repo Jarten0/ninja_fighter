@@ -48,7 +48,7 @@ pub fn main() -> ! {
     println!("\nWelcome to the input editor!");
     println!("You can always hit enter with no input to exit the current prompt.");
 
-    let mut input_module: Input = Input::new();
+    let mut input_module: Input = Input::default();
 
     let char_limit = |input: &str| match input.chars().count() <= 20 {
         true => Ok(Validation::Valid),

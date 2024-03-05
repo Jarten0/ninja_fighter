@@ -26,7 +26,8 @@ pub mod game_data {
             .add_systems(engine::systems::update)
             .add_systems(collider::collider_mesh::update)
             .add_systems(debug::update)
-            .add_systems(collider::update);
+            .add_systems(collider::update)
+            .add_systems(protag::update);
 
         ScheduleTag::Tick
     }
@@ -74,3 +75,5 @@ pub mod game_data {
         report_sets: true,
     };
 }
+
+// include!("main.rs");

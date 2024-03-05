@@ -1,6 +1,6 @@
 use core::fmt;
 
-use engine::Engine;
+use engine::GgezInterface;
 use engine::Input;
 
 use bevy_ecs::entity::Entity;
@@ -17,7 +17,7 @@ use crate::collider::Collider;
 
 use super::collider::collider_mesh::ColliderMesh;
 
-pub fn init(mut commands: Commands, engine: Res<Engine>) {
+pub fn init(mut commands: Commands, engine: Res<GgezInterface>) {
     if !engine.debug {
         return;
     }
@@ -44,7 +44,7 @@ impl DebugComponent {
 pub fn update(
     mut query: Query<&mut DebugComponent>,
     collider_query: Query<&mut ColliderMesh>,
-    engine: ResMut<Engine>,
+    engine: ResMut<GgezInterface>,
     input: ResMut<Input>,
     mut commands: Commands,
 ) {
@@ -98,7 +98,7 @@ impl fmt::Display for PlaceState {
     }
 }
 
-pub fn draw(query: Query<&ColliderMesh>, mut engine: ResMut<Engine>) {
+pub fn draw(query: Query<&ColliderMesh>, mut engine: ResMut<GgezInterface>) {
     if !engine.debug {
         return;
     }
@@ -108,7 +108,7 @@ pub fn draw(query: Query<&ColliderMesh>, mut engine: ResMut<Engine>) {
     }
 }
 
-pub(super) fn draw_vertecies(engine: &mut ResMut<Engine>, mesh: &ColliderMesh) {
+pub(super) fn draw_vertecies(engine: &mut ResMut<GgezInterface>, mesh: &ColliderMesh) {
     let param = DrawParam {
         src: Rect::default(),
         color: Color::CYAN,

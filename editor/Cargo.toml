@@ -7,7 +7,10 @@ edition = "2021"
 
 [dependencies]
 bevy_ecs.workspace = true
+bevy_reflect.workspace = true
 components = { version = "0.1.0", path = "../components" }
 engine = { version = "0.1.0", path = "../engine" }
 game = { version = "0.1.0", path = "../game" }
 ggez.workspace = true
+inquire.workspace = true
+serde_json.workspace = true

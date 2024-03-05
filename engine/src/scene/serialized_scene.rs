@@ -24,7 +24,7 @@ pub type EntityHashmap = HashMap<String, ComponentHashmap>;
 pub type ComponentHashmap = HashMap<String, Value>;
 
 /// Private trait that converts [`serde_json::Value`] to [`Reflect`]
-pub(crate) trait ToReflect {
+pub trait ToReflect {
     /// Converts a [`serde_json::Value`] to a [`Reflect`] value.
     ///
     /// Use `expected_type_path` to denote what type you might be expecting in case of ambiguity.

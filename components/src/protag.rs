@@ -1,15 +1,15 @@
 use crate::{collider::Collider, render::render_type::RenderType, render::Renderer};
 
-use engine::space::{Transform, TransformSettings};
+use engine::space::{Position, Transform, TransformSettings};
 
-use engine::space;
-use engine::Engine;
+use engine::GgezInterface;
+use engine::{space, Input};
 
 use bevy_ecs::prelude::*;
 use bevy_reflect::Reflect;
 use ggez::graphics::{self, Color, DrawParam, Image, Rect};
 
-pub fn init(mut commands: Commands, engine: Res<Engine>) {
+pub fn init(mut commands: Commands, engine: Res<GgezInterface>) {
     commands.spawn(ProtagBundle::new(&engine));
 }
 
@@ -28,8 +28,23 @@ pub struct ProtagBundle {
 #[derive(Default, Debug, Component)]
 pub struct ProtagController;
 
+pub fn update(mut query: Query<&mut Position>, input: Res<Input>) {
+    for mut position in query.iter_mut() {
+        // dbg!(&input);
+        if input
+            .get_action("Right")
+            .unwrap()
+            .action_status()
+            .is_just_pressed()
+        {
+            position.x += 5.0;
+            println!("Shouldve moved")
+        }
+    }
+}
+
 impl ProtagBundle {
-    pub fn new(engine: &Engine) -> Self {
+    pub fn new(engine: &GgezInterface) -> Self {
         let protag = Protag {};
 
         let transform = Transform {
@@ -40,7 +55,7 @@ impl ProtagBundle {
             settings: TransformSettings { auto_update: true },
         };
 
-        let gfx = &Engine::get_context(&engine).gfx;
+        let gfx = &GgezInterface::get_context(&engine).gfx;
         let mut renderer = Renderer::new(
             RenderType::Image(Image::from_color(gfx, 100, 100, Some(Color::RED))),
             transform.into(),

@@ -135,28 +135,22 @@ impl Action {
         if any_key_pressed_this_frame {
             // if any_key_pressed_this_frame
             self.status = KeyStatus::Pressed;
+        } else if any_key_held_this_frame {
+            // if any_key_held_this_frame
+            match &mut self.status {
+                KeyStatus::Pressed => self.status = KeyStatus::Held(2),
+                KeyStatus::Held(i) => *i += 1,
+                _ => unreachable!(),
+            }
+        } else if self.status.is_held() {
+            // if self.status.is_held()
+            self.status = KeyStatus::Released;
         } else {
-            if any_key_held_this_frame {
-                // if any_key_held_this_frame
-                match &mut self.status {
-                    KeyStatus::Pressed => self.status = KeyStatus::Held(2),
-                    KeyStatus::Held(i) => *i += 1,
-                    _ => unreachable!(),
-                }
-            } else {
-                if self.status.is_held() {
-                    // if self.status.is_held()
-                    self.status = KeyStatus::Released;
-                } else {
-                    match self.status {
-                        KeyStatus::Released => self.status = KeyStatus::Idle(2),
-                        KeyStatus::Idle(i) => self.status = KeyStatus::Idle(i + 1),
+            match self.status {
+                KeyStatus::Released => self.status = KeyStatus::Idle(2),
+                KeyStatus::Idle(i) => self.status = KeyStatus::Idle(i + 1),
 
-                        KeyStatus::Pressed | KeyStatus::Held(_) => {
-                            self.status = KeyStatus::Released
-                        }
-                    }
-                }
+                KeyStatus::Pressed | KeyStatus::Held(_) => self.status = KeyStatus::Released,
             }
         }
     }

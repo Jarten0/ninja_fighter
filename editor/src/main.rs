@@ -8,8 +8,8 @@ fn main() {
 
     let root = engine::GameRoot::new(
         &mut context,
-        game::game_data::init_components_and_resources,
-        game::game_data::schedule_builders,
+        editor::debuge::init_editor_schedules,
+        editor::debuge::wrap_schedules_with_debug,
     );
 
     ggez::event::run(context, event_loop, root);

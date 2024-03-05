@@ -13,7 +13,7 @@ use ggez::graphics::Canvas;
 /// Holds [`None`] if operating during an `Update` frame, or holds `Some(Canvas)` if operating during a `Draw` frame.
 
 #[derive(Debug, Resource)]
-pub struct Engine
+pub struct GgezInterface
 where
     Self: 'static,
 {
@@ -25,10 +25,10 @@ where
     pub debug: bool,
 }
 
-unsafe impl Send for Engine {}
-unsafe impl Sync for Engine {}
+unsafe impl Send for GgezInterface {}
+unsafe impl Sync for GgezInterface {}
 
-impl Engine {
+impl GgezInterface {
     pub(crate) fn new(context_ptr: &mut ggez::Context) -> Self {
         Self {
             current_canvas: None,
@@ -67,7 +67,7 @@ impl Engine {
 
     /// Returns a mutable reference to the value that `self.context_ptr` points to.
     /// Panics if `self.context_ptr` is null or invalid, which should never be the case in normal scenarios. If it is, investigate immediately.
-    pub fn get_mut_context(&mut self) -> &mut ggez::Context {
+    pub fn get_context_mut(&mut self) -> &mut ggez::Context {
         unsafe {
             match self.context_ptr.is_null() {
                 true => {

@@ -116,6 +116,10 @@ impl Scene {
         }
         None
     }
+
+    pub fn get_entities(&self) -> &Vec<Entity> {
+        &self.entities
+    }
 }
 
 impl PartialEq for Scene {
