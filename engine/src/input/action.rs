@@ -1,4 +1,6 @@
-use std::str::FromStr;
+use std::{collections::HashMap, str::FromStr};
+
+use crate::Key;
 
 use super::{
     key::keycode_converter::{keycode_to_str, str_to_keycode},
@@ -114,12 +116,12 @@ impl Action {
     }
 
     /// Updates the [`Action`]'s status based upon the keys in it's list. Prioritizes new key presses over key releases.
-    pub fn update(&mut self, input: &Input) {
+    pub fn update(&mut self, keylist: &HashMap<KeycodeType, Key>) {
         let mut any_key_pressed_this_frame = false;
         let mut any_key_held_this_frame = false;
-
+        // print!("updating");
         for reference_to_stored_key in self.keys.iter() {
-            let key_with_current_status = match input.get_key(reference_to_stored_key) {
+            let key_with_current_status = match keylist.get(reference_to_stored_key) {
                 Some(val) => val,
                 None => panic!("called `Option::unwrap()` on a `None` value"),
             };
@@ -133,6 +135,7 @@ impl Action {
         }
 
         if any_key_pressed_this_frame {
+            println!("{}, {:?}", self.name, self.keys);
             // if any_key_pressed_this_frame
             self.status = KeyStatus::Pressed;
         } else if any_key_held_this_frame {

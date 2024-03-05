@@ -95,7 +95,9 @@ impl Input {
     }
 
     pub(crate) fn process_key_queue(&mut self) {
-        for (_keycode, _key) in &mut self.keylist {}
+        for (_, action) in &mut self.actions {
+            action.update(&self.keylist)
+        }
     }
 
     pub(crate) fn does_key_exist(&self, key_str: &str) -> bool {
@@ -233,6 +235,7 @@ impl FromStr for Input {
 
         for character in value.chars() {
             if character == '|' {
+                // println!("New Action! [{}]", action_token_buf);
                 let action = match Action::from_str(action_token_buf.as_str()) {
                     Ok(action) => action,
                     Err(err) => {
@@ -246,9 +249,11 @@ impl FromStr for Input {
             } else if character.is_ascii_alphanumeric() || character == ';' || character == '/' {
                 action_token_buf.push(character);
             } else {
-                println!("Ignored character {}", character)
+                // println!("Ignored character [{:?}]", character)
             }
         }
+
+        // dbg!(&new_input_module);
 
         Ok(new_input_module)
     }
