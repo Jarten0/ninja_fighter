@@ -12,6 +12,8 @@ use std::io::Read;
 use std::path::PathBuf;
 use std::str::FromStr;
 
+pub type KeyUpdateQueue = LinkedList<(KeycodeType, bool)>;
+
 /// A module for dealing with player input. Add it as a [`bevy_ecs::system::Res<>`] or [`bevy_ecs::system::ResMut<>`] parameter inside your system function to make use of it.
 ///
 /// To create a new action, use [`Action::new`].
@@ -38,7 +40,7 @@ where
 {
     pub(super) actions: HashMap<String, Action>,
     pub(super) keylist: HashMap<KeycodeType, Key>,
-    pub(super) key_update_queue: LinkedList<(KeycodeType, bool)>,
+    pub(super) key_update_queue: KeyUpdateQueue,
     pub(super) mouse_pos: space::Vector2,
 }
 
@@ -95,6 +97,14 @@ impl Input {
     }
 
     pub(crate) fn process_key_queue(&mut self) {
+        for (key, is_held) in &mut self.key_update_queue {
+            self.keylist
+                .get_mut(key)
+                .unwrap()
+                .update(is_held.to_owned())
+        }
+        self.key_update_queue.clear();
+
         for (_, action) in &mut self.actions {
             action.update(&self.keylist)
         }
