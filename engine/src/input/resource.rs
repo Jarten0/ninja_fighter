@@ -123,12 +123,6 @@ impl Input {
     }
 
     pub(crate) fn get_key_mut(&mut self, key: &KeycodeType) -> Option<&mut Key> {
-        // println!("{:?}", self.keylist);
-
-        // for (key, _) in self.keylist.iter() {
-        //     println!("{:?}", key)
-        // }
-
         self.keylist.get_mut(key)
     }
 
@@ -245,7 +239,6 @@ impl FromStr for Input {
 
         for character in value.chars() {
             if character == '|' {
-                // println!("New Action! [{}]", action_token_buf);
                 let action = match Action::from_str(action_token_buf.as_str()) {
                     Ok(action) => action,
                     Err(err) => {
@@ -259,11 +252,8 @@ impl FromStr for Input {
             } else if character.is_ascii_alphanumeric() || character == ';' || character == '/' {
                 action_token_buf.push(character);
             } else {
-                // println!("Ignored character [{:?}]", character)
             }
         }
-
-        // dbg!(&new_input_module);
 
         Ok(new_input_module)
     }

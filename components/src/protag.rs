@@ -29,12 +29,7 @@ pub struct ProtagBundle {
 pub struct ProtagController;
 
 pub fn update(mut query: Query<&mut Position>, input: Res<Input>) {
-    println!(
-        "Update {}",
-        input.get_action("Right").unwrap().action_status().is_held()
-    );
     for mut position in query.iter_mut() {
-        // dbg!(&input);
         if input
             .get_action("Right")
             .unwrap()
@@ -42,7 +37,8 @@ pub fn update(mut query: Query<&mut Position>, input: Res<Input>) {
             .is_just_pressed()
         {
             position.x += 5.0;
-            println!("Shouldve moved")
+
+            println!("Shouldve moved {}", **position)
         }
     }
 }

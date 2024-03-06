@@ -5,7 +5,7 @@
             "type": "lldb",
             "request": "attach",
             "name": "Attach",
-            "program": "${workspaceFolder}/target/debug/ninja_fighter.exe"
+            "program": "${workspaceFolder}/target/debug/editor.exe"
         },
         
         {

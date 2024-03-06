@@ -10,7 +10,9 @@ use crate::schedule::Scheduler;
 use crate::GgezInterface;
 use crate::Input;
 
+use bevy_ecs::schedule::NodeId;
 use bevy_ecs::schedule::Schedule;
+use bevy_ecs::system::System;
 use bevy_ecs::world::*;
 use bevy_reflect::TypeData;
 use bevy_reflect::TypeRegistry;
@@ -125,9 +127,10 @@ impl EventHandler for GameRoot {
         self.world.resource_mut::<Input>().process_key_queue();
 
         self.world.resource_scope(|world, mut a: Mut<Scheduler>| {
-            a.get_schedule_mut(ScheduleTag::Tick)
-                .expect("there should be a schedule with the Tick ScheduleTag")
-                .run(world);
+            let s = a
+                .get_schedule_mut(ScheduleTag::Tick)
+                .expect("there should be a schedule with the Tick ScheduleTag");
+            s.run(world);
         });
         Ok(())
     }
@@ -159,20 +162,9 @@ impl EventHandler for GameRoot {
     ) -> Result<(), ggez::GameError> {
         let mut input: Mut<'_, Input> = self.world.resource_mut();
 
-        println!("{:?}", _button);
-        let _i = Input::get_key_mut(&mut input, &mut KeycodeType::Mouse(_button)).unwrap();
-
-        _i.update(true);
-        // TODO: Change this Input call to use a different value
-        // Input::update_key_queue(&mut input, *i.keycode, true);
-
-        // todo!();
-
-        // {
-        //     return Err(ggez::GameError::CustomError(String::from(
-        //         "Invalid mouse key pressed",
-        //     )));
-        // }
+        Input::get_key_mut(&mut input, &mut KeycodeType::Mouse(_button))
+            .unwrap()
+            .update(true);
 
         Ok(())
     }
@@ -186,10 +178,9 @@ impl EventHandler for GameRoot {
     ) -> Result<(), ggez::GameError> {
         let mut input: Mut<'_, Input> = self.world.resource_mut();
 
-        println!("{:?}", _button);
-        let _i = Input::get_key_mut(&mut input, &mut KeycodeType::Mouse(_button)).unwrap();
-
-        _i.update(false);
+        Input::get_key_mut(&mut input, &mut KeycodeType::Mouse(_button))
+            .unwrap()
+            .update(false);
 
         Ok(())
     }
@@ -221,7 +212,7 @@ impl EventHandler for GameRoot {
     ) -> Result<(), ggez::GameError> {
         todo!();
 
-        // Ok(())
+        Ok(())
     }
 
     fn key_down_event(
@@ -244,13 +235,13 @@ impl EventHandler for GameRoot {
             }
         };
 
-        println!(
-            "{}",
-            crate::input::key::keycode_converter::keycode_to_str(KeycodeType::Keyboard(
-                virtual_key_code
-            ))
-            .unwrap_or("Unknown")
-        );
+        // println!(
+        //     "{}",
+        //     crate::input::key::keycode_converter::keycode_to_str(KeycodeType::Keyboard(
+        //         virtual_key_code
+        //     ))
+        //     .unwrap_or("Unknown")
+        // );
 
         self.world
             .resource_mut::<Input>()

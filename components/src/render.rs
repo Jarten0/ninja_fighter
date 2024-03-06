@@ -11,6 +11,56 @@ use self::render_type::RenderType;
 
 use engine::space::Transform;
 
+use engine::space::*;
+
+type TransformComponentTuple<'a> = (
+    &'a Position,
+    &'a Velocity,
+    &'a Rotation,
+    &'a Scale,
+    &'a TransformSettings,
+);
+
+pub fn update(mut query: Query<(&mut Renderer, TransformComponentTuple)>) {
+    for (mut renderer, transform) in &mut query {
+        let draw_transform: ggez::graphics::Transform = Transform {
+            position: dbg!(transform.0.to_owned()),
+            velocity: transform.1.to_owned(),
+            rotation: transform.2.to_owned(),
+            scale: transform.3.to_owned(),
+            settings: transform.4.to_owned(),
+        }
+        .into();
+
+        renderer.draw_param.transform = draw_transform.clone();
+
+        renderer.set(
+            renderer.draw_param.transform(draw_transform),
+            Position::new(0.0, 0.0),
+        )
+    }
+}
+
+pub fn draw(query: Query<&Renderer>, mut main_canvas: ResMut<GgezInterface>) {
+    for renderer in query.iter() {
+        let canvas_option = main_canvas.get_canvas_mut();
+
+        let mut canvas = match canvas_option {
+            Some(canvas) => canvas,
+            None => return,
+        };
+
+        match &renderer.image {
+            RenderType::Image(image) => {
+                ggraphics::Canvas::draw(&mut canvas, image, renderer.draw_param)
+            }
+            RenderType::InstanceArray(_) => todo!(),
+            RenderType::Mesh(_) => todo!(),
+            RenderType::Text(_) => todo!(),
+        }
+    }
+}
+
 #[derive(bevy_ecs::component::Component)]
 pub struct Renderer {
     pub draw_param: DrawParam,
@@ -69,26 +119,6 @@ impl Renderer {
             draw_param: Default::default(),
             transform: Default::default(),
             offset: Default::default(),
-        }
-    }
-}
-
-pub fn draw(query: Query<&Renderer>, mut main_canvas: ResMut<GgezInterface>) {
-    for renderer in query.iter() {
-        let canvas_option = main_canvas.get_canvas_mut();
-
-        let mut canvas = match canvas_option {
-            Some(canvas) => canvas,
-            None => return,
-        };
-
-        match &renderer.image {
-            RenderType::Image(image) => {
-                ggraphics::Canvas::draw(&mut canvas, image, renderer.draw_param)
-            }
-            RenderType::InstanceArray(_) => todo!(),
-            RenderType::Mesh(_) => todo!(),
-            RenderType::Text(_) => todo!(),
         }
     }
 }

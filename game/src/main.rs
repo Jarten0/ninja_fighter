@@ -20,7 +20,5 @@ fn main() -> ! {
         game::game_data::schedule_builders,
     );
 
-    // engine::input_cli_editor();
-
     ggez::event::run(context, event_loop, root);
 }

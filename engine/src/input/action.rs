@@ -120,7 +120,6 @@ impl Action {
     pub fn update(&mut self, key_update_queue: &HashMap<KeycodeType, Key>) {
         let mut any_key_pressed_this_frame = false;
         let mut any_key_held_this_frame = false;
-        // print!("updating");
         for (keycode, key) in key_update_queue {
             if !self.keys.contains(keycode) {
                 continue;
@@ -134,18 +133,15 @@ impl Action {
             }
         }
         if any_key_pressed_this_frame {
-            // println!("{}, {:?}", self.name, self.keys);
-            // if any_key_pressed_this_frame
+            println!("{}, {:?}", self.name, self.keys);
             self.status = KeyStatus::Pressed;
         } else if any_key_held_this_frame {
-            // if any_key_held_this_frame
             match &mut self.status {
                 KeyStatus::Pressed => self.status = KeyStatus::Held(2),
                 KeyStatus::Held(i) => *i += 1,
                 _ => unreachable!(),
             }
         } else if self.status.is_held() {
-            // if self.status.is_held()
             self.status = KeyStatus::Released;
         } else {
             match self.status {
