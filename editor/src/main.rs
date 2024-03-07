@@ -10,6 +10,7 @@ fn main() {
         &mut context,
         editor::debuge::init_editor_schedules,
         editor::debuge::wrap_schedules_with_debug,
+        60,
     );
 
     ggez::event::run(context, event_loop, root);

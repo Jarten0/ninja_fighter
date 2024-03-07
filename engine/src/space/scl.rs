@@ -7,7 +7,7 @@ use std::ops::Deref;
 use std::ops::DerefMut;
 
 #[derive(Debug, Component, Clone, Copy, Serialize, Deserialize, Reflect)]
-pub struct Scale(Vector2);
+pub struct Scale(pub(crate) Vector2);
 
 impl Default for Scale {
     fn default() -> Self {

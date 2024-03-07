@@ -67,7 +67,7 @@ impl ProtagBundle {
                 transform: transform.into(),
                 z: 0,
             },
-            space::Position::new(0.0, 0.0),
+            space::Position::new(10.0, 0.0),
         );
 
         let collider = Collider::new(engine);

@@ -7,7 +7,7 @@ use std::ops::Deref;
 use std::ops::DerefMut;
 
 #[derive(Debug, Default, Component, Clone, Copy, Serialize, Deserialize, Reflect)]
-pub struct Position(Vector2);
+pub struct Position(pub(crate) Vector2);
 
 impl Deref for Position {
     type Target = Vector2;
@@ -28,5 +28,11 @@ impl Position {
         Self {
             0: Vector2::new(x, y),
         }
+    }
+}
+
+impl From<Vector2> for Position {
+    fn from(value: Vector2) -> Self {
+        Position(value)
     }
 }

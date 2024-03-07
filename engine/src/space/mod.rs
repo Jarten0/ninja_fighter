@@ -24,9 +24,9 @@ pub use rtt::Rotation;
 pub use scl::Scale;
 use serde::{de::Visitor, ser::SerializeStruct, Deserialize, Serialize};
 use std::any::Any;
-use std::ops::{Add, AddAssign, Deref, DerefMut, Sub, SubAssign};
+use std::ops::{Add, AddAssign, Deref, DerefMut, Neg, Sub, SubAssign};
 use std::time::Duration;
-pub use transform::{Transform, TransformSettings};
+pub use transform::{Transform, TransformSettings, DEFAULT_TRANSFORM};
 pub use vel::Velocity;
 pub use vtx::Vertex;
 
@@ -36,15 +36,16 @@ pub use vtx::Vertex;
 pub struct Vector2(mint::Vector2<f32>);
 
 impl Vector2 {
-    pub fn new(x: f32, y: f32) -> Self {
+    pub const fn new(x: f32, y: f32) -> Self {
         Self {
             0: mint::Vector2 { x, y },
         }
     }
 
-    pub fn translate(&mut self, translation: &Vector2) {
+    pub fn translate(&mut self, translation: &Vector2) -> &mut Self {
         self.x += translation.x;
         self.y += translation.y;
+        self
     }
 
     /// Linear
@@ -169,6 +170,16 @@ impl SubAssign for Vector2 {
     fn sub_assign(&mut self, rhs: Self) {
         self.x -= rhs.x;
         self.y -= rhs.y;
+    }
+}
+
+impl Neg for Vector2 {
+    type Output = Vector2;
+
+    fn neg(mut self) -> Self::Output {
+        self.x = -self.x;
+        self.y = -self.y;
+        self
     }
 }
 
@@ -313,3 +324,5 @@ impl FromReflect for Vector2 {
         reflect.downcast_ref().cloned()
     }
 }
+
+// Into block //

@@ -46,13 +46,13 @@ pub mod debuge {
     };
 
     pub fn init_editor_schedules(world: &mut World) {
-        game::game_data::init_components_and_resources(world);
+        game::init_components_and_resources(world);
         // world.init_component()
     }
 
     pub fn wrap_schedules_with_debug(
     ) -> Vec<for<'a> fn(&'a mut bevy_ecs::schedule::Schedule) -> ScheduleTag> {
-        let mut builders = game::game_data::schedule_builders();
+        let mut builders = game::schedule_builders();
         builders.push(debug_schedule);
         builders
     }

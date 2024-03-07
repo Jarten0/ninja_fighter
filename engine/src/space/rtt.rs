@@ -6,7 +6,7 @@ use std::ops::Deref;
 use std::ops::DerefMut;
 
 #[derive(Debug, Component, Default, Clone, Copy, Serialize, Deserialize, Reflect)]
-pub struct Rotation(f32);
+pub struct Rotation(pub(crate) f32);
 
 impl Rotation {
     pub fn new(angle: f32) -> Self {

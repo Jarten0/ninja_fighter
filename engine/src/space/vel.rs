@@ -7,7 +7,7 @@ use std::ops::Deref;
 use std::ops::DerefMut;
 
 #[derive(Debug, Component, Default, Clone, Copy, Serialize, Deserialize, Reflect)]
-pub struct Velocity(Vector2);
+pub struct Velocity(pub(crate) Vector2);
 
 impl Velocity {
     pub fn new(x: f32, y: f32) -> Self {

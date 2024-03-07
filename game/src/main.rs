@@ -16,8 +16,9 @@ fn main() -> ! {
 
     let root = engine::GameRoot::new(
         &mut context,
-        game::game_data::init_components_and_resources,
-        game::game_data::schedule_builders,
+        game::init_components_and_resources,
+        game::schedule_builders,
+        game::TICKS_PER_SECOND.clone(),
     );
 
     ggez::event::run(context, event_loop, root);

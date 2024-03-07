@@ -6,6 +6,7 @@ use crate::input::KeycodeType;
 use crate::scene::SceneManager;
 use crate::schedule::ScheduleTag;
 use crate::schedule::Scheduler;
+use crate::Camera;
 use crate::GgezInterface;
 use crate::Input;
 
@@ -35,6 +36,7 @@ where
     pub world: World,
     pub debug_mode: bool,
     pub print_key_errors: bool,
+    pub ticks_per_second: u32,
 }
 
 impl GameRoot {
@@ -42,14 +44,15 @@ impl GameRoot {
     pub fn new(
         context: &mut Context,
         world_init: fn(&mut World) -> (),
-        schedule_builders: fn() -> Vec<fn(&mut Schedule) -> ScheduleTag>,
+        schedule_builder_functions: fn() -> Vec<fn(&mut Schedule) -> ScheduleTag>,
+        ticks_per_second: u32,
     ) -> Self {
         let mut world = World::new();
 
         let debug = false;
         let pke = false;
 
-        let scheduler = Scheduler::new(schedule_builders());
+        let scheduler = Scheduler::new(schedule_builder_functions());
         World::insert_resource(&mut world, scheduler);
 
         let game_info = GgezInterface::new(context);
@@ -64,12 +67,16 @@ impl GameRoot {
         let scene_manager = SceneManager::default();
         World::insert_resource(&mut world, scene_manager);
 
+        let camera = Camera::default();
+        World::insert_resource(&mut world, camera);
+
         crate::register_types(&mut world);
 
         let mut root = GameRoot {
             world,
             debug_mode: debug,
             print_key_errors: pke,
+            ticks_per_second,
         };
         GameRoot::update_context(&mut root, context);
 
@@ -114,6 +121,12 @@ impl GameRoot {
 
 impl EventHandler for GameRoot {
     fn update(&mut self, ctx: &mut Context) -> GameResult {
+        // FPS limiter: read `check_update_time` docs for more details
+        if !ctx.time.check_update_time(self.ticks_per_second) {
+            return GameResult::Ok(());
+        }
+
+        // Debug console: if `debug_mode` is enabled, it will open the console and pause ticks until it is closed
         if self.debug_mode {
             // Debug schedule is optional
             self.world
@@ -121,6 +134,7 @@ impl EventHandler for GameRoot {
                     Some(a.get_schedule_mut(ScheduleTag::Debug)?.run(world))
                 });
             self.debug_mode = false;
+            ctx.time.tick();
             return Ok(());
         }
 
@@ -128,12 +142,16 @@ impl EventHandler for GameRoot {
 
         self.world.resource_mut::<Input>().process_key_queue();
 
-        self.world.resource_scope(|world, mut a: Mut<Scheduler>| {
-            let s = a
-                .get_schedule_mut(ScheduleTag::Tick)
-                .expect("there should be a schedule with the Tick ScheduleTag");
-            s.run(world);
-        });
+        // Runs the tick schedule
+        self.world
+            .resource_scope(|world, mut schedules: Mut<Scheduler>| {
+                schedules
+                    .get_schedule_mut(ScheduleTag::Tick)
+                    .expect("there should be a schedule with the Tick ScheduleTag")
+                    .run(world);
+            });
+
+        ctx.time.tick();
         Ok(())
     }
 

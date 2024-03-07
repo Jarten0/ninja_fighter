@@ -1,11 +1,14 @@
 pub mod render_type;
 
 use bevy_ecs::system::Query;
+use bevy_ecs::system::Res;
 use bevy_ecs::system::ResMut;
+use engine::Camera;
 use ggez::graphics::{self as ggraphics, *};
 
 use engine::space;
 use engine::GgezInterface;
+use ggraphics::Canvas;
 
 use self::render_type::RenderType;
 
@@ -40,24 +43,53 @@ pub fn update(mut query: Query<(&mut Renderer, TransformComponentTuple)>) {
     }
 }
 
-pub fn draw(query: Query<&Renderer>, mut main_canvas: ResMut<GgezInterface>) {
-    for renderer in query.iter() {
+pub fn draw(
+    query: Query<(&Renderer, TransformComponentTuple)>,
+    mut main_canvas: ResMut<GgezInterface>,
+    camera: Res<Camera>,
+) {
+    for (renderer, transform) in query.iter() {
         let canvas_option = main_canvas.get_canvas_mut();
 
-        let mut canvas = match canvas_option {
+        let canvas = match canvas_option {
             Some(canvas) => canvas,
             None => return,
         };
 
         match &renderer.image {
             RenderType::Image(image) => {
-                ggraphics::Canvas::draw(&mut canvas, image, renderer.draw_param)
+                draw_image(canvas, image, renderer, transform, &camera);
             }
             RenderType::InstanceArray(_) => todo!(),
             RenderType::Mesh(_) => todo!(),
             RenderType::Text(_) => todo!(),
         }
     }
+}
+
+fn draw_image(
+    canvas: &mut Canvas,
+    image: &Image,
+    renderer: &Renderer,
+    transform: TransformComponentTuple,
+    camera: &Camera,
+) {
+    let mut transformer = DEFAULT_TRANSFORM.clone();
+
+    transformer.position = {
+        (*transform
+            .0
+            .to_owned()
+            .translate(&renderer.offset)
+            .translate(&-*camera.position))
+        .into()
+    };
+
+    let mut draw_param = renderer.draw_param.clone();
+
+    draw_param.transform = transformer.into();
+
+    canvas.draw(image, draw_param)
 }
 
 #[derive(bevy_ecs::component::Component)]

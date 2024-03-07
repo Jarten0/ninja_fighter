@@ -16,6 +16,7 @@ pub mod schedule;
 pub mod space;
 
 pub use assets::Assets;
+pub use camera::Camera;
 pub use engine::GgezInterface;
 pub use input::input_cli_editor;
 pub use input::{Action, Input, Key};
