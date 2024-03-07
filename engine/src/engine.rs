@@ -28,6 +28,7 @@ where
 unsafe impl Send for GgezInterface {}
 unsafe impl Sync for GgezInterface {}
 
+#[allow(dead_code)]
 impl GgezInterface {
     pub(crate) fn new(context_ptr: &mut ggez::Context) -> Self {
         Self {

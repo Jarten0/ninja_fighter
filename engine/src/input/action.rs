@@ -2,11 +2,9 @@ use std::{collections::HashMap, str::FromStr};
 
 use crate::Key;
 
-use super::{
-    key::keycode_converter::{keycode_to_str, str_to_keycode},
-    resource::KeyUpdateQueue,
-    Input, KeycodeType,
-};
+use super::key::keycode_converter::{keycode_to_str, str_to_keycode};
+use super::Input;
+use super::KeycodeType;
 
 /// Declares the current state of the action.
 ///

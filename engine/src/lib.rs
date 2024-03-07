@@ -3,7 +3,7 @@
 //!
 //! Several components are stored here as well, built directly into the engine.
 //! The [`Transform`] and [`camera::Camera`] are good examples of that.
-#![allow(unused)]
+// #![allow(unused)]
 mod assets;
 mod camera;
 mod engine;

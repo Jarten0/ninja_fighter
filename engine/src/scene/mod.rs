@@ -20,7 +20,7 @@ pub use scene_manager::SceneManager;
 pub use serialized_scene::ToReflect;
 pub use traits::SceneData;
 
-use crate::{render, space};
+use crate::space;
 
 pub fn register_scene_types(world: &mut bevy_ecs::world::World) {
     world.init_resource::<scene_manager::SceneManager>();

@@ -1,4 +1,4 @@
-use std::{collections::HashMap, hash::Hash, sync::atomic::AtomicUsize};
+use std::{hash::Hash, sync::atomic::AtomicUsize};
 
 use bevy_ecs::world::World;
 

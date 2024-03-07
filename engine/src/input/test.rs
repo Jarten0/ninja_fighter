@@ -13,7 +13,7 @@ static STRING_TEST_KEYS: Option<&'static str> = Some("mouse1;");
 
 /// If [`Some`], expect the string parse to fail with [`Err(EXPECT_STRING_PARSE_ERROR)`].
 /// If [`None`], expect the string parse to return [`Ok(Action)`].
-static EXPECT_STRING_PARSE_ERROR: Option<&'static str> = None;
+// static EXPECT_STRING_PARSE_ERROR: Option<&'static str> = None;
 
 // Test code below
 /// Configures how the test will be run using any of the listed variants.

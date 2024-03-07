@@ -21,7 +21,6 @@ use serde::Serialize;
 use serde_json::Value;
 
 use std::collections::HashMap;
-use std::env::current_dir;
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
@@ -176,7 +175,7 @@ pub fn load_scene(
 ) -> Result<Entity, error::SceneError> {
     use std::io::prelude::*;
     let mut buf = String::new();
-    let s = File::open(path)
+    let _s = File::open(path)
         .map_err(|err| -> error::SceneError { error::SceneError::IOError(err.to_string()) })?
         .read_to_string(&mut buf)
         .unwrap();
@@ -227,7 +226,7 @@ pub fn add_entity_to_scene<'a>(
     }
 
     if let None = world.get::<SceneData>(entity_to_add) {
-        let mut object_name = String::from("New entity");
+        let object_name = String::from("New entity");
 
         world.entity_mut(entity_to_add).insert(traits::SceneData {
             object_name,
@@ -274,7 +273,7 @@ pub fn validate_name(names: &mut dyn Iterator<Item = &String>, name_to_check: &m
         println!("{:?} contains {}", "Som", &name_to_check);
 
         let suffix = format!("({})", i);
-        name_to_check.strip_suffix(&suffix);
+        *name_to_check = name_to_check.strip_suffix(&suffix).unwrap_or("").to_owned();
         i += 1;
         name_to_check.push_str(&format!("({})", i))
     }
@@ -307,7 +306,7 @@ pub fn to_serialized_scene<'a>(
         let mut entity_hashmap: EntityHashmap = HashMap::new();
 
         for component in serializable_components_data.iter() {
-            let mut component_serialized_data: Vec<u8> = Vec::new();
+            let component_serialized_data: Vec<u8> = Vec::new();
 
             // To swap out serializers, simply replace serde_json::Serializer with another serializer of your choice
             let formatter = serde_json::ser::PrettyFormatter::with_indent("    ".as_bytes());
@@ -345,7 +344,7 @@ pub fn to_serialized_scene<'a>(
         entity_data.insert(k, entity_hashmap);
     }
 
-    let mut scene = world.get_mut::<Scene>(scene_entity).unwrap();
+    let scene = world.get_mut::<Scene>(scene_entity).unwrap();
     Ok(serialized_scene::SerializedSceneData {
         name: scene.name.clone(),
         entity_data,
@@ -366,5 +365,5 @@ fn to_writer(to_string: &str) {
     path_buf.pop();
     path_buf.push("test_output");
     path_buf.push("scene_serialization.json");
-    File::create(path_buf).unwrap().write(to_string.as_bytes());
+    let _ = File::create(path_buf).unwrap().write(to_string.as_bytes());
 }

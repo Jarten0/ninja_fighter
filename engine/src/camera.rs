@@ -1,7 +1,7 @@
+use crate::space;
 use bevy_ecs::component::Component;
 
-use crate::space;
-
+#[allow(unused)]
 #[derive(Component)]
 pub struct Camera {
     position: space::Position,

@@ -1,10 +1,6 @@
 use self::asset_type::AssetType;
-use super::RenderType;
 use crate::assets::id::AssetID;
-use bevy_ecs::{
-    system::Resource,
-    world::{self, World},
-};
+use bevy_ecs::{system::Resource, world::World};
 use std::collections::HashMap;
 
 mod asset_type;
@@ -53,10 +49,6 @@ impl Assets {
             }
         }
     }
-
-    fn process_queue(&mut self) {
-        todo!()
-    }
 }
 
 #[derive(Debug)]
@@ -70,6 +62,7 @@ impl AssetCommandQueue {
     }
 }
 
+#[allow(unused)]
 #[derive(Debug)]
 enum AssetCommand {
     Load(AssetID),

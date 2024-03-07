@@ -15,8 +15,7 @@ pub(crate) mod transform;
 pub(crate) mod vel;
 pub(crate) mod vtx;
 use bevy_reflect::{
-    DynamicStruct, DynamicTupleStruct, FromReflect, NamedField, Reflect, ReflectRef, StructInfo,
-    TypePath,
+    DynamicTupleStruct, FromReflect, NamedField, Reflect, ReflectRef, StructInfo, TypePath,
 };
 use core::fmt;
 use once_cell::sync::Lazy;
@@ -25,10 +24,7 @@ pub use rtt::Rotation;
 pub use scl::Scale;
 use serde::{de::Visitor, ser::SerializeStruct, Deserialize, Serialize};
 use std::any::Any;
-use std::ops::{
-    Add, AddAssign, Deref, DerefMut, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign,
-};
-use std::path::Display;
+use std::ops::{Add, AddAssign, Deref, DerefMut, Sub, SubAssign};
 use std::time::Duration;
 pub use transform::{Transform, TransformSettings};
 pub use vel::Velocity;
@@ -52,7 +48,7 @@ impl Vector2 {
     }
 
     /// Linear
-    pub fn lerp(&mut self, translation: &Vector2, time: Duration) {
+    pub fn lerp(&mut self, _translation: &Vector2, _time: Duration) {
         // <Vector2 as Deref>::Target
         todo!()
     }
@@ -184,8 +180,8 @@ impl Serialize for Vector2 {
         S: serde::Serializer,
     {
         let mut vec = serializer.serialize_struct("Vector2", 2)?;
-        vec.serialize_field("x", &self.x);
-        vec.serialize_field("y", &self.y);
+        let _ = vec.serialize_field("x", &self.x);
+        let _ = vec.serialize_field("y", &self.y);
         vec.end()
     }
 }
@@ -314,6 +310,6 @@ impl Reflect for Vector2 {
 
 impl FromReflect for Vector2 {
     fn from_reflect(reflect: &dyn Reflect) -> Option<Self> {
-        todo!()
+        reflect.downcast_ref().cloned()
     }
 }

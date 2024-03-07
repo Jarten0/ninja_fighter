@@ -28,7 +28,7 @@ pub struct ProtagBundle {
 #[derive(Default, Debug, Component)]
 pub struct ProtagController;
 
-pub fn update(mut query: Query<&mut Position>, input: Res<Input>) {
+pub fn update(mut query: Query<&mut Position, With<ProtagController>>, input: Res<Input>) {
     for mut position in query.iter_mut() {
         if input
             .get_action("Right")
@@ -36,7 +36,7 @@ pub fn update(mut query: Query<&mut Position>, input: Res<Input>) {
             .action_status()
             .is_just_pressed()
         {
-            position.x += 5.0;
+            position.x += 1.0;
 
             println!("Shouldve moved {}", **position)
         }

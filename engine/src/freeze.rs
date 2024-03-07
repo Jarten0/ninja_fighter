@@ -1,6 +1,5 @@
-use std::default;
+#![allow(unused)] //TODO: Remove allow after this is developed
 
-#[allow(dead_code)]
 /// Declares different kinds of states where the game should stop updating
 ///
 /// Game logic should be disabled if

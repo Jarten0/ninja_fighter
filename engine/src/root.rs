@@ -3,22 +3,18 @@
 //! * [`GameRoot`] - Creates the main game state, initializes modules and libraries, and communicates between [`ggez`]'s engine and [`bevy_ecs`]'s world
 
 use crate::input::KeycodeType;
-use crate::scene;
 use crate::scene::SceneManager;
 use crate::schedule::ScheduleTag;
 use crate::schedule::Scheduler;
 use crate::GgezInterface;
 use crate::Input;
 
-use bevy_ecs::schedule::NodeId;
 use bevy_ecs::schedule::Schedule;
-use bevy_ecs::system::System;
 use bevy_ecs::world::*;
-use bevy_reflect::TypeData;
-use bevy_reflect::TypeRegistry;
 use ggez::event::{self, EventHandler};
 use ggez::graphics::{self, Color};
 use ggez::{Context, GameResult};
+use log::debug;
 
 use super::Assets;
 
@@ -77,16 +73,22 @@ impl GameRoot {
         };
         GameRoot::update_context(&mut root, context);
 
+        world_init(&mut root.world);
+
         root.world.resource_scope(|world, mut a: Mut<Scheduler>| {
             a.get_schedule_mut(ScheduleTag::Init)
                 .expect("a schedule that has the Init tag")
                 .run(world);
         });
 
-        root.world
+        if let Err(err) = root
+            .world
             .resource_scope(|world, mut res: Mut<SceneManager>| {
                 res.load_scene(world, "game/assets/scenes/cheeseland.json".into())
-            });
+            })
+        {
+            eprintln!("Scene load error! [{}]", err)
+        }
 
         root
     }
@@ -210,9 +212,9 @@ impl EventHandler for GameRoot {
         _x: f32,
         _y: f32,
     ) -> Result<(), ggez::GameError> {
-        todo!();
-
-        Ok(())
+        Err(ggez::GameError::CustomError(String::from(
+            "Missing SCROLLWHEEL functionality",
+        )))
     }
 
     fn key_down_event(
@@ -234,14 +236,6 @@ impl EventHandler for GameRoot {
                 return Ok(());
             }
         };
-
-        // println!(
-        //     "{}",
-        //     crate::input::key::keycode_converter::keycode_to_str(KeycodeType::Keyboard(
-        //         virtual_key_code
-        //     ))
-        //     .unwrap_or("Unknown")
-        // );
 
         self.world
             .resource_mut::<Input>()
@@ -313,7 +307,7 @@ impl EventHandler for GameRoot {
     }
 
     fn quit_event(&mut self, _ctx: &mut Context) -> Result<bool, ggez::GameError> {
-        // debug!("quit_event() callback called, quitting...");
+        debug!("quit_event() callback called, quitting...");
         Ok(false)
     }
 
@@ -332,6 +326,7 @@ impl EventHandler for GameRoot {
         _origin: event::ErrorOrigin,
         _e: ggez::GameError,
     ) -> bool {
+        eprintln!(r#"Implement error handler :\ {}"#, _e);
         true
     }
 }

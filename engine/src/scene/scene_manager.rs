@@ -2,12 +2,10 @@ use std::collections::HashMap;
 use std::fmt::Debug;
 use std::path::PathBuf;
 
+use bevy_ecs::entity::Entity;
 use bevy_ecs::system::Resource;
 use bevy_ecs::world::World;
-use bevy_ecs::{entity::Entity, world::Mut};
 use bevy_reflect::TypeRegistry;
-
-use crate::scene::validate_name;
 
 use super::error;
 use super::{component::Scene, load_scene, save_scene};
@@ -58,7 +56,7 @@ impl SceneManager {
                 println!("{:?} contains {}", "Som", &name);
 
                 let suffix = format!("({})", i);
-                name.strip_suffix(&suffix);
+                name = name.strip_suffix(&suffix).unwrap_or("default").to_owned();
                 i += 1;
                 name.push_str(&format!("({})", i))
             }

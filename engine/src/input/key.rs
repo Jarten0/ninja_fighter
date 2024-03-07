@@ -17,6 +17,7 @@ pub struct Key {
 }
 
 impl Key {
+    #[allow(unused)]
     pub(crate) fn new(name: &'static str, keycode: StringifiableKeyCode) -> Self {
         Self {
             keycode,

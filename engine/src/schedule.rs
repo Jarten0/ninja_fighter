@@ -1,9 +1,6 @@
 use std::collections::HashMap;
 
-use bevy_ecs::schedule::ExecutorKind;
-use bevy_ecs::schedule::LogLevel;
 use bevy_ecs::schedule::Schedule;
-use bevy_ecs::schedule::ScheduleBuildSettings;
 use bevy_ecs::system::Resource;
 
 #[derive(Resource)]

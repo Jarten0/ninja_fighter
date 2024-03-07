@@ -69,7 +69,7 @@ impl Default for Input {
     }
 }
 
-// #[allow(dead_code)]
+#[allow(dead_code)]
 impl Input {
     /// Returns an [`Input`] resource with the keylist and whatever actions are currently stored in the engine save data. Recommended over `Input::new()`.
     pub(crate) fn load() -> Self {
@@ -93,19 +93,25 @@ impl Input {
     }
 
     pub(crate) fn update_mouse_pos(&mut self, mouse_pos: space::Vector2) {
-        self.mouse_pos = mouse_pos;
+        self.mouse_pos = mouse_pos
     }
 
     pub(crate) fn process_key_queue(&mut self) {
         for (key, is_held) in &mut self.key_update_queue {
-            self.keylist
-                .get_mut(key)
-                .unwrap()
-                .update(is_held.to_owned())
+            if let Some(key) = self.keylist.get_mut(key) {
+                key.update(is_held.to_owned())
+            } else {
+                eprintln!(
+                    "Couldn't find key! [{}]",
+                    keycode_converter::keycode_to_str(key.to_owned())
+                        .unwrap_or("Unknown/Unconvertable key")
+                )
+            }
         }
+
         self.key_update_queue.clear();
 
-        for (_, action) in &mut self.actions {
+        for action in self.actions.values_mut() {
             action.update(&self.keylist)
         }
     }
@@ -169,6 +175,8 @@ impl Input {
     /// Writes the current input save data to disk.
     pub(super) fn save_to_file(&self) {
         Input::load_input_file(input_hashmap::InputFile::KeyFile1);
+
+        todo!()
     }
 
     /// Returns a file using the specified file type
@@ -183,7 +191,7 @@ impl Input {
         }));
 
         match File::open(file_path.clone()) {
-            Ok(path) => path,
+            Ok(file) => file,
             Err(err) => panic!(
                 "Key file could not be opened! Error: [{}], Path: [{}]",
                 err,
@@ -195,6 +203,7 @@ impl Input {
     /// Creates a new Input module using the selected file
     pub(crate) fn load_from_keys_file(mut file: File) -> Result<Self, String> {
         let mut key_buf = String::new();
+
         match file.read_to_string(&mut key_buf) {
             Ok(_) => (),
             Err(err) => return Err(format!("Invalid file read! {}", err)),
@@ -214,7 +223,7 @@ impl ToString for Input {
     fn to_string(&self) -> String {
         let mut string = String::new();
 
-        for (_, action) in self.actions.iter() {
+        for action in self.actions.values() {
             string.push_str(action.to_string().as_str());
             string.push_str("; ");
         }

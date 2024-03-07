@@ -16,14 +16,6 @@ pub mod resource;
 #[cfg(test)]
 mod test;
 
-mod input_update_scheduler {
-    pub(crate) struct InputUpdateScheduler {}
-
-    impl InputUpdateScheduler {
-        pub fn push_update(&mut self) {}
-    }
-}
-
 pub use action::{Action, KeyStatus};
 pub use ggez::input::keyboard::KeyCode;
 pub use key::keycode_converter::KeycodeType;

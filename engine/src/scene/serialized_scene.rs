@@ -2,14 +2,11 @@ use super::add_entity_to_scene;
 use super::component;
 use super::traits::SceneData;
 use super::SceneError;
-use bevy_ecs::component::Component;
 use bevy_ecs::entity::Entity;
 use bevy_ecs::reflect::ReflectComponent;
 use bevy_ecs::world::World;
 use bevy_reflect::DynamicStruct;
 use bevy_reflect::Reflect;
-use bevy_reflect::Struct;
-use bevy_reflect::TypeData;
 use bevy_reflect::TypePath;
 use bevy_reflect::TypeRegistry;
 use serde::de::Visitor;
@@ -56,11 +53,11 @@ impl ToReflect for serde_json::Value {
             Value::Bool(bool) => Reflect::reflect_owned(Box::new(bool.to_owned())),
             Value::Number(number) => convert_number(number, expected_type),
             Value::String(string) => convert_string(string, expected_type),
-            Value::Array(array) => todo!(),
-            Value::Object(object) => todo!(),
+            Value::Array(_array) => todo!(),
+            Value::Object(_object) => todo!(),
         };
         Ok(Box::<dyn Reflect>::from(match value {
-            bevy_reflect::ReflectOwned::Struct(e) => todo!(),
+            bevy_reflect::ReflectOwned::Struct(_e) => todo!(),
             bevy_reflect::ReflectOwned::TupleStruct(_) => todo!(),
             bevy_reflect::ReflectOwned::Tuple(_) => todo!(),
             bevy_reflect::ReflectOwned::List(_) => todo!(),
@@ -162,16 +159,16 @@ impl SerializedSceneData {
                     .get_with_type_path(&component_path)
                     .ok_or(SceneError::MissingTypeRegistry(component_path.clone()))?;
 
-                let fields = match component_registration.type_info() {
-                    bevy_reflect::TypeInfo::Struct(struct_info) => struct_info.field_names(),
-                    bevy_reflect::TypeInfo::TupleStruct(_) => todo!(), // These `todo!()` 's shouldn't be hit, but if they are, implement something here.
-                    bevy_reflect::TypeInfo::Tuple(_) => todo!(),
-                    bevy_reflect::TypeInfo::List(_) => todo!(),
-                    bevy_reflect::TypeInfo::Array(_) => todo!(),
-                    bevy_reflect::TypeInfo::Map(_) => todo!(),
-                    bevy_reflect::TypeInfo::Enum(_) => todo!(),
-                    bevy_reflect::TypeInfo::Value(_) => todo!(),
-                };
+                // let fields = match component_registration.type_info() {
+                //     bevy_reflect::TypeInfo::Struct(struct_info) => struct_info.field_names(),
+                //     bevy_reflect::TypeInfo::TupleStruct(_) => todo!(), // These `todo!()` 's shouldn't be hit, but if they are, implement something here.
+                //     bevy_reflect::TypeInfo::Tuple(_) => todo!(),
+                //     bevy_reflect::TypeInfo::List(_) => todo!(),
+                //     bevy_reflect::TypeInfo::Array(_) => todo!(),
+                //     bevy_reflect::TypeInfo::Map(_) => todo!(),
+                //     bevy_reflect::TypeInfo::Enum(_) => todo!(),
+                //     bevy_reflect::TypeInfo::Value(_) => todo!(),
+                // };
 
                 let mut component_patch = DynamicStruct::default();
 
@@ -179,12 +176,6 @@ impl SerializedSceneData {
 
                 for (name, field) in &component_data {
                     println!("!");
-                    let f = || {
-                        panic!(
-                            "No expected type found! tried to find the field named [{:?}] on {:?}. ",
-                            name, component_path
-                        )
-                    };
 
                     let type_info = match component_registration.type_info() {
                         bevy_reflect::TypeInfo::Struct(struct_info) => struct_info,
@@ -221,7 +212,7 @@ impl SerializedSceneData {
 
         // We have to wait until after the scene entity is spawned before we can start adding entities to the scene component
         for entity in entities {
-            add_entity_to_scene(world, scene_entity, entity);
+            let _ = add_entity_to_scene(world, scene_entity, entity);
         }
         Ok(scene_entity)
     }
@@ -234,8 +225,8 @@ impl Serialize for SerializedSceneData {
     {
         let mut serialize_struct = serializer.serialize_struct("SerializedScene", 2)?;
 
-        serialize_struct.serialize_field("name", &self.name);
-        serialize_struct.serialize_field("entity_data", &self.entity_data);
+        let _ = serialize_struct.serialize_field("name", &self.name);
+        let _ = serialize_struct.serialize_field("entity_data", &self.entity_data);
         serialize_struct.end()
     }
 }

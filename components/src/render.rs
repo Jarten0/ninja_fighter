@@ -34,10 +34,9 @@ pub fn update(mut query: Query<(&mut Renderer, TransformComponentTuple)>) {
 
         renderer.draw_param.transform = draw_transform.clone();
 
-        renderer.set(
-            renderer.draw_param.transform(draw_transform),
-            Position::new(0.0, 0.0),
-        )
+        let draw_param = renderer.draw_param.to_owned();
+
+        Renderer::set(&mut renderer, draw_param, Position::new(0.0, 0.0))
     }
 }
 
@@ -66,7 +65,6 @@ pub struct Renderer {
     pub draw_param: DrawParam,
     pub image: RenderType,
     pub offset: space::Position,
-    pub transform: Transform,
 }
 
 #[allow(dead_code)]
@@ -85,22 +83,15 @@ impl Renderer {
         Renderer {
             image,
             draw_param,
-            transform,
             offset,
         }
     }
 
     /// Similar to `Renderer::new()`, but with extra parameters for other values.
-    pub fn new_opt(
-        image: RenderType,
-        transform: Transform,
-        draw_param: DrawParam,
-        offset: space::Position,
-    ) -> Self {
+    pub fn new_opt(image: RenderType, draw_param: DrawParam, offset: space::Position) -> Self {
         Renderer {
             image,
             draw_param,
-            transform,
             offset,
         }
     }
@@ -117,7 +108,6 @@ impl Renderer {
         Self {
             image: RenderType::default(gfx),
             draw_param: Default::default(),
-            transform: Default::default(),
             offset: Default::default(),
         }
     }

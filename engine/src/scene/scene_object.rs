@@ -22,6 +22,7 @@ impl Hash for SceneObjectID {
     }
 }
 
+#[allow(unused)]
 impl SceneObjectID {
     pub fn get_id() -> usize {
         pub(crate) static COUNTER: AtomicUsize = AtomicUsize::new(1);

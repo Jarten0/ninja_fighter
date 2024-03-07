@@ -1,10 +1,9 @@
 use bevy_ecs::{
-    component::{Component, ComponentDescriptor, ComponentId},
+    component::{Component, ComponentId},
     world::World,
 };
 use bevy_reflect::Reflect;
 use erased_serde::{Error, Serializer};
-use std::path::PathBuf;
 
 /// Holds data for the assigned [`Scene`] to operate upon.
 /// An entity cannot be serialized by the [`Scene`] if it does not have this component.
