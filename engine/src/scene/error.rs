@@ -3,6 +3,8 @@ use core::fmt::Display;
 #[derive(Debug)]
 pub enum SceneError {
     /// No scene was selected as the target when saving.
+    ///
+    /// Scene was already unloaded/ No scene was selected as the target when unloading.
     NoTargetScene,
     /// Something went wrong while parsing a file.
     /// [`String`] is the IO error message, formatted as a string

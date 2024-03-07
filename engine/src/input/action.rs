@@ -1,5 +1,6 @@
 use std::{collections::HashMap, str::FromStr};
 
+use crate::scene::SceneObjectID;
 use crate::Key;
 
 use super::key::keycode_converter::{keycode_to_str, str_to_keycode};
@@ -68,27 +69,33 @@ impl Default for KeyStatus {
 ///
 /// It also contains a set of default keys that can only be changed outside of gameplay.
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub struct Action {
+pub struct ActionData {
     pub name: String,
+    pub id: ActionID,
     pub(crate) keys: Vec<KeycodeType>,
     pub(super) status: KeyStatus,
     pub(crate) default_keys: Vec<KeycodeType>,
 }
 
-impl Action {
+impl ActionData {
     /// Creates a new action from the given keys and sets it into the [`Input`] resource.
     /// Returns a mutable reference to the action which is now owned by the [`Input`] module
     ///
     /// Use `Input::get_action` or `Input::get_action_mut` to alter the action later.
-    pub fn new<'a>(input: &'a mut Input, name: String, keys: Vec<KeycodeType>) -> &'a mut Action {
+    pub fn new<'a>(
+        input: &'a mut Input,
+        name: String,
+        keys: Vec<KeycodeType>,
+    ) -> &'a mut ActionData {
         input.new_action(Self {
             name: name.clone(),
             keys,
             status: KeyStatus::Idle(0),
             default_keys: Vec::new(),
+            id: ActionID::new(),
         });
 
-        return input.get_action_mut(&name).unwrap();
+        input.get_action_mut(&name).unwrap()
     }
 
     /// Adds a new [`Key`] to the key list for the [`Action`].
@@ -154,9 +161,21 @@ impl Action {
     pub fn action_status(&self) -> KeyStatus {
         self.status
     }
+
+    pub fn is_just_pressed(&self) -> bool {
+        self.status.is_just_pressed()
+    }
+
+    pub fn is_held(&self) -> bool {
+        self.status.is_held()
+    }
+
+    pub fn is_just_released(&self) -> bool {
+        self.status.is_just_released()
+    }
 }
 
-impl ToString for Action {
+impl ToString for ActionData {
     /// Return value example: `TestActionName/key1;key2;key3;|`
     fn to_string(&self) -> String {
         let mut output: String = String::new();
@@ -177,7 +196,7 @@ impl ToString for Action {
     }
 }
 
-impl FromStr for Action {
+impl FromStr for ActionData {
     /// sample value: "Action Name/key1;key2;key3|actionName2/key1;key4;key6|"
     ///
     /// `|`: action seperator
@@ -185,7 +204,7 @@ impl FromStr for Action {
     /// `/`: name and keys seperator
     ///
     /// `;`: key seperator
-    fn from_str(value: &str) -> Result<Action, &'static str> {
+    fn from_str(value: &str) -> Result<ActionData, &'static str> {
         let name_seperator = value.find('/').ok_or("action save value is invalid. (Could not find name and keys character seperator, aka '/')")?;
 
         let end_of_string = value.len();
@@ -223,15 +242,35 @@ impl FromStr for Action {
             }
         }
 
-        let action = Action {
+        let action = ActionData {
             name,
             keys,
             status: KeyStatus::default(),
             default_keys: Vec::new(),
+            id: ActionID::default(),
         };
 
         Ok(action)
     }
 
     type Err = &'static str;
+}
+
+#[derive(Debug, Clone, Copy, Hash, PartialEq, PartialOrd, Eq)]
+pub struct ActionID {
+    id: usize,
+}
+
+impl Default for ActionID {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl ActionID {
+    pub fn new() -> Self {
+        Self {
+            id: SceneObjectID::get_id_from_counter(crate::scene::CounterType::Actions),
+        }
+    }
 }

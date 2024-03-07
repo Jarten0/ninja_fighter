@@ -16,7 +16,7 @@ pub mod resource;
 #[cfg(test)]
 mod test;
 
-pub use action::{Action, KeyStatus};
+pub use action::{ActionData, KeyStatus};
 pub use ggez::input::keyboard::KeyCode;
 pub use key::keycode_converter::KeycodeType;
 pub use key::Key;

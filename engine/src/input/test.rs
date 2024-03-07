@@ -1,4 +1,4 @@
-use crate::input::key::keycode_converter::str_to_keycode;
+use crate::input::{action::ActionID, key::keycode_converter::str_to_keycode};
 
 /// Uses the given [`InputModuleType`].
 static INPUT_MODULE: InputModuleType = InputModuleType::EmptyInputModule;
@@ -51,7 +51,7 @@ enum InputModuleType {
 /// `;`: key seperator
 #[test]
 fn convert_action_to_str_test() {
-    use crate::{input::resource::Input, Action};
+    use crate::{input::resource::Input, ActionData};
     use std::str::FromStr;
 
     // Initialize data
@@ -89,20 +89,21 @@ fn convert_action_to_str_test() {
 
     let _key = str_to_keycode(test_keys_str);
 
-    let instantiated_action: Action = Action {
+    let instantiated_action: ActionData = ActionData {
         name: String::from(test_name),
         keys,
         status: Default::default(),
         default_keys: Vec::new(),
+        id: ActionID::new(),
     };
 
     let test_action = String::new() + test_name + "/" + test_keys_str + "|";
 
     // Test Functions
-    let string_action = Action::to_string(&instantiated_action.clone());
+    let string_action = ActionData::to_string(&instantiated_action.clone());
 
     println!("{}", string_action);
-    let result = Action::from_str(string_action.as_str()).unwrap();
+    let result = ActionData::from_str(string_action.as_str()).unwrap();
 
     assert_eq!(string_action, test_action);
     assert_eq!(result.name, test_name);

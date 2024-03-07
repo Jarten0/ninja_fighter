@@ -163,6 +163,50 @@ fn load_scene(root: &mut GameRoot) -> Result<(), String> {
     )
 }
 
+fn unload_scene(root: &mut GameRoot) -> Result<(), String> {
+    root.world.resource_scope(
+        |world, mut scene_manager: Mut<SceneManager>| -> Result<(), String> {
+            scene_manager
+                .unload_scene(world)
+                .map_err(|err| -> String { err.to_string() })?;
+
+            Ok(())
+        },
+    )
+}
+
+fn reload_scene(root: &mut GameRoot) -> Result<(), String> {
+    let path = root
+        .world
+        .resource_scope(
+            |world, mut scene_manager: Mut<SceneManager>| -> Option<PathBuf> {
+                world
+                    .get::<Scene>(scene_manager.target_scene?)?
+                    .save_data_path()
+                    .cloned()
+            },
+        )
+        .ok_or(
+            SceneError::NoTargetScene.to_string() + " [Error while getting path from target scene]",
+        )?;
+
+    unload_scene(root)?;
+
+    root.world.resource_scope(
+        |world, mut scene_manager: Mut<SceneManager>| -> Result<(), String> {
+            scene_manager.target_scene = Some(
+                scene_manager
+                    .load_scene(world, path)
+                    .map_err(|err| -> String {
+                        err.to_string() + "[Error when reloading scene] "
+                    })?,
+            );
+
+            Ok(())
+        },
+    )
+}
+
 fn new_scene(root: &mut GameRoot) -> Result<(), String> {
     let name = Text::new("What will be the name of the scene? >").prompt();
     let name = match name {

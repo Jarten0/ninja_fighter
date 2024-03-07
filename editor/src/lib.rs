@@ -5,7 +5,7 @@ pub mod debuge {
     use bevy_ecs::{prelude::*, world};
     use engine::input::{KeyCode, KeycodeType};
     use engine::schedule::{ScheduleTag, Scheduler};
-    use engine::Action;
+    use engine::ActionData;
     use engine::Input;
 
     use crate::debug::debug_cli;
@@ -15,7 +15,7 @@ pub mod debuge {
     fn setup_debug(mut input: ResMut<Input>) {
         let key = KeycodeType::Keyboard(KeyCode::Grave);
         let keys = vec![key];
-        let action = Action::new(&mut input, DEBUG_ACTION_NAME.to_owned(), keys);
+        let action = ActionData::new(&mut input, DEBUG_ACTION_NAME.to_owned(), keys);
     }
 
     fn check_for_debug(input: Res<Input>, mut commands: Commands) {
@@ -50,8 +50,7 @@ pub mod debuge {
         // world.init_component()
     }
 
-    pub fn wrap_schedules_with_debug(
-    ) -> Vec<for<'a> fn(&'a mut bevy_ecs::schedule::Schedule) -> ScheduleTag> {
+    pub fn wrap_schedules_with_debug() -> Vec<fn(&mut Schedule) -> ScheduleTag> {
         let mut builders = game::schedule_builders();
         builders.push(debug_schedule);
         builders

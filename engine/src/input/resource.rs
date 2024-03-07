@@ -1,6 +1,6 @@
 use crate::space;
 
-use super::action::{Action, KeyStatus};
+use super::action::{ActionData, ActionID, KeyStatus};
 use super::key::input_hashmap::InputFile;
 use super::key::keycode_converter::KeycodeType;
 use super::key::{input_hashmap, keycode_converter, Key};
@@ -38,7 +38,8 @@ pub struct Input
 where
     Self: 'static,
 {
-    pub(super) actions: HashMap<String, Action>,
+    pub(super) action_ids: HashMap<ActionID, String>,
+    pub(super) actions: HashMap<String, ActionData>,
     pub(super) keylist: HashMap<KeycodeType, Key>,
     pub(super) key_update_queue: KeyUpdateQueue,
     pub(super) mouse_pos: space::Vector2,
@@ -65,6 +66,7 @@ impl Default for Input {
             keylist: HashMap::new(),
             key_update_queue: LinkedList::new(),
             mouse_pos: space::Vector2::zero(),
+            action_ids: HashMap::new(),
         }
     }
 }
@@ -140,24 +142,29 @@ impl Input {
     /// Thus, it also returns [`Some(Key)`] if the key already had a value. Otherwise, it returns [`None`].
     ///
     /// [`Action::new`] already lets you create actions, so use that instead.
-    pub fn new_action(&mut self, action: Action) -> Option<Action> {
+    pub fn new_action(&mut self, action: ActionData) -> Option<ActionData> {
+        HashMap::insert(&mut self.action_ids, action.id.clone(), action.name.clone());
         HashMap::insert(&mut self.actions, action.name.clone(), action)
     }
 
     /// Returns the current status of the given action
-    pub fn action_status(&self, action: &Action) -> KeyStatus {
+    pub fn action_status(&self, action: &ActionData) -> KeyStatus {
         action.status
     }
 
     /// Wrapper function for `HashMap::get`. Returns [`Some(&Action)`] if the action exists, and returning [`None`] if not.
-    pub fn get_action(&self, action_name: &str) -> Option<&Action> {
+    pub fn get_action(&self, action_name: &str) -> Option<&ActionData> {
         self.actions.get(action_name)
+    }
+
+    pub fn get_action_by_id(&self, action_id: ActionID) -> Option<&ActionData> {
+        self.get_action(self.action_ids.get(&action_id)?)
     }
 
     /// Wrapper function for `HashMap::get_mut`.
     ///
     /// Returns [`Some`] if the action exists, and returning [`None`] if not.
-    pub fn get_action_mut(&mut self, action_name: &str) -> Option<&mut Action> {
+    pub fn get_action_mut(&mut self, action_name: &str) -> Option<&mut ActionData> {
         self.actions.get_mut(action_name)
     }
 
@@ -166,7 +173,7 @@ impl Input {
     /// Returns [`Some`] if the action exists.
     ///
     /// Returns [`None`] if the action doesn't exist.
-    pub fn remove_action(&mut self, action_name: &str) -> Option<Action> {
+    pub fn remove_action(&mut self, action_name: &str) -> Option<ActionData> {
         self.actions.remove(action_name)
     }
 }
@@ -248,7 +255,7 @@ impl FromStr for Input {
 
         for character in value.chars() {
             if character == '|' {
-                let action = match Action::from_str(action_token_buf.as_str()) {
+                let action = match ActionData::from_str(action_token_buf.as_str()) {
                     Ok(action) => action,
                     Err(err) => {
                         eprintln!("{}", err);

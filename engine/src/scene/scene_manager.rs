@@ -7,8 +7,8 @@ use bevy_ecs::system::Resource;
 use bevy_ecs::world::World;
 use bevy_reflect::TypeRegistry;
 
-use super::error;
 use super::{component::Scene, load_scene, save_scene};
+use super::{error, unload_scene};
 
 #[derive(Resource, Default)]
 pub struct SceneManager {
@@ -93,5 +93,13 @@ impl SceneManager {
             self.target_scene = Some(entity);
         }
         result
+    }
+
+    pub fn unload_scene(&mut self, world: &mut World) -> Result<(), error::SceneError> {
+        if let Some(target_scene) = self.target_scene.take() {
+            Ok(unload_scene(target_scene, world))
+        } else {
+            Err(error::SceneError::NoTargetScene)
+        }
     }
 }

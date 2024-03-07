@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::input::key::keycode_converter::keycode_to_str;
 
-use super::{Action, Input, KeycodeType};
+use super::{ActionData, Input, KeycodeType};
 
 use inquire::{validator::Validation, Confirm, CustomType, Text};
 
@@ -144,7 +144,7 @@ fn add_action(input: &mut Input) {
     for _ in 0..int_prompt_type().prompt().unwrap() {
         keys.push(keycode_prompt_type().prompt().unwrap());
     }
-    Action::new(input, name, keys);
+    ActionData::new(input, name, keys);
 }
 
 fn edit_action(input_module: &mut Input) {

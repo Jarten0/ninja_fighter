@@ -19,7 +19,7 @@ pub use assets::Assets;
 pub use camera::Camera;
 pub use engine::GgezInterface;
 pub use input::input_cli_editor;
-pub use input::{Action, Input, Key};
+pub use input::{ActionData, Input, Key};
 pub use render::render_type::RenderType;
 pub use root::GameRoot;
 

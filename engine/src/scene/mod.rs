@@ -17,6 +17,7 @@ pub use component::{
 pub use component::Scene;
 pub use error::SceneError;
 pub use scene_manager::SceneManager;
+pub use scene_object::{CounterType, SceneObjectID};
 pub use serialized_scene::ToReflect;
 pub use traits::SceneData;
 

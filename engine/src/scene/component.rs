@@ -119,6 +119,10 @@ impl Scene {
     pub fn get_entities(&self) -> &Vec<Entity> {
         &self.entities
     }
+
+    pub fn save_data_path(&self) -> Option<&PathBuf> {
+        self.save_data_path.as_ref()
+    }
 }
 
 impl PartialEq for Scene {
@@ -182,6 +186,8 @@ pub fn load_scene(
     let deserialize = serde_json::from_str::<SerializedSceneData>(&buf)
         .map_err(|err| error::SceneError::LoadFailure(err.to_string()))?;
     let scene_entity = deserialize.initialize(world, registry)?;
+
+    world.get_mut::<Scene>(scene_entity).unwrap().save_data_path = Some(buf.into());
 
     Ok(scene_entity)
 }
