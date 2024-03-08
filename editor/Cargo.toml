@@ -13,4 +13,5 @@ engine = { version = "0.1.0", path = "../engine" }
 game = { version = "0.1.0", path = "../game" }
 ggez.workspace = true
 inquire.workspace = true
+log = "0.4.21"
 serde_json.workspace = true

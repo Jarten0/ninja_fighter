@@ -18,7 +18,7 @@ use crate::collider::Collider;
 use super::collider::collider_mesh::ColliderMesh;
 
 pub fn init(mut commands: Commands, engine: Res<GgezInterface>) {
-    if !engine.debug {
+    if !engine.debug_mode {
         return;
     }
     commands.spawn(DebugComponent::new());
@@ -51,7 +51,7 @@ pub fn update(
     let is_just_pressed = input
         .get_action("Click")
         .unwrap()
-        .action_status()
+        .status()
         .is_just_pressed();
 
     for mut debug in query.iter_mut() {
@@ -99,9 +99,9 @@ impl fmt::Display for PlaceState {
 }
 
 pub fn draw(query: Query<&ColliderMesh>, mut engine: ResMut<GgezInterface>) {
-    if !engine.debug {
-        return;
-    }
+    // if !engine.debug {
+    //     return;
+    // }
 
     for mesh in query.iter() {
         draw_vertecies(&mut engine, mesh);

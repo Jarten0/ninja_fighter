@@ -9,13 +9,11 @@ pub struct Scheduler {
 }
 
 impl Scheduler {
-    pub fn new(schedule_builders: Vec<fn(&mut Schedule) -> ScheduleTag>) -> Self {
+    pub fn new(schedule_builders: Vec<fn() -> (Schedule, ScheduleTag)>) -> Self {
         let mut schedules = HashMap::new();
 
         for builder in schedule_builders {
-            let mut sched = Schedule::default();
-            let tag = builder(&mut sched);
-
+            let (sched, tag) = builder();
             schedules.insert(tag, sched);
         }
 

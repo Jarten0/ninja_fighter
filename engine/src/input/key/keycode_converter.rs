@@ -345,6 +345,7 @@ fn const_keytypes_hashmap() -> &'static HashMap<&'static str, KeycodeType> {
             hash_map.insert("caret", KeycodeType::Keyboard(KeyCode::Caret));
             hash_map.insert("bslash", KeycodeType::Keyboard(KeyCode::Backslash));
             hash_map.insert("eq", KeycodeType::Keyboard(KeyCode::Equals));
+            hash_map.insert("grave", KeycodeType::Keyboard(KeyCode::Grave));
 
             hash_map.insert("lalt", KeycodeType::Keyboard(KeyCode::LAlt));
             hash_map.insert("lctrl", KeycodeType::Keyboard(KeyCode::LControl));
@@ -535,11 +536,11 @@ pub fn keycode_to_str(key_type: KeycodeType) -> Result<&'static str, &'static st
             KeyCode::Slash => "slash",
             KeyCode::Comma => "comma",
             // Unused
-            KeyCode::Plus => "none",
-            KeyCode::Apostrophe => "none",
-            KeyCode::Asterisk => "none",
-            KeyCode::Grave => "none",
-            KeyCode::Colon => "none",
+            KeyCode::Plus => "plus",
+            KeyCode::Apostrophe => "apostrophe",
+            KeyCode::Asterisk => "asterist",
+            KeyCode::Grave => "grave",
+            KeyCode::Colon => "colon",
             // Media Control
             KeyCode::Mute => "none",
             KeyCode::PlayPause => "none",

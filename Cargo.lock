@@ -1068,6 +1068,7 @@ dependencies = [
  "game",
  "ggez",
  "inquire",
+ "log",
  "serde_json",
 ]
 

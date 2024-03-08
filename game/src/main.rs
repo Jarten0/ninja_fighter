@@ -19,6 +19,7 @@ fn main() -> ! {
         game::init_components_and_resources,
         game::schedule_builders,
         game::TICKS_PER_SECOND.clone(),
+        None,
     );
 
     ggez::event::run(context, event_loop, root);

@@ -95,6 +95,7 @@ pub(crate) fn const_key_hashmap() -> &'static HashMap<KeycodeType, Key> {
                 (KeycodeType::Keyboard(KeyCode::Space)),
                 (KeycodeType::Keyboard(KeyCode::Compose)),
                 (KeycodeType::Keyboard(KeyCode::Caret)),
+                (KeycodeType::Keyboard(KeyCode::Grave)),
                 (KeycodeType::Keyboard(KeyCode::Numlock)),
                 (KeycodeType::Keyboard(KeyCode::Numpad0)),
                 (KeycodeType::Keyboard(KeyCode::Numpad1)),

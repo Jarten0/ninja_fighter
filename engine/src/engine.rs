@@ -22,7 +22,7 @@ where
     pub(crate) context_ptr: *mut ggez::Context,
 
     /// Whether debug functionality should be enabled or not.
-    pub debug: bool,
+    pub debug_mode: bool,
 }
 
 unsafe impl Send for GgezInterface {}
@@ -34,7 +34,7 @@ impl GgezInterface {
         Self {
             current_canvas: None,
             context_ptr,
-            debug: true,
+            debug_mode: true,
         }
     }
     /// Returns a reference to the current canvas [`ggez`] will operate on.
