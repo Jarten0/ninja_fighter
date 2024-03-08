@@ -3,12 +3,15 @@
 //! * [`GameRoot`] - Creates the main game state, initializes modules and libraries, and communicates between [`ggez`]'s engine and [`bevy_ecs`]'s world
 
 use crate::input::KeycodeType;
+use crate::logging;
+use crate::logging::Logger;
 use crate::scene::SceneManager;
 use crate::schedule::ScheduleTag;
 use crate::schedule::Scheduler;
 use crate::Camera;
 use crate::GgezInterface;
 use crate::Input;
+use log::*;
 
 use bevy_ecs::schedule::Schedule;
 use bevy_ecs::world::*;
@@ -52,6 +55,14 @@ impl GameRoot {
         let debug = false;
         let pke = false;
 
+        if let Err(err) = log::set_logger(&logging::LOGGER) {
+            eprintln!("Failed to create logger! [{}]", err.to_string())
+        }
+
+        log::set_max_level(LevelFilter::Trace);
+
+        info!("Begin log");
+
         let scheduler = Scheduler::new(schedule_builder_functions());
         World::insert_resource(&mut world, scheduler);
 
@@ -70,6 +81,8 @@ impl GameRoot {
         let camera = Camera::default();
         World::insert_resource(&mut world, camera);
 
+        trace!("Created resources");
+
         crate::register_types(&mut world);
 
         let mut root = GameRoot {
@@ -81,6 +94,8 @@ impl GameRoot {
         GameRoot::update_context(&mut root, context);
 
         world_init(&mut root.world);
+
+        trace!("Initialized world and created game root");
 
         root.world.resource_scope(|world, mut a: Mut<Scheduler>| {
             a.get_schedule_mut(ScheduleTag::Init)
@@ -94,8 +109,10 @@ impl GameRoot {
                 res.load_scene(world, "game/assets/scenes/cheeseland.json".into())
             })
         {
-            eprintln!("Scene load error! [{}]", err)
+            error!("Scene load error! [{}]", err)
         }
+
+        trace!("Ran init schedule");
 
         root
     }
@@ -129,12 +146,17 @@ impl EventHandler for GameRoot {
         // Debug console: if `debug_mode` is enabled, it will open the console and pause ticks until it is closed
         if self.debug_mode {
             // Debug schedule is optional
+            trace!("Entered debug mode");
+
             self.world
                 .resource_scope(|world, mut a: Mut<Scheduler>| -> Option<()> {
                     Some(a.get_schedule_mut(ScheduleTag::Debug)?.run(world))
                 });
             self.debug_mode = false;
             ctx.time.tick();
+
+            trace!("Exited Debug mode");
+
             return Ok(());
         }
 
@@ -152,6 +174,9 @@ impl EventHandler for GameRoot {
             });
 
         ctx.time.tick();
+
+        // trace!("Ran tick updates");
+
         Ok(())
     }
 
@@ -181,6 +206,7 @@ impl EventHandler for GameRoot {
         _y: f32,
     ) -> Result<(), ggez::GameError> {
         let mut input: Mut<'_, Input> = self.world.resource_mut();
+        trace!("Key pressed");
 
         Input::get_key_mut(&mut input, &mut KeycodeType::Mouse(_button))
             .unwrap()

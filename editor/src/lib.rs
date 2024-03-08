@@ -35,7 +35,7 @@ pub mod debuge {
         // Systems block
         sched.add_systems(check_for_debug);
 
-        ScheduleTag::Tick
+        ScheduleTag::Debug
     }
 
     pub(crate) static DEBUG_SETTINGS: ScheduleBuildSettings = ScheduleBuildSettings {

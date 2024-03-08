@@ -9,6 +9,7 @@ mod camera;
 mod engine;
 mod freeze;
 pub mod input;
+pub mod logging;
 mod render;
 mod root;
 pub mod scene;
