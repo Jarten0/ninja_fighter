@@ -10,6 +10,7 @@ fn main() {
         game::init_components_and_resources,
         editor::debuge::wrap_schedules_with_debug,
         60,
+        Some(editor::debug::debug_cli),
     );
 
     ggez::event::run(context, event_loop, root);

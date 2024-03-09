@@ -289,9 +289,27 @@ fn add_component(root: &mut GameRoot) -> Result<(), String> {
                 .get_with_type_path(&component_path)
                 .ok_or(SceneError::MissingTypeRegistry(component_path.clone()).to_string())?;
 
+            let mut component_patch = DynamicStruct::default();
+
+            component_patch.set_represented_type(Some(component_registration.type_info()));
+
+            let mut component_data: HashMap<&str, serde_json::Value> = HashMap::new();
+
             let field_names = match component_registration.type_info() {
-                bevy_reflect::TypeInfo::Struct(struct_info) => struct_info.field_names(),
-                bevy_reflect::TypeInfo::TupleStruct(_) => todo!(), // These `todo!()` 's shouldn't be hit, but if they are, implement something here.
+                bevy_reflect::TypeInfo::Struct(struct_info) => {
+                    for field_name in struct_info.field_names() {
+                        component_data.insert(
+                            &field_name,
+                            serde_json::from_str(
+                                &Text::new(&format!("Enter value for field [{}] > ", field_name))
+                                    .prompt()
+                                    .unwrap(),
+                            )
+                            .map_err(|err| err.to_string())?,
+                        );
+                    }
+                }
+                bevy_reflect::TypeInfo::TupleStruct(tuple_info) => todo!(), // These `todo!()` 's shouldn't be hit, but if they are, implement something here.
                 bevy_reflect::TypeInfo::Tuple(_) => todo!(),
                 bevy_reflect::TypeInfo::List(_) => todo!(),
                 bevy_reflect::TypeInfo::Array(_) => todo!(),
@@ -303,24 +321,6 @@ fn add_component(root: &mut GameRoot) -> Result<(), String> {
                     )
                 }
             };
-
-            let mut component_patch = DynamicStruct::default();
-
-            component_patch.set_represented_type(Some(component_registration.type_info()));
-
-            let mut component_data: HashMap<&str, serde_json::Value> = HashMap::new();
-
-            for field_name in field_names {
-                component_data.insert(
-                    &field_name,
-                    serde_json::from_str(
-                        &Text::new(&format!("Enter value for field [{}] > ", field_name))
-                            .prompt()
-                            .unwrap(),
-                    )
-                    .map_err(|err| err.to_string())?,
-                );
-            }
 
             for (name, field) in &component_data {
                 println!("!");

@@ -23,6 +23,7 @@ pub struct ProtagBundle {
 }
 
 #[derive(Default, Debug, Component, Reflect)]
+#[reflect(Component)]
 pub struct ProtagController {
     pub acc: f32,
     pub decel: f32,
@@ -50,19 +51,19 @@ pub fn update(
             velocity.x *= 1.0 - controller.decel
         }
         if is_moving(WASD::W, &input) {
-            velocity.y -= 0.1;
+            velocity.y -= 0.3;
         }
         if is_moving(WASD::S, &input) {
-            velocity.y += 0.1;
+            velocity.y += 0.3;
         }
         if (pos.y > 370.0 || true) && input.get_action("Click").unwrap().is_just_pressed() {
             velocity.y = -controller.jump_power;
         }
-        if velocity.y < controller.max_fall_speed && pos.y < 350.0 {
+        if velocity.y < controller.max_fall_speed && pos.y < 390.0 {
             velocity.y += controller.fall_acc;
         } else if pos.y > 400.0 && velocity.y >= 0.0 {
             velocity.y = 0.0;
-            pos.y = ggez.get_canvas().un;
+            // pos.y = ggez.get_canvas().un;
         }
     }
 }
@@ -83,7 +84,7 @@ fn is_moving(direction: WASD, input: &Input) -> bool {
             WASD::D => "Right",
         })
         .unwrap()
-        .action_status()
+        .status()
         .is_held()
 }
 

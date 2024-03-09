@@ -1,6 +1,5 @@
 use ggez::event::{Button, MouseButton};
 
-use super::super::action::KeyStatus;
 use super::super::key::keycode_converter;
 use super::super::key::keycode_converter::KeycodeType;
 use super::super::key::Key;
@@ -95,6 +94,7 @@ pub(crate) fn const_key_hashmap() -> &'static HashMap<KeycodeType, Key> {
                 (KeycodeType::Keyboard(KeyCode::Space)),
                 (KeycodeType::Keyboard(KeyCode::Compose)),
                 (KeycodeType::Keyboard(KeyCode::Caret)),
+                (KeycodeType::Keyboard(KeyCode::Grave)),
                 (KeycodeType::Keyboard(KeyCode::Numlock)),
                 (KeycodeType::Keyboard(KeyCode::Numpad0)),
                 (KeycodeType::Keyboard(KeyCode::Numpad1)),
@@ -163,7 +163,7 @@ pub(crate) fn const_key_hashmap() -> &'static HashMap<KeycodeType, Key> {
                         keycode: StringifiableKeyCode(keytype),
                         name: keycode_converter::keycode_to_str(keytype)
                             .expect(format!("keytype is invalid: {}", keytype).as_str()),
-                        status: KeyStatus::default(),
+                        status: crate::input::KeyStatus::default(),
                         event_occured: false,
                     },
                 );

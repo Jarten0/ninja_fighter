@@ -40,7 +40,7 @@ where
 {
     pub(super) action_ids: HashMap<ActionID, String>,
     pub(super) actions: HashMap<String, ActionData>,
-    pub(super) keylist: HashMap<KeycodeType, Key>,
+    pub(super) key_list: HashMap<KeycodeType, Key>,
     pub(super) key_update_queue: KeyUpdateQueue,
     pub(super) mouse_pos: space::Vector2,
 }
@@ -63,7 +63,7 @@ impl Default for Input {
     fn default() -> Self {
         Self {
             actions: HashMap::new(),
-            keylist: HashMap::new(),
+            key_list: HashMap::new(),
             key_update_queue: LinkedList::new(),
             mouse_pos: space::Vector2::zero(),
             action_ids: HashMap::new(),
@@ -85,7 +85,7 @@ impl Input {
             }
         };
 
-        input.keylist = (*input_hashmap::const_key_hashmap()).clone();
+        input.key_list = (*input_hashmap::const_key_hashmap()).clone();
 
         input
     }
@@ -99,8 +99,11 @@ impl Input {
     }
 
     pub(crate) fn process_key_queue(&mut self) {
+        for (_, key) in &mut self.key_list {
+            key.update(key.status.is_held())
+        }
         for (key, is_held) in &mut self.key_update_queue {
-            if let Some(key) = self.keylist.get_mut(key) {
+            if let Some(key) = self.key_list.get_mut(key) {
                 key.update(is_held.to_owned())
             } else {
                 eprintln!(
@@ -114,7 +117,7 @@ impl Input {
         self.key_update_queue.clear();
 
         for action in self.actions.values_mut() {
-            action.update(&self.keylist)
+            action.update(&self.key_list)
         }
     }
 
@@ -123,19 +126,19 @@ impl Input {
             Some(k) => k,
             None => return false,
         };
-        self.keylist.contains_key(&k)
+        self.key_list.contains_key(&k)
     }
 
     pub(crate) fn get_key(&self, key: &KeycodeType) -> Option<&Key> {
-        self.keylist.get(key)
+        self.key_list.get(key)
     }
 
     pub(crate) fn get_key_mut(&mut self, key: &KeycodeType) -> Option<&mut Key> {
-        self.keylist.get_mut(key)
+        self.key_list.get_mut(key)
     }
 
     pub(crate) fn get_key_from_str(&self, key: &str) -> Option<&Key> {
-        self.keylist.get(&keycode_converter::str_to_keycode(key)?)
+        self.key_list.get(&keycode_converter::str_to_keycode(key)?)
     }
 
     /// Wrapper function for `HashMap::Insert` but making sure that the hash key equals the actions name.

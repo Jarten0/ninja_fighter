@@ -9,7 +9,7 @@
 //!
 //! * [`Action`] - Basic container for assigning [`Key`]'s to user script actions.
 //!
-pub mod action;
+pub mod action; // Fully documented
 pub mod key;
 pub mod main;
 pub mod resource;

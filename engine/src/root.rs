@@ -2,14 +2,18 @@
 //!
 //! * [`GameRoot`] - Creates the main game state, initializes modules and libraries, and communicates between [`ggez`]'s engine and [`bevy_ecs`]'s world
 
+// Hi! If your reading this, welcome to my fun little project. Some shenanigans are afoot!
+
 use crate::input::KeycodeType;
 use crate::logging;
 use crate::scene::SceneManager;
 use crate::schedule::ScheduleTag;
 use crate::schedule::Scheduler;
+use crate::space::Vector2;
 use crate::Camera;
 use crate::GgezInterface;
 use crate::Input;
+use bevy_ecs::system::Res;
 use ggez::conf::WindowMode;
 use log::*;
 
@@ -37,8 +41,8 @@ where
     Self: 'static,
 {
     pub world: World,
-    pub debug_mode: bool,
     pub print_key_errors: bool,
+    debug_cli: Option<fn(&mut Self)>,
     pub ticks_per_second: u32,
 }
 
@@ -47,15 +51,14 @@ impl GameRoot {
     pub fn new(
         context: &mut Context,
         world_init: fn(&mut World) -> (),
-        schedule_builder_functions: fn() -> Vec<fn(&mut Schedule) -> ScheduleTag>,
+        schedule_builder_functions: fn() -> Vec<fn() -> (Schedule, ScheduleTag)>,
         ticks_per_second: u32,
+        debug_cli: Option<fn(&mut Self)>,
     ) -> Self {
         let mut world = World::new();
 
-        ggez::conf::WindowMode
-        context
-            .gfx
-            .set_mode(WindowMode::maximized(WindowMode, true));
+        // ggez::conf::WindowMode
+        context.gfx.set_mode(WindowMode::maximized(todo!(), true));
         let debug = false;
         let pke = false;
         if let Err(err) = log::set_logger(&logging::LOGGER) {
@@ -90,9 +93,9 @@ impl GameRoot {
 
         let mut root = GameRoot {
             world,
-            debug_mode: debug,
             print_key_errors: pke,
             ticks_per_second,
+            debug_cli,
         };
         GameRoot::update_context(&mut root, context);
 
@@ -122,14 +125,18 @@ impl GameRoot {
 
     /// Simply changes the context value in the GameInfo resource to the input
     fn update_context(&mut self, ctx: &mut Context) {
-        self.engine().context_ptr = ctx;
+        self.engine_mut().context_ptr = ctx;
     }
 
-    fn engine(&mut self) -> Mut<'_, GgezInterface> {
+    fn engine(&mut self) -> &GgezInterface {
+        self.world.resource::<GgezInterface>()
+    }
+
+    fn engine_mut(&mut self) -> Mut<'_, GgezInterface> {
         self.world.resource_mut::<GgezInterface>()
     }
 
-    pub fn context(&mut self) -> &Context {
+    pub fn context(&self) -> &Context {
         self.world.resource::<GgezInterface>().get_context()
     }
 
@@ -147,18 +154,24 @@ impl EventHandler for GameRoot {
         }
 
         // Debug console: if `debug_mode` is enabled, it will open the console and pause ticks until it is closed
-        if self.debug_mode {
+        if self.engine().debug_mode {
             // Debug schedule is optional
-            trace!("Entered debug mode");
+            println!("Entered debug mode");
+
+            match self.debug_cli {
+                Some(e) => e(self),
+                None => (),
+            }
 
             self.world
                 .resource_scope(|world, mut a: Mut<Scheduler>| -> Option<()> {
                     Some(a.get_schedule_mut(ScheduleTag::Debug)?.run(world))
                 });
-            self.debug_mode = false;
+
+            self.engine_mut().debug_mode = false;
             ctx.time.tick();
 
-            trace!("Exited Debug mode");
+            println!("Exited Debug mode");
 
             return Ok(());
         }
@@ -184,7 +197,7 @@ impl EventHandler for GameRoot {
     }
 
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
-        self.engine()
+        self.engine_mut()
             .set_canvas(graphics::Canvas::from_frame(ctx, Color::WHITE));
 
         self.update_context(ctx);
@@ -195,7 +208,7 @@ impl EventHandler for GameRoot {
                 .run(world);
         });
 
-        self.engine()
+        self.engine_mut()
         .take_canvas()
         .expect("game_info.current_canvas should never be moved during system running! If you took it, please undo that and make a clone or borrow instead of taking ownership over it.")
         .finish(&mut ctx.gfx)
@@ -204,16 +217,15 @@ impl EventHandler for GameRoot {
     fn mouse_button_down_event(
         &mut self,
         _ctx: &mut Context,
-        _button: event::MouseButton,
+        button: event::MouseButton,
         _x: f32,
         _y: f32,
     ) -> Result<(), ggez::GameError> {
-        let mut input: Mut<'_, Input> = self.world.resource_mut();
         trace!("Key pressed");
 
-        Input::get_key_mut(&mut input, &mut KeycodeType::Mouse(_button))
-            .unwrap()
-            .update(true);
+        self.world
+            .resource_mut::<Input>()
+            .update_key_queue(KeycodeType::Mouse(button), true);
 
         Ok(())
     }
@@ -221,15 +233,13 @@ impl EventHandler for GameRoot {
     fn mouse_button_up_event(
         &mut self,
         _ctx: &mut Context,
-        _button: event::MouseButton,
+        button: event::MouseButton,
         _x: f32,
         _y: f32,
     ) -> Result<(), ggez::GameError> {
-        let mut input: Mut<'_, Input> = self.world.resource_mut();
-
-        Input::get_key_mut(&mut input, &mut KeycodeType::Mouse(_button))
-            .unwrap()
-            .update(false);
+        self.world
+            .resource_mut::<Input>()
+            .update_key_queue(KeycodeType::Mouse(button), false);
 
         Ok(())
     }
@@ -242,6 +252,9 @@ impl EventHandler for GameRoot {
         _dx: f32,
         _dy: f32,
     ) -> Result<(), ggez::GameError> {
+        self.world
+            .resource_mut::<Input>()
+            .update_mouse_pos(Vector2::new(_x, _y));
         Ok(())
     }
 
@@ -268,8 +281,12 @@ impl EventHandler for GameRoot {
         &mut self,
         ctx: &mut Context,
         input: ggez::input::keyboard::KeyInput,
-        _repeated: bool,
+        repeated: bool,
     ) -> Result<(), ggez::GameError> {
+        if repeated {
+            return Ok(());
+        }
+
         if input.keycode == Some(ggez::winit::event::VirtualKeyCode::Escape) {
             ctx.request_quit();
         };
