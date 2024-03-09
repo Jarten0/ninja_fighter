@@ -1,16 +1,25 @@
 use log::Log;
 
-pub(crate) static LOGGER: Logger = Logger {
-    target_whitelist: Vec::new(),
-};
+pub(crate) static LOGGER: Logger = Logger;
 
-pub struct Logger {
-    target_whitelist: Vec<&'static str>,
-}
+pub struct Logger;
 
 impl Log for Logger {
     fn enabled(&self, _metadata: &log::Metadata) -> bool {
-        false
+        // find the crate name, and if calling from a module, use just the name instead of the full module path for checking with the whitelist
+        let caller_module_path = &_metadata.target();
+
+        let module_break = match caller_module_path.find(':') {
+            Some(some) => some,
+            None => caller_module_path.len(),
+        };
+
+        let crate_name = caller_module_path.get(0..module_break).unwrap();
+
+        if crate_name == "wgpu_core" {
+            return false;
+        }
+        ["engine", "game", "editor", "components"].contains(&crate_name)
     }
 
     fn log(&self, record: &log::Record) {

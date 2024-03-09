@@ -4,13 +4,13 @@
 
 use crate::input::KeycodeType;
 use crate::logging;
-use crate::logging::Logger;
 use crate::scene::SceneManager;
 use crate::schedule::ScheduleTag;
 use crate::schedule::Scheduler;
 use crate::Camera;
 use crate::GgezInterface;
 use crate::Input;
+use ggez::conf::WindowMode;
 use log::*;
 
 use bevy_ecs::schedule::Schedule;
@@ -52,9 +52,12 @@ impl GameRoot {
     ) -> Self {
         let mut world = World::new();
 
+        ggez::conf::WindowMode
+        context
+            .gfx
+            .set_mode(WindowMode::maximized(WindowMode, true));
         let debug = false;
         let pke = false;
-
         if let Err(err) = log::set_logger(&logging::LOGGER) {
             eprintln!("Failed to create logger! [{}]", err.to_string())
         }

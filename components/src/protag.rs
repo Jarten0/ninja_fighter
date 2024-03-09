@@ -35,6 +35,7 @@ pub struct ProtagController {
 pub fn update(
     mut query: Query<(&mut Position, &mut Velocity, &ProtagController)>,
     input: Res<Input>,
+    ggez: Res<GgezInterface>,
 ) {
     for (mut pos, mut velocity, controller) in query.iter_mut() {
         if velocity.x.abs() > controller.speed_cap {
@@ -54,14 +55,14 @@ pub fn update(
         if is_moving(WASD::S, &input) {
             velocity.y += 0.1;
         }
-        if pos.y > 370.0 && input.get_action("Click").unwrap().is_just_pressed() {
+        if (pos.y > 370.0 || true) && input.get_action("Click").unwrap().is_just_pressed() {
             velocity.y = -controller.jump_power;
         }
         if velocity.y < controller.max_fall_speed && pos.y < 350.0 {
             velocity.y += controller.fall_acc;
         } else if pos.y > 400.0 && velocity.y >= 0.0 {
             velocity.y = 0.0;
-            pos.y = 400.0;
+            pos.y = ggez.get_canvas().un;
         }
     }
 }

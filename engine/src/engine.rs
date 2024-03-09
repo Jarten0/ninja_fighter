@@ -38,7 +38,7 @@ impl GgezInterface {
         }
     }
     /// Returns a reference to the current canvas [`ggez`] will operate on.
-    pub(crate) fn get_canvas(&self) -> Option<&Canvas> {
+    pub fn get_canvas(&self) -> Option<&Canvas> {
         self.current_canvas.as_ref()
     }
     pub fn get_canvas_mut(&mut self) -> Option<&mut Canvas> {

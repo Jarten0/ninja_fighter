@@ -8,9 +8,27 @@
 // // ! * [`engine`] - modules designed to interface between the different libraries the core engine uses, including [`bevy_ecs`] and [`ggez`].
 // // ! Also contains extra stuff to standardize things used between all projects that use this engine, for example, [`engine::space`] for a standard vector system.
 
+use ggez::conf::WindowMode;
+
 // / The start of the program. The crux of the functionality however happens in [`engine::GameRoot`].
 fn main() -> ! {
     let (mut context, event_loop) = ggez::ContextBuilder::new("Ninja Fighter", "Jarten0")
+        .window_mode(WindowMode {
+            width: 800.0,
+            height: 600.0,
+            maximized: true,
+            fullscreen_type: ggez::conf::FullscreenType::Desktop,
+            borderless: false,
+            transparent: false,
+            min_width: 1.0,
+            min_height: 0.0,
+            max_width: 1.0,
+            max_height: 0.0,
+            resizable: false,
+            visible: false,
+            resize_on_scale_factor_change: false,
+            logical_size: None,
+        })
         .build()
         .expect("aieee, could not create ggez context!");
 
