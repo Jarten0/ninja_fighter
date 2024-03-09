@@ -173,7 +173,6 @@ impl ActionData {
             }
         }
         if any_key_pressed_this_frame {
-            println!("{}, {:?}", self.name, self.keys);
             self.status = KeyStatus::Pressed;
         } else if any_key_held_this_frame {
             match &mut self.status {

@@ -4,6 +4,8 @@
 
 // Hi! If your reading this, welcome to my fun little project. Some shenanigans are afoot!
 
+// Hi! If your reading this, welcome to my fun little project. Some shenanigans are afoot!
+
 use crate::input::KeycodeType;
 use crate::logging;
 use crate::scene::SceneManager;
