@@ -1,10 +1,11 @@
 use bevy_ecs::component::Component;
 
+use bevy_reflect::Reflect;
 use engine::space;
 
 /// A group of settings for controlling gravitational force for an entity.
 ///
-#[derive(Debug, Component, Clone, Copy)]
+#[derive(Debug, Component, Clone, Copy, Reflect)]
 pub struct GravitySettings {
     pub force: space::Vector2,
     pub force_cap: f32,

@@ -15,8 +15,6 @@ use crate::space::Vector2;
 use crate::Camera;
 use crate::GgezInterface;
 use crate::Input;
-use bevy_ecs::system::Res;
-use ggez::conf::WindowMode;
 use log::*;
 
 use bevy_ecs::schedule::Schedule;
@@ -43,7 +41,6 @@ where
     Self: 'static,
 {
     pub world: World,
-    pub print_key_errors: bool,
     debug_cli: Option<fn(&mut Self)>,
     pub ticks_per_second: u32,
 }
@@ -59,10 +56,6 @@ impl GameRoot {
     ) -> Self {
         let mut world = World::new();
 
-        // ggez::conf::WindowMode
-        context.gfx.set_mode(WindowMode::maximized(todo!(), true));
-        let debug = false;
-        let pke = false;
         if let Err(err) = log::set_logger(&logging::LOGGER) {
             eprintln!("Failed to create logger! [{}]", err.to_string())
         }
@@ -95,7 +88,6 @@ impl GameRoot {
 
         let mut root = GameRoot {
             world,
-            print_key_errors: pke,
             ticks_per_second,
             debug_cli,
         };
@@ -296,9 +288,7 @@ impl EventHandler for GameRoot {
         let virtual_key_code = match input.keycode {
             Some(keycode) => keycode,
             None => {
-                if self.print_key_errors {
-                    eprintln!("Invalid keycode entered! Debug info: [{:#?}]", input)
-                };
+                error!("Invalid keycode entered! Debug info: [{:#?}]", input);
                 return Ok(());
             }
         };
@@ -318,9 +308,7 @@ impl EventHandler for GameRoot {
         let virtual_key_code = match input.keycode {
             Some(keycode) => keycode,
             None => {
-                if self.print_key_errors {
-                    eprintln!("Invalid keycode entered! Debug info: [{:#?}]", input)
-                };
+                error!("Invalid keycode entered! Debug info: [{:#?}]", input);
                 return Ok(());
             }
         };
