@@ -118,5 +118,5 @@ pub(super) fn draw_vertecies(engine: &mut ResMut<GgezInterface>, mesh: &Collider
     engine
         .get_canvas_mut()
         .unwrap()
-        .draw(mesh.get_drawable(), param)
+        .draw(&mesh.get_drawable().clone().unwrap(), param)
 }

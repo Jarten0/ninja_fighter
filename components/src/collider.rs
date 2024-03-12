@@ -1,6 +1,7 @@
 pub mod collider_mesh;
 pub mod gravity_settings;
 
+use bevy_reflect::Reflect;
 use engine::space::{Vector2, Velocity};
 
 use engine::GgezInterface;
@@ -15,7 +16,7 @@ use self::gravity_settings::GravitySettings;
 
 use engine::space::Transform;
 
-#[derive(Debug, Clone, Bundle)]
+#[derive(Debug, Clone, Bundle, Reflect)]
 pub struct Collider {
     gravity: gravity_settings::GravitySettings,
     mesh: collider_mesh::ColliderMesh,

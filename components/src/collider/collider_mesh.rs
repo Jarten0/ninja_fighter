@@ -1,5 +1,6 @@
 use core::fmt;
 
+use bevy_reflect::Reflect;
 use engine::space::Vertex;
 use engine::GgezInterface;
 
@@ -23,20 +24,21 @@ pub fn update(mut query: Query<&mut ColliderMesh>, engine: bevy_ecs::system::Res
             .map(|vertex| Into::<DrawVertex>::into(vertex.to_owned()))
             .collect();
 
-        collider_mesh.drawable_mesh = DrawMesh::from_data(
+        collider_mesh.drawable_mesh = Some(DrawMesh::from_data(
             gfx,
             MeshData {
                 vertices: &vertices,
                 indices: &[],
             },
-        );
+        ));
     }
 }
 
-#[derive(Debug, Component, Clone)]
+#[derive(Debug, Component, Clone, Reflect)]
 pub struct ColliderMesh {
     pub(crate) vertecies_list: Vec<Vertex>,
-    pub(crate) drawable_mesh: DrawMesh,
+    #[reflect(ignore)]
+    pub(crate) drawable_mesh: Option<DrawMesh>,
 }
 
 impl ColliderMesh {
@@ -52,11 +54,11 @@ impl ColliderMesh {
 
         Self {
             vertecies_list: Vec::default(),
-            drawable_mesh,
+            drawable_mesh: Some(drawable_mesh),
         }
     }
 
-    pub(crate) fn get_drawable(&self) -> &DrawMesh {
+    pub(crate) fn get_drawable(&self) -> &Option<DrawMesh> {
         &self.drawable_mesh
     }
 }

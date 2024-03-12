@@ -2,13 +2,14 @@ use std::ops::DerefMut;
 
 use std::ops::Deref;
 
+use bevy_reflect::Reflect;
 use ggez::graphics::Vertex as DrawVertex;
 use serde::Deserialize;
 use serde::Serialize;
 
 use super::Vector2;
 
-#[derive(Debug, Default, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Copy, Serialize, Deserialize, Reflect)]
 pub struct Vertex(Vector2);
 
 impl Deref for Vertex {

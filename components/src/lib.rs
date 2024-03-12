@@ -23,4 +23,7 @@ pub fn init_components(world: &mut World) -> () {
     world.init_component::<protag::Protag>();
     world.init_component::<protag::ProtagController>();
     world.init_component::<debug::DebugComponent>();
+    world.init_component::<debug::DebugComponent>();
+
+    world.resour
 }
