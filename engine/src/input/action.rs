@@ -11,7 +11,7 @@
 use super::key::keycode_converter::{keycode_to_str, str_to_keycode};
 use super::Input;
 use super::KeycodeType;
-use crate::scene::SceneObjectID;
+use crate::scene::ObjectID;
 use crate::Key;
 use std::{collections::HashMap, str::FromStr};
 
@@ -327,7 +327,7 @@ impl ActionID {
     /// Don't save ID's between sessions, since incremental counters don't keep track of actions after the program ends.
     pub fn new() -> Self {
         Self {
-            id: SceneObjectID::get_id_from_counter(crate::scene::CounterType::Actions),
+            id: ObjectID::get_id_from_counter(crate::scene::CounterType::Actions),
         }
     }
 }

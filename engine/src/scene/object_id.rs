@@ -2,18 +2,20 @@ use std;
 use std::hash::{Hash, Hasher};
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-#[derive(Debug, Eq, Clone, Copy, PartialOrd)]
-pub struct SceneObjectID {
+use bevy_reflect::Reflect;
+
+#[derive(Debug, Eq, Clone, Copy, PartialOrd, Reflect)]
+pub struct ObjectID {
     pub(crate) id: usize,
 }
 
-impl PartialEq for SceneObjectID {
+impl PartialEq for ObjectID {
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id
     }
 }
 
-impl Hash for SceneObjectID {
+impl Hash for ObjectID {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.id.hash(state);
     }
@@ -21,9 +23,10 @@ impl Hash for SceneObjectID {
 
 pub(crate) static COUNTER: AtomicUsize = AtomicUsize::new(1);
 pub(crate) static ACTION_COUNTER: AtomicUsize = AtomicUsize::new(1);
+pub(crate) static SCENE_COUNTER: AtomicUsize = AtomicUsize::new(1);
 
 #[allow(unused)]
-impl SceneObjectID {
+impl ObjectID {
     pub fn get_id() -> usize {
         COUNTER.fetch_add(1, Ordering::Relaxed)
     }
@@ -32,6 +35,13 @@ impl SceneObjectID {
         match counter {
             CounterType::Global => COUNTER.fetch_add(1, Ordering::Relaxed),
             CounterType::Actions => ACTION_COUNTER.fetch_add(1, Ordering::Relaxed),
+            CounterType::Scenes => SCENE_COUNTER.fetch_add(1, Ordering::Relaxed),
+        }
+    }
+
+    pub fn new(counter: CounterType) -> ObjectID {
+        ObjectID {
+            id: Self::get_id_from_counter(counter),
         }
     }
 }
@@ -39,4 +49,5 @@ impl SceneObjectID {
 pub enum CounterType {
     Global,
     Actions,
+    Scenes,
 }

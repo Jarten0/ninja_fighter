@@ -410,3 +410,17 @@ fn list_entities(root: &mut GameRoot) -> Result<(), String> {
         },
     )
 }
+
+fn scoop_entities(root: &mut GameRoot) -> Result<(), String> {
+    root.world.resource_scope(
+        |world: &mut World, res: Mut<SceneManager>| -> Result<(), String> {
+            for entity in world.iter_entities() {
+                if let Some(data) = entity.get::<SceneData>() {
+                    if data.scene_id == todo!() {}
+                }
+            }
+
+            Ok(())
+        },
+    )
+}

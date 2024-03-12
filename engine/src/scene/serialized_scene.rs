@@ -1,6 +1,6 @@
 use super::add_entity_to_scene;
 use super::component;
-use super::traits::SceneData;
+use super::object_data::SceneData;
 use super::SceneError;
 use bevy_ecs::entity::Entity;
 use bevy_ecs::reflect::ReflectComponent;
@@ -149,7 +149,7 @@ impl SerializedSceneData {
         for (entity_name, entity_hashmap) in self.entity_data {
             let bundle = SceneData {
                 object_name: entity_name,
-                scene_id: 0,
+                scene_id: scene.scene_id,
             };
 
             let mut entity = world.spawn(bundle);

@@ -38,6 +38,8 @@ pub fn update(
     input: Res<Input>,
     ggez: Res<GgezInterface>,
 ) {
+    let screen_height = ggez.get_context().gfx.drawable_size().1;
+
     for (mut pos, mut velocity, controller) in query.iter_mut() {
         if velocity.x.abs() > controller.speed_cap {
             velocity.x = (controller.speed_cap - controller.acc) * (velocity.x / velocity.x.abs())
@@ -59,11 +61,11 @@ pub fn update(
         if (pos.y > 370.0 || true) && input.get_action("Click").unwrap().is_just_pressed() {
             velocity.y = -controller.jump_power;
         }
-        if velocity.y < controller.max_fall_speed && pos.y < 390.0 {
+        if velocity.y < controller.max_fall_speed && pos.y < screen_height - 110.0 {
             velocity.y += controller.fall_acc;
-        } else if pos.y > 400.0 && velocity.y >= 0.0 {
+        } else if pos.y > screen_height - 100.0 && velocity.y >= 0.0 {
             velocity.y = 0.0;
-            // pos.y = ggez.get_canvas().un;
+            pos.y = screen_height - 100.0;
         }
     }
 }

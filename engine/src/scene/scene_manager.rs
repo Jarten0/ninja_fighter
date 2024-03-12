@@ -8,7 +8,7 @@ use bevy_ecs::world::World;
 use bevy_reflect::TypeRegistry;
 
 use super::{component::Scene, load_scene, save_scene};
-use super::{error, unload_scene};
+use super::{error, unload_scene, ObjectID};
 
 #[derive(Resource, Default)]
 pub struct SceneManager {
@@ -16,6 +16,7 @@ pub struct SceneManager {
     ///
     /// Key is equal to the scene name
     pub current_scenes: HashMap<String, Entity>,
+    pub scenes_by_ids: HashMap<ObjectID, Entity>,
     /// The current scene that's being prioritized for saving and loading
     pub target_scene: Option<Entity>,
 
@@ -63,6 +64,8 @@ impl SceneManager {
         };
         let new_scene = super::new_scene(world, name.clone());
         self.current_scenes.insert(name, new_scene);
+        self.scenes_by_ids
+            .insert(world.get::<Scene>(new_scene).unwrap().scene_id, new_scene);
         self.target_scene = Some(new_scene);
         Ok(())
     }
@@ -90,6 +93,9 @@ impl SceneManager {
                 .name
                 .to_owned();
             self.current_scenes.insert(scene_name, entity);
+            self.scenes_by_ids
+                .insert(world.get::<Scene>(entity).unwrap().scene_id, entity);
+
             self.target_scene = Some(entity);
         }
         result
@@ -101,5 +107,12 @@ impl SceneManager {
         } else {
             Err(error::SceneError::NoTargetScene)
         }
+    }
+
+    pub fn get_scene_by_id(&self, id: ObjectID) -> Option<Entity> {
+        self.scenes_by_ids.get(&id).copied()
+    }
+    pub fn get_scene_by_name(&self, name: String) -> Option<Entity> {
+        self.current_scenes.get(&name).copied()
     }
 }

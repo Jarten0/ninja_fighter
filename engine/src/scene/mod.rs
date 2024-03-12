@@ -1,11 +1,11 @@
 mod component;
 mod error;
+mod object_data;
+mod object_id;
 mod scene_manager;
-mod scene_object;
 mod serialized_scene;
 #[cfg(test)]
 mod test;
-mod traits;
 
 use bevy_ecs::{component::Component, world::Mut};
 use bevy_reflect::{GetTypeRegistration, Reflect};
@@ -16,17 +16,17 @@ pub use component::{
 
 pub use component::Scene;
 pub use error::SceneError;
+pub use object_data::SceneData;
+pub use object_id::{CounterType, ObjectID};
 pub use scene_manager::SceneManager;
-pub use scene_object::{CounterType, SceneObjectID};
 pub use serialized_scene::ToReflect;
-pub use traits::SceneData;
 
 use crate::space;
 
 pub fn register_scene_types(world: &mut bevy_ecs::world::World) {
     world.init_resource::<scene_manager::SceneManager>();
     world.resource_scope(|world, mut res: Mut<SceneManager>| {
-        register::<traits::SceneData>(world, &mut res);
+        register::<object_data::SceneData>(world, &mut res);
         register::<space::Position>(world, &mut res);
         register::<space::Rotation>(world, &mut res);
         register::<space::Scale>(world, &mut res);

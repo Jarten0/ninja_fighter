@@ -5,6 +5,8 @@ use bevy_ecs::{
 use bevy_reflect::Reflect;
 use erased_serde::{Error, Serializer};
 
+use super::ObjectID;
+
 /// Holds data for the assigned [`Scene`] to operate upon.
 /// An entity cannot be serialized by the [`Scene`] if it does not have this component.
 ///
@@ -16,10 +18,7 @@ pub struct SceneData {
     /// Is used for serialization, so using this is quite important.
     pub object_name: String,
     /// The ID of the current scene that the component holder belongs to.
-    ///
-    /// Not to be confused with the [`SceneObjectID`], which is a seperate thing uhh
-    // TODO: figure that out
-    pub scene_id: usize,
+    pub scene_id: ObjectID,
 }
 
 #[bevy_trait_query::queryable]

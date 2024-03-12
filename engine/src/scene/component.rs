@@ -1,14 +1,17 @@
 //! The [`Scene`] component, which allows managment of loading and unloading entities and components dynamically.
 //! It can also serialize and deserialize component data and instantiate entities using it to provide full building functionality.
 
+use crate::scene::object_data::SceneData;
 use crate::scene::serialized_scene::SerializedSceneData;
-use crate::scene::traits::SceneData;
 
 use super::error;
+use super::object_data;
 use super::serialized_scene;
 use super::serialized_scene::DataHashmap;
 use super::serialized_scene::EntityHashmap;
-use super::traits;
+use super::CounterType;
+use super::ObjectID;
+use super::SceneError;
 
 use bevy_ecs::component::Component;
 use bevy_ecs::entity::Entity;
@@ -53,6 +56,8 @@ pub struct Scene {
     pub(crate) entities: Vec<Entity>,
     /// The path where the scene's save data is stored when calling [`save_scene`]
     pub(crate) save_data_path: Option<PathBuf>,
+
+    pub(crate) scene_id: ObjectID,
 }
 
 impl Scene {
@@ -65,6 +70,7 @@ impl Scene {
             name,
             entities: Vec::new(),
             save_data_path: None,
+            scene_id: ObjectID::new(CounterType::Scenes),
         }
     }
 
@@ -82,7 +88,7 @@ impl Scene {
             let self_entity = if let Some(entity) = other.entities.get(i) {
                 world
                     .entity(entity.to_owned())
-                    .get::<traits::SceneData>()
+                    .get::<object_data::SceneData>()
                     .unwrap()
                     .scene_id
             } else {
@@ -92,7 +98,7 @@ impl Scene {
             let other_entity = if let Some(entity) = self.entities.get(i) {
                 world
                     .entity(entity.to_owned())
-                    .get::<traits::SceneData>()
+                    .get::<object_data::SceneData>()
                     .unwrap()
                     .scene_id
             } else {
@@ -140,14 +146,23 @@ pub fn save_scene(
     world: &mut World,
     registry: &TypeRegistry,
 ) -> Result<(), error::SceneError> {
-    let f = || PathBuf::from(Text::new("Save data path? >").prompt().unwrap());
-    let path = &world
+    let f = || -> Result<PathBuf, SceneError> {
+        Text::new("Save data path? >")
+            .prompt()
+            .map(|ok| PathBuf::from(ok))
+            .map_err(|err| SceneError::InputError(err.to_string()))
+    };
+
+    let path_result = world
         .get::<Scene>(entity)
-        .unwrap()
+        .ok_or(SceneError::NoSceneComponent)?
         .save_data_path
-        .as_ref()
-        .cloned()
-        .unwrap_or_else(f);
+        .ok_or_else(f);
+
+    let path = match path_result {
+        Ok(ok) => ok,
+        Err(err) => err?,
+    };
 
     let new_file = match File::create(path) {
         Ok(ok) => ok,
@@ -156,7 +171,7 @@ pub fn save_scene(
 
     let value = to_serialized_scene(world, registry, entity);
 
-    if let Err(err) = serde_json::to_writer(new_file, &value.unwrap()) {
+    if let Err(err) = serde_json::to_writer(new_file, &value.map_err(|err| SceneError::)?) {
         return Err(error::SceneError::IOError(err.to_string()));
     }
 
@@ -182,12 +197,15 @@ pub fn load_scene(
     let _s = File::open(path)
         .map_err(|err| -> error::SceneError { error::SceneError::IOError(err.to_string()) })?
         .read_to_string(&mut buf)
-        .unwrap();
+        .map_err(|err| SceneError::IOError(err.to_string()))?;
     let deserialize = serde_json::from_str::<SerializedSceneData>(&buf)
         .map_err(|err| error::SceneError::LoadFailure(err.to_string()))?;
     let scene_entity = deserialize.initialize(world, registry)?;
 
-    world.get_mut::<Scene>(scene_entity).unwrap().save_data_path = Some(buf.into());
+    world
+        .get_mut::<Scene>(scene_entity)
+        .ok_or(SceneError::NoSceneComponent)?
+        .save_data_path = Some(buf.into());
 
     Ok(scene_entity)
 }
@@ -200,11 +218,18 @@ pub fn load_scene(
 ///
 /// Does not save before unloading! Make sure to call [`save_scene`] if anything in the scene must be serialized and stored.
 /// If you don't have any non-global game state contained inside though, you're free to ignore that and unload as you please.
-pub fn unload_scene(scene_entity: Entity, world: &mut World) {
-    for entity in world.get::<Scene>(scene_entity).unwrap().entities.clone() {
+pub fn unload_scene(scene_entity: Entity, world: &mut World) -> Result<(), SceneError> {
+    for entity in world
+        .get::<Scene>(scene_entity)
+        .ok_or(SceneError::NoSceneComponent)?
+        .entities
+        .clone()
+    {
         world.despawn(entity.to_owned());
     }
     world.despawn(scene_entity);
+
+    Ok(())
 }
 
 /// Adds a new entity to the scene
@@ -216,13 +241,13 @@ pub fn add_entity_to_scene<'a>(
     world: &'a mut World,
     scene_entity: Entity,
     entity_to_add: Entity,
-) -> Result<(), String> {
+) -> Result<(), SceneError> {
     // Very specific way this following code is blocked, since we need a list of entity names that DOESN'T include the entity currently being added
     let mut entity_names: Vec<String> = Vec::new();
     for (component, entity) in world.query::<(&mut SceneData, Entity)>().iter(world) {
         if !world
             .get::<Scene>(scene_entity)
-            .unwrap()
+            .ok_or(SceneError::NoSceneComponent)?
             .entities
             .contains(&entity)
         {
@@ -233,23 +258,31 @@ pub fn add_entity_to_scene<'a>(
 
     if let None = world.get::<SceneData>(entity_to_add) {
         let object_name = String::from("New entity");
+        let scene_id = world
+            .get::<Scene>(scene_entity)
+            .ok_or(SceneError::NoSceneComponent)?
+            .scene_id;
 
-        world.entity_mut(entity_to_add).insert(traits::SceneData {
-            object_name,
-            scene_id: 0, // TODO: Make use of scene_ids or get rid of them idk why i added them
-        });
+        world
+            .entity_mut(entity_to_add)
+            .insert(object_data::SceneData {
+                object_name,
+                scene_id,
+            });
     }
 
     validate_name(
         &mut entity_names.iter(),
         &mut world
             .get_mut::<SceneData>(entity_to_add)
-            .unwrap()
+            .ok_or(SceneError::NoSceneDataComponent)?
             .object_name,
     );
 
     let mut scene_entity = World::entity_mut(world, scene_entity);
-    let mut scene = scene_entity.get_mut::<Scene>().unwrap();
+    let mut scene = scene_entity
+        .get_mut::<Scene>()
+        .ok_or(SceneError::NoSceneComponent)?;
 
     scene.entities.push(entity_to_add.clone());
 
@@ -291,7 +324,7 @@ pub fn to_serialized_scene<'a>(
     world: &'a mut World,
     registry: &TypeRegistry,
     scene_entity: Entity,
-) -> Result<serialized_scene::SerializedSceneData, String> {
+) -> Result<serialized_scene::SerializedSceneData, SceneError> {
     let scene_entity_list: Vec<Entity> = world
         .entity(scene_entity)
         .get::<Scene>()
@@ -302,7 +335,7 @@ pub fn to_serialized_scene<'a>(
     let mut entity_data: DataHashmap = HashMap::new();
 
     for (entity, serializable_components_data) in world
-        .query::<(Entity, &dyn traits::TestSuperTrait)>()
+        .query::<(Entity, &dyn object_data::TestSuperTrait)>()
         .iter(world)
     {
         if !scene_entity_list.contains(&entity) {
@@ -320,7 +353,7 @@ pub fn to_serialized_scene<'a>(
                 serde_json::Serializer::with_formatter(component_serialized_data, formatter);
 
             if let Err(err) =
-                ReflectSerializer::new(component.as_reflect(), registry).serialize(&mut serializer)
+                ReflectSerializer::new(component.as_reflect(), registry).serialize(&mut serializer).map_err(op)
             {
                 panic!(
                     "Failed to serialize `{}` component! [{}]",
