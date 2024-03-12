@@ -14,7 +14,7 @@ use bevy_ecs::{
     world::{Mut, World},
 };
 
-use bevy_reflect::{DynamicStruct, StructInfo, TypeData};
+use bevy_reflect::{DynamicStruct, Reflect, ReflectOwned, StructInfo, TypeData, TypeInfo};
 use engine::scene::ToReflect;
 use inquire::{validator::Validation, Confirm, CustomType, InquireError, Select, Text};
 
@@ -301,19 +301,6 @@ fn add_component(root: &mut GameRoot) -> Result<(), String> {
                     .get_with_type_path(&component_path)
                     .ok_or(SceneError::MissingTypeRegistry(component_path.clone()))?;
 
-                let (component_patch) = match component_registration.type_info() {
-                    bevy_reflect::TypeInfo::Struct(info) => {
-                        create_dynamic_struct(info, component_registration, component_path)?
-                    }
-                    bevy_reflect::TypeInfo::TupleStruct(info) => todo!(),
-                    bevy_reflect::TypeInfo::Tuple(info) => todo!(),
-                    bevy_reflect::TypeInfo::List(info) => todo!(),
-                    bevy_reflect::TypeInfo::Array(info) => todo!(),
-                    bevy_reflect::TypeInfo::Map(info) => todo!(),
-                    bevy_reflect::TypeInfo::Enum(info) => todo!(),
-                    bevy_reflect::TypeInfo::Value(info) => todo!(),
-                };
-
                 let reflect_component = component_registration.data::<ReflectComponent>().unwrap();
 
                 // Figure out the entity to add the new component to.
@@ -341,7 +328,42 @@ fn add_component(root: &mut GameRoot) -> Result<(), String> {
 
                 let mut entity = world.entity_mut(entity);
 
-                reflect_component.apply_or_insert(&mut entity, dbg!(&component_patch));
+                use dynamic_structs::*;
+
+                let component_patch: ReflectOwned = match component_registration.type_info() {
+                    TypeInfo::Struct(info) => {
+                        new_dyn_struct(info, component_registration, component_path)?
+                    }
+                    TypeInfo::TupleStruct(info) => {
+                        new_dyn_tuple_struct(info, component_registration, component_path)?
+                    }
+                    TypeInfo::Tuple(info) => {
+                        new_dyn_tuple(info, component_registration, component_path)?
+                    }
+                    TypeInfo::List(info) => todo!(),
+                    TypeInfo::Array(info) => todo!(),
+                    TypeInfo::Map(info) => todo!(),
+                    TypeInfo::Enum(info) => {
+                        new_dyn_enum(info, component_registration, component_path)?
+                    }
+                    TypeInfo::Value(info) => {
+                        new_dyn_value(info, component_registration, component_path)?
+                    }
+                };
+
+                reflect_component.apply_or_insert(
+                    &mut entity,
+                    match component_patch {
+                        ReflectOwned::Struct(e) => e.as_reflect(),
+                        ReflectOwned::TupleStruct(e) => e.as_reflect(),
+                        ReflectOwned::Tuple(e) => e.as_reflect(),
+                        ReflectOwned::List(e) => e.as_reflect(),
+                        ReflectOwned::Array(e) => e.as_reflect(),
+                        ReflectOwned::Map(e) => e.as_reflect(),
+                        ReflectOwned::Enum(e) => e.as_reflect(),
+                        ReflectOwned::Value(e) => e.as_reflect(),
+                    },
+                );
 
                 Ok(())
             },
@@ -349,53 +371,133 @@ fn add_component(root: &mut GameRoot) -> Result<(), String> {
         .map_err(|err| err.to_string())
 }
 
-/// Creates a new component patch based on the given struct information, and constructs new field data from user input.
-fn create_dynamic_struct(
-    struct_info: &StructInfo,
-    component_registration: &bevy_reflect::TypeRegistration,
-    component_path: String,
-) -> Result<(DynamicStruct), SceneError> {
-    let mut component_patch = DynamicStruct::default();
+mod dynamic_structs {
+    use std::collections::HashMap;
 
-    component_patch.set_represented_type(Some(component_registration.type_info()));
+    use bevy_reflect::{
+        DynamicStruct, DynamicTupleStruct, EnumInfo, ReflectOwned, StructInfo, TupleInfo,
+        TupleStructInfo, ValueInfo,
+    };
+    use engine::scene::{SceneError, ToReflect};
+    use inquire::Text;
 
-    let mut component_data: HashMap<&str, serde_json::Value> = HashMap::new();
+    /// Creates a new component patch based on the given struct information, and constructs new field data from user input.
+    pub fn new_dyn_struct(
+        struct_info: &StructInfo,
+        component_registration: &bevy_reflect::TypeRegistration,
+        component_path: String,
+    ) -> Result<ReflectOwned, SceneError> {
+        let mut component_patch = DynamicStruct::default();
 
-    // Insert data for each field
-    let field_names = for field_name in struct_info.field_names() {
-        let field_type = struct_info.field(&field_name).unwrap().type_path();
+        component_patch.set_represented_type(Some(component_registration.type_info()));
 
-        component_data.insert(
-            &field_name,
-            serde_json::from_str(
+        let mut component_data: HashMap<&str, serde_json::Value> = HashMap::new();
+
+        // Insert data for each field
+        for field_name in struct_info.field_names() {
+            let field_type = struct_info.field(&field_name).unwrap().type_path();
+
+            component_data.insert(
+                &field_name,
+                serde_json::from_str(
+                    &Text::new(&format!(
+                        "Enter value for field [{}: {}] > ",
+                        field_name, field_type
+                    ))
+                    .prompt()
+                    .unwrap(),
+                )
+                .map_err(|err| SceneError::SerializeFailure(err.to_string()))?,
+            );
+        }
+
+        // Insert component data into patch
+        for (name, field) in &component_data {
+            // Find expected type to make disambiguation easier, ex. figure out if a json number should be an i32, f64, u8, etc.
+            let expected_type = struct_info
+                .field(name)
+                .ok_or(SceneError::MissingTypeRegistry(component_path.clone()))?
+                .type_path();
+
+            let value = match field.to_reflect(Some(expected_type)) {
+                Ok(ok) => ok,
+                Err(ok) => ok,
+            };
+
+            component_patch.insert_boxed(&name, value);
+        }
+
+        Ok(ReflectOwned::Struct(Box::new(component_patch)))
+    }
+
+    pub fn new_dyn_tuple_struct(
+        tuple_struct_info: &TupleStructInfo,
+        component_registration: &bevy_reflect::TypeRegistration,
+        component_path: String,
+    ) -> Result<ReflectOwned, SceneError> {
+        let mut component_patch = DynamicTupleStruct::default();
+
+        component_patch.set_represented_type(Some(component_registration.type_info()));
+
+        let mut component_data: HashMap<usize, serde_json::Value> = HashMap::new();
+
+        // Insert data for each field
+        for unnamed_field in tuple_struct_info.iter() {
+            let index = unnamed_field.index();
+
+            let field: serde_json::Value = serde_json::from_str(
                 &Text::new(&format!(
                     "Enter value for field [{}: {}] > ",
-                    field_name, field_type
+                    unnamed_field.index(),
+                    unnamed_field.type_path()
                 ))
                 .prompt()
                 .unwrap(),
             )
-            .map_err(|err| SceneError::SerializeFailure(err.to_string()))?,
-        );
-    };
+            .map_err(|err| SceneError::SerializeFailure(err.to_string()))?;
 
-    // Insert component data into patch
-    for (name, field) in &component_data {
-        // Find expected type to make disambiguation easier, ex. figure out if a json number should be an i32, f64, u8, etc.
-        let expected_type = struct_info
-            .field(name)
-            .ok_or(SceneError::MissingTypeRegistry(component_path.clone()))?
-            .type_path();
+            // Insert component data into patch
 
-        let value = match field.to_reflect(Some(expected_type)) {
-            Ok(ok) => ok,
-            Err(ok) => ok,
-        };
+            // Find expected type to make disambiguation easier, ex. figure out if a json number should be an i32, f64, u8, etc.
+            let expected_type = tuple_struct_info
+                .field_at(index)
+                .ok_or(SceneError::MissingTypeRegistry(component_path.clone()))?
+                .type_path();
 
-        component_patch.insert_boxed(&name, value);
+            let value = match field.to_reflect(Some(expected_type)) {
+                Ok(ok) => ok,
+                Err(ok) => ok,
+            };
+
+            component_patch.insert_boxed(value);
+        }
+
+        Ok(ReflectOwned::TupleStruct(Box::new(component_patch)))
     }
 
-    Ok(component_patch)
+    pub fn new_dyn_tuple(
+        struct_info: &TupleInfo,
+        component_registration: &bevy_reflect::TypeRegistration,
+        component_path: String,
+    ) -> Result<ReflectOwned, SceneError> {
+        todo!()
+    }
+
+    pub fn new_dyn_enum(
+        struct_info: &EnumInfo,
+        component_registration: &bevy_reflect::TypeRegistration,
+        component_path: String,
+    ) -> Result<ReflectOwned, SceneError> {
+        todo!()
+    }
+
+    pub fn new_dyn_value(
+        struct_info: &ValueInfo,
+        component_registration: &bevy_reflect::TypeRegistration,
+        component_path: String,
+    ) -> Result<ReflectOwned, SceneError> {
+        todo!()
+    }
 }
 
 fn list_entities(root: &mut GameRoot) -> Result<(), String> {
