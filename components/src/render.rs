@@ -1,14 +1,18 @@
 pub mod render_type;
 
+use bevy_ecs::component::Component;
+use bevy_ecs::prelude::*;
 use bevy_ecs::system::Query;
 use bevy_ecs::system::Res;
 use bevy_ecs::system::ResMut;
+use bevy_reflect::Reflect;
 use engine::Camera;
 use ggez::graphics::{self as ggraphics, *};
 
 use engine::space;
 use engine::GgezInterface;
 use ggraphics::Canvas;
+use serde::Serialize;
 
 use self::render_type::RenderType;
 
@@ -56,13 +60,16 @@ pub fn draw(
             None => return,
         };
 
-        match &renderer.image {
-            RenderType::Image(image) => {
-                draw_image(canvas, image, renderer, transform, &camera);
+        if let Some(renderimage) = &renderer.image {
+            match renderimage {
+                RenderType::Image(image) => {
+                    draw_image(canvas, image, renderer, transform, &camera);
+                }
+                RenderType::InstanceArray(_) => todo!(),
+                RenderType::Mesh(_) => todo!(),
+                RenderType::Text(_) => todo!(),
+                RenderType::None => todo!(),
             }
-            RenderType::InstanceArray(_) => todo!(),
-            RenderType::Mesh(_) => todo!(),
-            RenderType::Text(_) => todo!(),
         }
     }
 }
@@ -92,10 +99,13 @@ fn draw_image(
     canvas.draw(image, draw_param)
 }
 
-#[derive(bevy_ecs::component::Component)]
+#[derive(Component, Reflect, Default, Clone)]
+#[reflect(Component)]
 pub struct Renderer {
+    #[reflect(ignore)]
     pub draw_param: DrawParam,
-    pub image: RenderType,
+    #[reflect(ignore)]
+    pub image: Option<RenderType>,
     pub offset: space::Position,
 }
 
@@ -103,7 +113,7 @@ pub struct Renderer {
 impl Renderer {
     /// Creates a new basic Renderer component for regular use.
     /// Use `Renderer::set()` to alter the offset and extra draw settings, or `Renderer::new_opt()` to directly set those values during initialization.
-    pub fn new(image: RenderType, transform: Transform) -> Self {
+    pub fn new(image: Option<RenderType>, transform: Transform) -> Self {
         let draw_param = DrawParam {
             src: Default::default(),
             color: Color::WHITE,
@@ -120,7 +130,11 @@ impl Renderer {
     }
 
     /// Similar to `Renderer::new()`, but with extra parameters for other values.
-    pub fn new_opt(image: RenderType, draw_param: DrawParam, offset: space::Position) -> Self {
+    pub fn new_opt(
+        image: Option<RenderType>,
+        draw_param: DrawParam,
+        offset: space::Position,
+    ) -> Self {
         Renderer {
             image,
             draw_param,
@@ -136,11 +150,20 @@ impl Renderer {
 
 #[allow(dead_code)]
 impl Renderer {
-    pub fn default(gfx: &GraphicsContext) -> Self {
+    pub fn default() -> Self {
         Self {
-            image: RenderType::default(gfx),
+            image: None,
             draw_param: Default::default(),
             offset: Default::default(),
         }
+    }
+}
+
+impl Serialize for Renderer {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str("Renderer placeholder")
     }
 }

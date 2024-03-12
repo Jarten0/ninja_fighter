@@ -57,7 +57,7 @@ pub struct Scene {
     /// The path where the scene's save data is stored when calling [`save_scene`]
     pub(crate) save_data_path: Option<PathBuf>,
 
-    pub(crate) scene_id: ObjectID,
+    pub scene_id: ObjectID,
 }
 
 impl Scene {
@@ -153,10 +153,10 @@ pub fn save_scene(
             .map_err(|err| SceneError::InputError(err.to_string()))
     };
 
-    let path_result = world
-        .get::<Scene>(entity)
+    let path_result = dbg!(world.get::<Scene>(entity))
         .ok_or(SceneError::NoSceneComponent)?
         .save_data_path
+        .clone()
         .ok_or_else(f);
 
     let path = match path_result {
@@ -164,16 +164,25 @@ pub fn save_scene(
         Err(err) => err?,
     };
 
-    let new_file = match File::create(path) {
+    let new_file = match File::create(path.clone()) {
         Ok(ok) => ok,
-        Err(err) => return Err(error::SceneError::IOError(err.to_string())),
+        Err(err) => {
+            return Err(error::SceneError::IOError(
+                err.to_string()
+                    + "(Could the target scene's path be incorrect?) -"
+                    + match path.to_str() {
+                        Some(ok) => ok,
+                        None => "N/A",
+                    },
+            ))
+        }
     };
 
-    let value = to_serialized_scene(world, registry, entity);
+    let value = to_serialized_scene(world, registry, entity)
+        .map_err(|err| SceneError::IOError(err.to_string()))?;
 
-    if let Err(err) = serde_json::to_writer(new_file, &value.map_err(|err| SceneError::)?) {
-        return Err(error::SceneError::IOError(err.to_string()));
-    }
+    serde_json::to_writer(new_file, &value)
+        .map_err(|err| error::SceneError::IOError(err.to_string()))?;
 
     Ok(())
 }
@@ -194,7 +203,7 @@ pub fn load_scene(
 ) -> Result<Entity, error::SceneError> {
     use std::io::prelude::*;
     let mut buf = String::new();
-    let _s = File::open(path)
+    let _s = File::open(path.clone())
         .map_err(|err| -> error::SceneError { error::SceneError::IOError(err.to_string()) })?
         .read_to_string(&mut buf)
         .map_err(|err| SceneError::IOError(err.to_string()))?;
@@ -205,7 +214,7 @@ pub fn load_scene(
     world
         .get_mut::<Scene>(scene_entity)
         .ok_or(SceneError::NoSceneComponent)?
-        .save_data_path = Some(buf.into());
+        .save_data_path = Some(path);
 
     Ok(scene_entity)
 }
@@ -267,7 +276,7 @@ pub fn add_entity_to_scene<'a>(
             .entity_mut(entity_to_add)
             .insert(object_data::SceneData {
                 object_name,
-                scene_id,
+                scene_id: Some(scene_id),
             });
     }
 
@@ -318,7 +327,7 @@ pub fn validate_name(names: &mut dyn Iterator<Item = &String>, name_to_check: &m
     }
 }
 
-// TODO: Fix documentation
+// TODO: Create better documentation, this is one of the most important functions to do so for
 /// Creates a [`SerializableScene`] using the scene's component data
 pub fn to_serialized_scene<'a>(
     world: &'a mut World,
@@ -328,9 +337,11 @@ pub fn to_serialized_scene<'a>(
     let scene_entity_list: Vec<Entity> = world
         .entity(scene_entity)
         .get::<Scene>()
-        .unwrap()
+        .ok_or(SceneError::NoSceneComponent)?
         .entities
         .clone();
+
+    dbg!(&scene_entity_list);
 
     let mut entity_data: DataHashmap = HashMap::new();
 
@@ -338,6 +349,7 @@ pub fn to_serialized_scene<'a>(
         .query::<(Entity, &dyn object_data::TestSuperTrait)>()
         .iter(world)
     {
+        dbg!(entity);
         if !scene_entity_list.contains(&entity) {
             continue;
         }
@@ -352,15 +364,15 @@ pub fn to_serialized_scene<'a>(
             let mut serializer =
                 serde_json::Serializer::with_formatter(component_serialized_data, formatter);
 
-            if let Err(err) =
-                ReflectSerializer::new(component.as_reflect(), registry).serialize(&mut serializer).map_err(op)
-            {
-                panic!(
-                    "Failed to serialize `{}` component! [{}]",
-                    component.as_reflect().reflect_type_path(),
-                    err.to_string()
-                )
-            }
+            ReflectSerializer::new(component.as_reflect(), registry)
+                .serialize(&mut serializer)
+                .map_err(|err| {
+                    SceneError::SerializeFailure(format!(
+                        "Serialization error: Failed to serialize `{}` component! [{}]",
+                        component.as_reflect().reflect_type_path(),
+                        err.to_string()
+                    ))
+                })?;
 
             let serialized_component_json = serializer.into_inner();
 

@@ -16,7 +16,9 @@ pub use component::{
 
 pub use component::Scene;
 pub use error::SceneError;
+pub use object_data::ReflectTestSuperTrait;
 pub use object_data::SceneData;
+pub use object_data::TestSuperTrait;
 pub use object_id::{CounterType, ObjectID};
 pub use scene_manager::SceneManager;
 pub use serialized_scene::ToReflect;
@@ -32,15 +34,20 @@ pub fn register_scene_types(world: &mut bevy_ecs::world::World) {
         register::<space::Scale>(world, &mut res);
         register::<space::TransformSettings>(world, &mut res);
         register::<space::Velocity>(world, &mut res);
-        // register::<render::render_type::RenderType>();
-        // register::<>();
     });
 }
 
-pub fn register<T: Component + Reflect + GetTypeRegistration>(
-    world: &mut bevy_ecs::world::World,
-    res: &mut Mut<SceneManager>,
-) {
+pub fn register<T>(world: &mut bevy_ecs::world::World, res: &mut Mut<SceneManager>)
+where
+    T: Component
+        + Reflect
+        + GetTypeRegistration
+        + bevy_reflect::TypePath
+        + bevy_reflect::TypePath
+        + serde::Serialize,
+{
     world.init_component::<T>();
     res.type_registry.register::<T>();
+    res.type_registry
+        .register_type_data::<T, ReflectTestSuperTrait>();
 }

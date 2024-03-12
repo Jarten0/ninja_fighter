@@ -1,9 +1,10 @@
 use bevy_ecs::prelude::*;
 use bevy_reflect::Reflect;
+use serde::Serialize;
 
 use super::{Position, Rotation, Scale, Vector2, Velocity};
 
-#[derive(Debug, Component, Default, Clone, Copy, Reflect)]
+#[derive(Debug, Component, Default, Clone, Copy, Reflect, Serialize)]
 pub struct TransformSettings {
     pub auto_update: bool,
 }

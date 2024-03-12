@@ -71,10 +71,11 @@ impl SceneManager {
     }
 
     pub fn save_scene(&self, world: &mut World) -> Result<(), error::SceneError> {
-        match self.target_scene {
-            None => Err(error::SceneError::NoTargetScene),
-            Some(scene) => save_scene(scene, world, &self.type_registry),
-        }
+        save_scene(
+            self.target_scene.ok_or(error::SceneError::NoTargetScene)?,
+            world,
+            &self.type_registry,
+        )
     }
 
     pub fn load_scene(
@@ -103,7 +104,7 @@ impl SceneManager {
 
     pub fn unload_scene(&mut self, world: &mut World) -> Result<(), error::SceneError> {
         if let Some(target_scene) = self.target_scene.take() {
-            Ok(unload_scene(target_scene, world))
+            Ok(unload_scene(target_scene, world)?)
         } else {
             Err(error::SceneError::NoTargetScene)
         }

@@ -149,7 +149,7 @@ impl SerializedSceneData {
         for (entity_name, entity_hashmap) in self.entity_data {
             let bundle = SceneData {
                 object_name: entity_name,
-                scene_id: scene.scene_id,
+                scene_id: Some(scene.scene_id),
             };
 
             let mut entity = world.spawn(bundle);

@@ -1,5 +1,3 @@
-use std::ops::Deref;
-
 use crate::{collider::Collider, render::render_type::RenderType, render::Renderer};
 use bevy_ecs::prelude::*;
 use bevy_reflect::Reflect;
@@ -7,13 +5,13 @@ use engine::space::{Position, Transform, TransformSettings, Velocity};
 use engine::GgezInterface;
 use engine::{space, Input};
 use ggez::graphics::{self, Color, DrawParam, Image, Rect};
-use nalgebra::ComplexField;
+use serde::Serialize;
 
 pub fn init(mut commands: Commands, engine: Res<GgezInterface>) {
     commands.spawn(ProtagBundle::new(&engine));
 }
 
-#[derive(Default, Component, Reflect)]
+#[derive(Default, Component, Reflect, Serialize)]
 pub struct Protag;
 
 #[derive(Bundle)]
@@ -25,7 +23,7 @@ pub struct ProtagBundle {
     collider: Collider,
 }
 
-#[derive(Default, Debug, Component, Reflect)]
+#[derive(Default, Debug, Component, Reflect, Serialize)]
 #[reflect(Component)]
 pub struct ProtagController {
     pub acc: f32,
@@ -111,7 +109,12 @@ impl ProtagBundle {
 
         let gfx = &GgezInterface::get_context(&engine).gfx;
         let mut renderer = Renderer::new(
-            RenderType::Image(Image::from_color(gfx, 100, 100, Some(Color::RED))),
+            Some(RenderType::Image(Image::from_color(
+                gfx,
+                100,
+                100,
+                Some(Color::RED),
+            ))),
             transform.into(),
         );
         renderer.set(

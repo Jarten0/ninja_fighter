@@ -2,8 +2,9 @@ use bevy_ecs::{
     component::{Component, ComponentId},
     world::World,
 };
-use bevy_reflect::Reflect;
+use bevy_reflect::{reflect_trait, Reflect};
 use erased_serde::{Error, Serializer};
+use serde::Serialize;
 
 use super::ObjectID;
 
@@ -18,11 +19,26 @@ pub struct SceneData {
     /// Is used for serialization, so using this is quite important.
     pub object_name: String,
     /// The ID of the current scene that the component holder belongs to.
-    pub scene_id: ObjectID,
+    pub scene_id: Option<ObjectID>,
 }
 
+impl Serialize for SceneData {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str("Placeholdre for scenedata")
+    }
+}
+
+/// A trait for serializing components, must be implemented to serialize and deserialize components
+/// To implement, simply importing it should do.
 #[bevy_trait_query::queryable]
-pub trait TestSuperTrait {
+#[reflect_trait]
+pub trait TestSuperTrait
+where
+    Self: 'static,
+{
     fn erased_serialize(&self, serializer: &mut dyn Serializer) -> Result<(), Error>;
 
     fn get_component_id(world: &World) -> Option<ComponentId>
@@ -38,7 +54,7 @@ pub trait TestSuperTrait {
 
 impl<T> TestSuperTrait for T
 where
-    T: erased_serde::Serialize + 'static + Component + Reflect,
+    T: erased_serde::Serialize + Component + Reflect,
 {
     fn erased_serialize(&self, serializer: &mut dyn Serializer) -> Result<(), erased_serde::Error> {
         <T as erased_serde::Serialize>::erased_serialize(self, serializer)
@@ -66,6 +82,6 @@ where
     where
         Self: Reflect,
     {
-        self.as_reflect()
+        <Self as Reflect>::as_reflect(self)
     }
 }

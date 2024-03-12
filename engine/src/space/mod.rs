@@ -14,25 +14,28 @@ pub(crate) mod scl;
 pub(crate) mod transform;
 pub(crate) mod vel;
 pub(crate) mod vtx;
+
+use bevy_ecs::prelude::*;
+pub use pos::Position;
+pub use rtt::Rotation;
+pub use scl::Scale;
+pub use transform::{Transform, TransformSettings, DEFAULT_TRANSFORM};
+pub use vel::Velocity;
+pub use vtx::Vertex;
+
 use bevy_reflect::{
     DynamicTupleStruct, FromReflect, NamedField, Reflect, ReflectRef, StructInfo, TypePath,
 };
 use core::fmt;
 use once_cell::sync::Lazy;
-pub use pos::Position;
-pub use rtt::Rotation;
-pub use scl::Scale;
 use serde::{de::Visitor, ser::SerializeStruct, Deserialize, Serialize};
 use std::any::Any;
 use std::ops::{Add, AddAssign, Deref, DerefMut, Neg, Sub, SubAssign};
 use std::time::Duration;
-pub use transform::{Transform, TransformSettings, DEFAULT_TRANSFORM};
-pub use vel::Velocity;
-pub use vtx::Vertex;
 
 // Struct block //
 
-#[derive(Debug, Clone, Copy, TypePath)]
+#[derive(Debug, Clone, Copy, TypePath, Component)]
 pub struct Vector2(mint::Vector2<f32>);
 
 impl Vector2 {

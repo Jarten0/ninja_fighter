@@ -1,7 +1,12 @@
+use std::process::exit;
 use std::{collections::HashMap, path::PathBuf, sync::OnceLock};
 
+use bevy_ecs::entity::Entity;
 use engine::input::key::keycode_converter::keycode_to_str;
-use engine::scene::{Scene, SceneData, SceneError, SceneManager};
+use engine::scene::{
+    add_entity_to_scene, ReflectTestSuperTrait, Scene, SceneData, SceneError, SceneManager,
+    TestSuperTrait,
+};
 use engine::GameRoot;
 
 use bevy_ecs::{
@@ -9,7 +14,7 @@ use bevy_ecs::{
     world::{Mut, World},
 };
 
-use bevy_reflect::DynamicStruct;
+use bevy_reflect::{DynamicStruct, StructInfo, TypeData};
 use engine::scene::ToReflect;
 use inquire::{validator::Validation, Confirm, CustomType, InquireError, Select, Text};
 
@@ -49,7 +54,9 @@ fn commands() -> &'static Vec<DebugCommand> {
             DebugCommand::new("listscenes", list_scenes, "Lists the current scenes that are loaded."),
             DebugCommand::new("listentities", list_entities, "Lists the entites that are in the target scene."),
             DebugCommand::new("newentity", new_entity, "Creates a new, empty entity that you can add components to. Will prompt for a name //later"), //TODO: Give entity name
-            DebugCommand::new("addcomponent", add_component, "Adds a new component to the entity. Advanced feature, many prompts and can be quite confusing. ")
+            DebugCommand::new("scoopentities", scoop_entities, "Pulls any isolated entities into the current target scene. "),
+            DebugCommand::new("addcomponent", add_component, "Adds a new component to the entity. Advanced feature, many prompts and can be quite confusing. "),
+            DebugCommand::new("crash", crash, "Exits the program instantly, without saving.")
         ]
     })
 }
@@ -129,13 +136,13 @@ fn help(_: &mut GameRoot) -> Result<(), String> {
 }
 
 fn save_scene(root: &mut GameRoot) -> Result<(), String> {
-    match Confirm::new("Are you sure? This will overwrite any previous saved data").prompt() {
+    match Confirm::new("Are you sure? This will overwrite any previous saved data >").prompt() {
         Ok(_response_yes) if _response_yes => root
             .world
             .resource_scope(|world, mut scene_manager: Mut<SceneManager>| {
                 scene_manager.save_scene(world)
             })
-            .map_err(|err| err.into()),
+            .map_err(|err| "SceneError: ".to_owned() + &err.to_string()),
         Ok(_response_no) => Err("Save aborted.".to_owned()),
         Err(err) => Err(format!(
             "Inquire error! Save aborted. [{}]",
@@ -272,117 +279,123 @@ fn new_entity(root: &mut GameRoot) -> Result<(), String> {
 }
 
 fn add_component(root: &mut GameRoot) -> Result<(), String> {
-    root.world.resource_scope(
-        |world: &mut World, mut res: Mut<SceneManager>| -> Result<(), String> {
-            let scene = world
-                .get::<Scene>(res.target_scene.ok_or("No target scene found!")?)
-                .ok_or("No scene component found for the current target scene!")?;
+    root.world
+        .resource_scope(
+            |world: &mut World, mut res: Mut<SceneManager>| -> Result<(), SceneError> {
+                let scene = world
+                    .get::<Scene>(res.target_scene.ok_or(SceneError::NoTargetScene)?)
+                    .ok_or(SceneError::NoSceneComponent)?;
 
-            for i in res.type_registry.iter() {
-                println!("{}", i.type_info().type_path())
-            }
-
-            let component_path = Text::new("Component path > ").prompt().unwrap();
-
-            let component_registration: &bevy_reflect::TypeRegistration = res
-                .type_registry
-                .get_with_type_path(&component_path)
-                .ok_or(SceneError::MissingTypeRegistry(component_path.clone()).to_string())?;
-
-            let mut component_patch = DynamicStruct::default();
-
-            component_patch.set_represented_type(Some(component_registration.type_info()));
-
-            let mut component_data: HashMap<&str, serde_json::Value> = HashMap::new();
-
-            let field_names = match component_registration.type_info() {
-                bevy_reflect::TypeInfo::Struct(struct_info) => {
-                    for field_name in struct_info.field_names() {
-                        component_data.insert(
-                            &field_name,
-                            serde_json::from_str(
-                                &Text::new(&format!("Enter value for field [{}] > ", field_name))
-                                    .prompt()
-                                    .unwrap(),
-                            )
-                            .map_err(|err| err.to_string())?,
-                        );
+                // Display the available components that can be serialized
+                for i in res.type_registry.iter() {
+                    if i.data::<ReflectTestSuperTrait>().is_some() {
+                        println!("{}", i.type_info().type_path())
                     }
                 }
-                bevy_reflect::TypeInfo::TupleStruct(tuple_info) => todo!(), // These `todo!()` 's shouldn't be hit, but if they are, implement something here.
-                bevy_reflect::TypeInfo::Tuple(_) => todo!(),
-                bevy_reflect::TypeInfo::List(_) => todo!(),
-                bevy_reflect::TypeInfo::Array(_) => todo!(),
-                bevy_reflect::TypeInfo::Map(_) => todo!(),
-                bevy_reflect::TypeInfo::Enum(_) => todo!(),
-                bevy_reflect::TypeInfo::Value(value) => {
-                    return Err(
-                        "expected a component type, found a non-component value type".to_owned(),
-                    )
-                }
-            };
 
-            for (name, field) in &component_data {
-                println!("!");
-                let f = || {
-                    panic!(
-                        "No expected type found! tried to find the field named [{:?}] on {:?}. ",
-                        name, component_path
-                    )
+                // Create a new component based on user input
+                let component_path = Text::new("Component path > ").prompt().unwrap();
+
+                let component_registration: &bevy_reflect::TypeRegistration = res
+                    .type_registry
+                    .get_with_type_path(&component_path)
+                    .ok_or(SceneError::MissingTypeRegistry(component_path.clone()))?;
+
+                let (component_patch) = match component_registration.type_info() {
+                    bevy_reflect::TypeInfo::Struct(info) => {
+                        create_dynamic_struct(info, component_registration, component_path)?
+                    }
+                    bevy_reflect::TypeInfo::TupleStruct(info) => todo!(),
+                    bevy_reflect::TypeInfo::Tuple(info) => todo!(),
+                    bevy_reflect::TypeInfo::List(info) => todo!(),
+                    bevy_reflect::TypeInfo::Array(info) => todo!(),
+                    bevy_reflect::TypeInfo::Map(info) => todo!(),
+                    bevy_reflect::TypeInfo::Enum(info) => todo!(),
+                    bevy_reflect::TypeInfo::Value(info) => todo!(),
                 };
 
-                let type_info = match component_registration.type_info() {
-                    bevy_reflect::TypeInfo::Struct(struct_info) => struct_info,
-                    bevy_reflect::TypeInfo::TupleStruct(_) => todo!(),
-                    bevy_reflect::TypeInfo::Tuple(_) => todo!(),
-                    bevy_reflect::TypeInfo::List(_) => todo!(),
-                    bevy_reflect::TypeInfo::Array(_) => todo!(),
-                    bevy_reflect::TypeInfo::Map(_) => todo!(),
-                    bevy_reflect::TypeInfo::Enum(_) => todo!(),
-                    bevy_reflect::TypeInfo::Value(_) => todo!(),
+                let reflect_component = component_registration.data::<ReflectComponent>().unwrap();
+
+                // Figure out the entity to add the new component to.
+                let entity = loop {
+                    let name = Text::new("What entity do you want to add it to? > ")
+                        .prompt()
+                        .unwrap();
+
+                    if name == "exit" {
+                        return Err(SceneError::SerializeFailure(
+                            "Aborted before entity could be instantiated".to_owned(),
+                        ));
+                    }
+
+                    let entity = scene
+                        .get_entity(world, name)
+                        .ok_or("The entity does not exist!");
+
+                    if let Ok(entity) = entity {
+                        break entity;
+                    }
+
+                    println!("{}", entity.unwrap_err());
                 };
 
-                let expected_type = type_info
-                    .field(name)
-                    .ok_or(SceneError::MissingTypeRegistry(component_path.clone()).to_string())?
-                    .type_path();
+                let mut entity = world.entity_mut(entity);
 
-                let value = match field.to_reflect(Some(expected_type)) {
-                    Ok(ok) => ok,
-                    Err(ok) => ok,
-                };
+                reflect_component.apply_or_insert(&mut entity, dbg!(&component_patch));
 
-                component_patch.insert_boxed(&name, value);
-            }
-            let reflect_component = component_registration.data::<ReflectComponent>().unwrap();
+                Ok(())
+            },
+        )
+        .map_err(|err| err.to_string())
+}
 
-            let entity = loop {
-                let name = Text::new("What entity do you want to add it to? > ")
-                    .prompt()
-                    .unwrap();
+/// Creates a new component patch based on the given struct information, and constructs new field data from user input.
+fn create_dynamic_struct(
+    struct_info: &StructInfo,
+    component_registration: &bevy_reflect::TypeRegistration,
+    component_path: String,
+) -> Result<(DynamicStruct), SceneError> {
+    let mut component_patch = DynamicStruct::default();
 
-                if name == "exit" {
-                    return Err("Aborted before entity could be instantiated".to_owned());
-                }
+    component_patch.set_represented_type(Some(component_registration.type_info()));
 
-                let entity = scene
-                    .get_entity(world, name)
-                    .ok_or("The entity does not exist!");
+    let mut component_data: HashMap<&str, serde_json::Value> = HashMap::new();
 
-                if let Ok(entity) = entity {
-                    break entity;
-                }
+    // Insert data for each field
+    let field_names = for field_name in struct_info.field_names() {
+        let field_type = struct_info.field(&field_name).unwrap().type_path();
 
-                println!("{}", entity.unwrap_err());
-            };
+        component_data.insert(
+            &field_name,
+            serde_json::from_str(
+                &Text::new(&format!(
+                    "Enter value for field [{}: {}] > ",
+                    field_name, field_type
+                ))
+                .prompt()
+                .unwrap(),
+            )
+            .map_err(|err| SceneError::SerializeFailure(err.to_string()))?,
+        );
+    };
 
-            let mut entity = world.entity_mut(entity);
+    // Insert component data into patch
+    for (name, field) in &component_data {
+        // Find expected type to make disambiguation easier, ex. figure out if a json number should be an i32, f64, u8, etc.
+        let expected_type = struct_info
+            .field(name)
+            .ok_or(SceneError::MissingTypeRegistry(component_path.clone()))?
+            .type_path();
 
-            reflect_component.apply_or_insert(&mut entity, &component_patch);
+        let value = match field.to_reflect(Some(expected_type)) {
+            Ok(ok) => ok,
+            Err(ok) => ok,
+        };
 
-            Ok(())
-        },
-    )
+        component_patch.insert_boxed(&name, value);
+    }
+
+    Ok(component_patch)
 }
 
 fn list_entities(root: &mut GameRoot) -> Result<(), String> {
@@ -412,15 +425,37 @@ fn list_entities(root: &mut GameRoot) -> Result<(), String> {
 }
 
 fn scoop_entities(root: &mut GameRoot) -> Result<(), String> {
-    root.world.resource_scope(
-        |world: &mut World, res: Mut<SceneManager>| -> Result<(), String> {
-            for entity in world.iter_entities() {
-                if let Some(data) = entity.get::<SceneData>() {
-                    if data.scene_id == todo!() {}
-                }
-            }
+    root.world
+        .resource_scope(
+            |world: &mut World, res: Mut<SceneManager>| -> Result<(), SceneError> {
+                let scene_id = world
+                    .get::<Scene>(res.target_scene.ok_or(SceneError::NoTargetScene)?)
+                    .ok_or(SceneError::NoSceneComponent)?
+                    .scene_id;
 
-            Ok(())
-        },
-    )
+                let mut entities_to_push: Vec<Entity> = Vec::new();
+
+                for mut entity_mut in world.iter_entities_mut() {
+                    if let Some(mut data) = entity_mut.get_mut::<SceneData>() {
+                        if let None = data.scene_id {
+                            data.scene_id = Some(scene_id);
+                            entities_to_push.push(entity_mut.id())
+                        }
+                    }
+                }
+
+                for entity in entities_to_push {
+                    add_entity_to_scene(world, res.target_scene.unwrap(), entity)?;
+                }
+
+                Ok(())
+            },
+        )
+        .map_err(|err| err.to_string())
+}
+
+fn crash(root: &mut GameRoot) -> Result<(), String> {
+    exit(1);
+    Err("failed to crash??".to_owned()) // lie to the compiler >:)))
+                                        //but if this returns err that means something seriously went wrong
 }

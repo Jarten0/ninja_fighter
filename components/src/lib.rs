@@ -8,7 +8,9 @@
 //! so that the end user can hand off that small but bothersome responsibility of looking through the crate to find every component.
 //! It can also be inlined later for removing any unused components if initialization performance is critical.
 
-use bevy_ecs::world::World;
+use bevy_ecs::prelude::*;
+use bevy_reflect::TypeRegistry;
+use engine::scene::{ReflectTestSuperTrait, SceneManager};
 
 #[allow(unused)]
 pub mod collider;
@@ -17,13 +19,29 @@ pub mod protag;
 pub mod render;
 
 pub fn init_components(world: &mut World) -> () {
-    world.init_component::<render::Renderer>();
-    world.init_component::<collider::collider_mesh::ColliderMesh>();
-    world.init_component::<collider::gravity_settings::GravitySettings>();
-    world.init_component::<protag::Protag>();
-    world.init_component::<protag::ProtagController>();
-    world.init_component::<debug::DebugComponent>();
-    world.init_component::<debug::DebugComponent>();
+    world.resource_scope(|world: &mut World, mut manager: Mut<SceneManager>| {
+        let register = &mut manager.type_registry;
+        serialize_component::<render::Renderer>(world, register);
+        serialize_component::<collider::collider_mesh::ColliderMesh>(world, register);
+        serialize_component::<collider::gravity_settings::GravitySettings>(world, register);
+        serialize_component::<protag::Protag>(world, register);
+        serialize_component::<protag::ProtagController>(world, register);
+        serialize_component::<debug::DebugComponent>(world, register);
+    });
+}
 
-    world.resour
+/// Enables the component to be serialized
+fn serialize_component<
+    T: bevy_ecs::component::Component
+        + bevy_reflect::GetTypeRegistration
+        + bevy_reflect::Reflect
+        + serde::Serialize
+        + bevy_reflect::TypePath,
+>(
+    world: &mut World,
+    register: &mut TypeRegistry,
+) {
+    world.init_component::<T>();
+    register.register::<T>();
+    register.register_type_data::<T, ReflectTestSuperTrait>()
 }

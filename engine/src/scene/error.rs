@@ -45,7 +45,9 @@ impl Display for SceneError {
                 "Component failure: No SceneData component found on the object"
             ),
             SceneError::InputError(err) => write!(f, "User input error [{}]", err),
-            SceneError::SerializeFailure(err) => write!(f, "Serialize failure [{}]"),
+            SceneError::SerializeFailure(err) => {
+                write!(f, "Serialize failure [{}]", err.to_string())
+            }
         }
     }
 }

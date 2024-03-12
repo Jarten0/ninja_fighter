@@ -1,10 +1,14 @@
 use core::fmt;
 
+use bevy_reflect::Reflect;
 use engine::GgezInterface;
 use engine::Input;
 
 use bevy_ecs::entity::Entity;
+use serde::Serialize;
 
+use crate::collider::Collider;
+use bevy_ecs::prelude::*;
 use bevy_ecs::system::Commands;
 use bevy_ecs::system::Query;
 use bevy_ecs::system::Res;
@@ -12,8 +16,6 @@ use bevy_ecs::system::ResMut;
 use ggez::graphics::Color;
 use ggez::graphics::DrawParam;
 use ggez::graphics::Rect;
-
-use crate::collider::Collider;
 
 use super::collider::collider_mesh::ColliderMesh;
 
@@ -24,7 +26,8 @@ pub fn init(mut commands: Commands, engine: Res<GgezInterface>) {
     commands.spawn(DebugComponent::new());
 }
 
-#[derive(bevy_ecs::component::Component)]
+#[derive(bevy_ecs::component::Component, Reflect, Default, Serialize)]
+#[reflect(Component)]
 pub struct DebugComponent {
     current_place_state: PlaceState,
 }
@@ -78,7 +81,9 @@ pub fn update(
     }
 }
 
+#[derive(Debug, Clone, Copy, Reflect, Default, Serialize)]
 enum PlaceState {
+    #[default]
     Idle,
     /// Waiting on the bevy command to go through before changing to Placing.
     Pending(Entity),
