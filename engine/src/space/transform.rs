@@ -5,6 +5,7 @@ use serde::Serialize;
 use super::{Position, Rotation, Scale, Vector2, Velocity};
 
 #[derive(Debug, Component, Default, Clone, Copy, Reflect, Serialize)]
+#[reflect(Component)]
 pub struct TransformSettings {
     pub auto_update: bool,
 }

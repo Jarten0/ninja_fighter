@@ -20,12 +20,13 @@ use bevy_ecs::world::World;
 use bevy_reflect::serde::ReflectSerializer;
 use bevy_reflect::TypeRegistry;
 use inquire::Text;
+use log::error;
+use log::trace;
 use serde::Serialize;
 use serde_json::Value;
 
 use std::collections::HashMap;
 use std::fs::File;
-use std::io::Write;
 use std::path::PathBuf;
 
 /// Entity managment for loading and unloading in batches rather than having everything loaded at once.
@@ -146,6 +147,7 @@ pub fn save_scene(
     world: &mut World,
     registry: &TypeRegistry,
 ) -> Result<(), error::SceneError> {
+    trace!("Saving scene to file");
     let f = || -> Result<PathBuf, SceneError> {
         Text::new("Save data path? >")
             .prompt()
@@ -153,7 +155,8 @@ pub fn save_scene(
             .map_err(|err| SceneError::InputError(err.to_string()))
     };
 
-    let path_result = dbg!(world.get::<Scene>(entity))
+    let path_result = world
+        .get::<Scene>(entity)
         .ok_or(SceneError::NoSceneComponent)?
         .save_data_path
         .clone()
@@ -164,25 +167,22 @@ pub fn save_scene(
         Err(err) => err?,
     };
 
+    trace!("Found path");
+
     let new_file = match File::create(path.clone()) {
         Ok(ok) => ok,
-        Err(err) => {
-            return Err(error::SceneError::IOError(
-                err.to_string()
-                    + "(Could the target scene's path be incorrect?) -"
-                    + match path.to_str() {
-                        Some(ok) => ok,
-                        None => "N/A",
-                    },
-            ))
-        }
+        Err(err) => return Err(error::SceneError::IOError(err)), //Could the target scene's path be incorrect?)
     };
 
     let value = to_serialized_scene(world, registry, entity)
-        .map_err(|err| SceneError::IOError(err.to_string()))?;
+        .map_err(|err| SceneError::SerializeFailure(err.to_string()))?;
+
+    trace!("Writing saved data to disk");
 
     serde_json::to_writer(new_file, &value)
-        .map_err(|err| error::SceneError::IOError(err.to_string()))?;
+        .map_err(|err| error::SceneError::SerializeFailure(err.to_string()))?;
+
+    trace!("Saved scene successfully");
 
     Ok(())
 }
@@ -204,9 +204,9 @@ pub fn load_scene(
     use std::io::prelude::*;
     let mut buf = String::new();
     let _s = File::open(path.clone())
-        .map_err(|err| -> error::SceneError { error::SceneError::IOError(err.to_string()) })?
+        .map_err(|err| -> error::SceneError { error::SceneError::IOError(err) })?
         .read_to_string(&mut buf)
-        .map_err(|err| SceneError::IOError(err.to_string()))?;
+        .map_err(|err| SceneError::IOError(err))?;
     let deserialize = serde_json::from_str::<SerializedSceneData>(&buf)
         .map_err(|err| error::SceneError::LoadFailure(err.to_string()))?;
     let scene_entity = deserialize.initialize(world, registry)?;
@@ -320,10 +320,13 @@ pub fn validate_name(names: &mut dyn Iterator<Item = &String>, name_to_check: &m
 
         println!("{:?} contains {}", "Som", &name_to_check);
 
-        let suffix = format!("({})", i);
-        *name_to_check = name_to_check.strip_suffix(&suffix).unwrap_or("").to_owned();
+        let suffix = format!(" ({})", i);
+        *name_to_check = name_to_check
+            .strip_suffix(&suffix)
+            .unwrap_or(&name_to_check)
+            .to_owned();
         i += 1;
-        name_to_check.push_str(&format!("({})", i))
+        name_to_check.push_str(&format!(" ({})", i))
     }
 }
 
@@ -334,6 +337,8 @@ pub fn to_serialized_scene<'a>(
     registry: &TypeRegistry,
     scene_entity: Entity,
 ) -> Result<serialized_scene::SerializedSceneData, SceneError> {
+    trace!("Serializing scene {}", scene_entity.index());
+
     let scene_entity_list: Vec<Entity> = world
         .entity(scene_entity)
         .get::<Scene>()
@@ -341,18 +346,19 @@ pub fn to_serialized_scene<'a>(
         .entities
         .clone();
 
-    dbg!(&scene_entity_list);
-
     let mut entity_data: DataHashmap = HashMap::new();
 
     for (entity, serializable_components_data) in world
         .query::<(Entity, &dyn object_data::TestSuperTrait)>()
         .iter(world)
     {
-        dbg!(entity);
         if !scene_entity_list.contains(&entity) {
             continue;
         }
+
+        let entities_name = world.get::<SceneData>(entity).unwrap().object_name.clone();
+
+        trace!("Serializing {}'s components", entities_name);
 
         let mut entity_hashmap: EntityHashmap = HashMap::new();
 
@@ -364,6 +370,11 @@ pub fn to_serialized_scene<'a>(
             let mut serializer =
                 serde_json::Serializer::with_formatter(component_serialized_data, formatter);
 
+            trace!(
+                "Serializing {} component",
+                component.as_reflect().reflect_type_path()
+            );
+
             ReflectSerializer::new(component.as_reflect(), registry)
                 .serialize(&mut serializer)
                 .map_err(|err| {
@@ -374,6 +385,8 @@ pub fn to_serialized_scene<'a>(
                     ))
                 })?;
 
+            trace!("Created serializer");
+
             let serialized_component_json = serializer.into_inner();
 
             let check_string = check_string(serialized_component_json).unwrap();
@@ -381,7 +394,9 @@ pub fn to_serialized_scene<'a>(
             let from_str: HashMap<String, HashMap<String, Value>> =
                 serde_json::from_str(&check_string).unwrap();
 
-            to_writer(&check_string);
+            trace!("Grabbed serializer data");
+
+            // to_writer(&check_string).map_err(|err| SceneError::IOError(err))?;
 
             let component_name_hashmap = from_str.iter().next().unwrap();
 
@@ -389,13 +404,44 @@ pub fn to_serialized_scene<'a>(
                 component_name_hashmap.0.to_owned(),
                 component_name_hashmap.1.to_owned(),
             );
+
+            trace!(
+                "Inserted serialized component data to {}'s data",
+                entities_name
+            );
         }
         let k = world.get::<SceneData>(entity).unwrap().object_name.clone();
 
         entity_data.insert(k, entity_hashmap);
     }
 
+    // Serialize empty entities aswell
+    for entity in scene_entity_list {
+        // Try/Catch to prevent failure from entities with missing scene components
+        let result = || -> Result<(), SceneError> {
+            let object_name = &world
+                .get::<SceneData>(entity)
+                .ok_or(SceneError::NoSceneDataComponent)?
+                .object_name;
+
+            if !entity_data.contains_key(object_name) {
+                entity_data.insert(object_name.to_owned(), HashMap::new());
+            };
+            Ok(())
+        }()
+        .map_err(|err| err.to_string());
+
+        dbg!(entity);
+
+        if let Err(err) = result {
+            error!("Skipped serializing entity {}: [{}]", entity.index(), err)
+        }
+    }
+
     let scene = world.get_mut::<Scene>(scene_entity).unwrap();
+
+    trace!("Serialized scene {} successfully", scene_entity.index());
+
     Ok(serialized_scene::SerializedSceneData {
         name: scene.name.clone(),
         entity_data,
@@ -409,12 +455,4 @@ fn check_string(
         Ok(string) => string,
         Err(err) => return Err(Err(err.to_string())),
     })
-}
-
-fn to_writer(to_string: &str) {
-    let mut path_buf = std::env::current_dir().unwrap();
-    path_buf.pop();
-    path_buf.push("test_output");
-    path_buf.push("scene_serialization.json");
-    let _ = File::create(path_buf).unwrap().write(to_string.as_bytes());
 }

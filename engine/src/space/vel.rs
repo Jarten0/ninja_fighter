@@ -1,5 +1,6 @@
 use super::Vector2;
 use bevy_ecs::component::Component;
+use bevy_ecs::reflect::ReflectComponent;
 use bevy_reflect::Reflect;
 use serde::Deserialize;
 use serde::Serialize;
@@ -7,6 +8,7 @@ use std::ops::Deref;
 use std::ops::DerefMut;
 
 #[derive(Debug, Component, Default, Clone, Copy, Serialize, Deserialize, Reflect)]
+#[reflect(Component)]
 pub struct Velocity(pub(crate) Vector2);
 
 impl Velocity {

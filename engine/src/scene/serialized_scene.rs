@@ -53,8 +53,14 @@ impl ToReflect for serde_json::Value {
             Value::Bool(bool) => Reflect::reflect_owned(Box::new(bool.to_owned())),
             Value::Number(number) => convert_number(number, expected_type),
             Value::String(string) => convert_string(string, expected_type),
-            Value::Array(_array) => todo!(),
-            Value::Object(_object) => todo!(),
+            Value::Array(_array) => {
+                dbg!(expected_type);
+                todo!()
+            }
+            Value::Object(_object) => {
+                dbg!(expected_type);
+                todo!()
+            }
         };
         Ok(Box::<dyn Reflect>::from(match value {
             bevy_reflect::ReflectOwned::Struct(_e) => todo!(),

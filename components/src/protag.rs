@@ -1,5 +1,6 @@
 use crate::{collider::Collider, render::render_type::RenderType, render::Renderer};
 use bevy_ecs::prelude::*;
+use bevy_ecs::reflect::ReflectComponent;
 use bevy_reflect::Reflect;
 use engine::space::{Position, Transform, TransformSettings, Velocity};
 use engine::GgezInterface;
@@ -7,11 +8,12 @@ use engine::{space, Input};
 use ggez::graphics::{self, Color, DrawParam, Image, Rect};
 use serde::Serialize;
 
-pub fn init(mut commands: Commands, engine: Res<GgezInterface>) {
-    commands.spawn(ProtagBundle::new(&engine));
-}
+// pub fn init(mut commands: Commands, engine: Res<GgezInterface>) {
+//     // commands.spawn(ProtagBundle::new(&engine));
+// }
 
-#[derive(Default, Component, Reflect, Serialize)]
+#[derive(Default, Component, Reflect, Serialize, Clone, Debug)]
+#[reflect(Component)]
 pub struct Protag;
 
 #[derive(Bundle)]

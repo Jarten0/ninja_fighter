@@ -6,6 +6,8 @@
 
 // Hi! If your reading this, welcome to my fun little project. Some shenanigans are afoot!
 
+use std::time::Duration;
+
 use crate::input::KeycodeType;
 use crate::logging;
 use crate::scene::SceneManager;
@@ -103,14 +105,14 @@ impl GameRoot {
                 .run(world);
         });
 
-        if let Err(err) = root
-            .world
-            .resource_scope(|world, mut res: Mut<SceneManager>| {
-                res.load_scene(world, "game/assets/scenes/cheeseland.json".into())
-            })
-        {
-            error!("Scene load error! [{}]", err)
-        }
+        // if let Err(err) = root
+        //     .world
+        //     .resource_scope(|world, mut res: Mut<SceneManager>| {
+        //         res.load_scene(world, "game/assets/scenes/cheeseland.json".into())
+        //     })
+        // {
+        //     error!("Scene load error! [{}]", err)
+        // }
 
         trace!("Ran init schedule");
 
@@ -145,6 +147,12 @@ impl EventHandler for GameRoot {
         // FPS limiter: read `check_update_time` docs for more details
         if !ctx.time.check_update_time(self.ticks_per_second) {
             return GameResult::Ok(());
+        }
+        if ctx.time.remaining_update_time() > Duration::from_millis(80) {
+            debug!("Lag spike of 5+ frames")
+        }
+        while ctx.time.remaining_update_time() > Duration::from_millis(100) {
+            ctx.time.check_update_time(self.ticks_per_second);
         }
 
         // Debug console: if `debug_mode` is enabled, it will open the console and pause ticks until it is closed

@@ -51,3 +51,20 @@ where
     res.type_registry
         .register_type_data::<T, ReflectTestSuperTrait>();
 }
+
+/// Enables the component to be serialized
+pub fn serialize_component<
+    T: bevy_ecs::component::Component
+        + bevy_reflect::GetTypeRegistration
+        + bevy_reflect::Reflect
+        + serde::Serialize
+        + bevy_reflect::TypePath,
+>(
+    world: &mut bevy_ecs::prelude::World,
+    register: &mut bevy_reflect::TypeRegistry,
+) {
+    world.init_component::<T>();
+    bevy_trait_query::RegisterExt::register_component_as::<dyn TestSuperTrait, T>(world);
+    register.register::<T>();
+    register.register_type_data::<T, ReflectTestSuperTrait>()
+}

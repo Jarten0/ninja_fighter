@@ -47,9 +47,9 @@ pub fn init_schedule() -> (Schedule, ScheduleTag) {
         .set_build_settings(INIT_SETTINGS.clone())
         .set_executor_kind(ExecutorKind::MultiThreaded);
 
-    init_sched
-        .add_systems(debug::init)
-        .add_systems(protag::init);
+    // init_sched
+    // .add_systems(debug::init)
+    // .add_systems(protag::init);
 
     (init_sched, ScheduleTag::Init)
 }

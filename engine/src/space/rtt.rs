@@ -1,4 +1,5 @@
 use bevy_ecs::component::Component;
+use bevy_ecs::reflect::ReflectComponent;
 use bevy_reflect::Reflect;
 use serde::Deserialize;
 use serde::Serialize;
@@ -6,7 +7,10 @@ use std::ops::Deref;
 use std::ops::DerefMut;
 
 #[derive(Debug, Component, Default, Clone, Copy, Serialize, Deserialize, Reflect)]
-pub struct Rotation(pub(crate) f32);
+#[reflect(Component)]
+pub struct Rotation(pub(crate) f32)
+where
+    Self: 'static;
 
 impl Rotation {
     pub fn new(angle: f32) -> Self {

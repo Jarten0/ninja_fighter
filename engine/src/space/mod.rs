@@ -16,6 +16,7 @@ pub(crate) mod vel;
 pub(crate) mod vtx;
 
 use bevy_ecs::prelude::*;
+use log::error;
 pub use pos::Position;
 pub use rtt::Rotation;
 pub use scl::Scale;
@@ -24,7 +25,7 @@ pub use vel::Velocity;
 pub use vtx::Vertex;
 
 use bevy_reflect::{
-    DynamicTupleStruct, FromReflect, NamedField, Reflect, ReflectRef, StructInfo, TypePath,
+    DynamicTupleStruct, FromReflect, Reflect, ReflectRef, TupleStructInfo, TypePath, UnnamedField,
 };
 use core::fmt;
 use once_cell::sync::Lazy;
@@ -221,9 +222,9 @@ impl<'de> Visitor<'de> for F32Visitor {
 // Reflection block //
 
 static STRUCT_INFO: Lazy<bevy_reflect::TypeInfo> = Lazy::new(|| {
-    bevy_reflect::TypeInfo::Struct(StructInfo::new::<Vector2>(&[
-        NamedField::new::<f32>("x"),
-        NamedField::new::<f32>("y"),
+    bevy_reflect::TypeInfo::TupleStruct(TupleStructInfo::new::<Vector2>(&[
+        UnnamedField::new::<f32>(0),
+        UnnamedField::new::<f32>(1),
     ]))
 });
 
@@ -291,9 +292,16 @@ impl Reflect for Vector2 {
     }
 
     fn apply(&mut self, value: &dyn Reflect) {
-        let value: Self = value.downcast_ref::<Self>().unwrap().to_owned();
-        self.x = value.x;
-        self.y = value.y;
+        let downcast_ref = match value.downcast_ref::<Self>() {
+            Some(some) => some,
+            None => {
+                error!("Could not apply Reflect to Vector2: value is not a Vector2");
+                return;
+            }
+        };
+
+        self.x = downcast_ref.x;
+        self.y = downcast_ref.y;
     }
 
     fn set(&mut self, value: Box<dyn Reflect>) -> Result<(), Box<dyn Reflect>> {

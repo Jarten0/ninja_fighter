@@ -9,8 +9,8 @@
 //! It can also be inlined later for removing any unused components if initialization performance is critical.
 
 use bevy_ecs::prelude::*;
-use bevy_reflect::TypeRegistry;
-use engine::scene::{ReflectTestSuperTrait, SceneManager};
+use engine::scene::serialize_component;
+use engine::scene::SceneManager;
 
 #[allow(unused)]
 pub mod collider;
@@ -28,20 +28,4 @@ pub fn init_components(world: &mut World) -> () {
         serialize_component::<protag::ProtagController>(world, register);
         serialize_component::<debug::DebugComponent>(world, register);
     });
-}
-
-/// Enables the component to be serialized
-fn serialize_component<
-    T: bevy_ecs::component::Component
-        + bevy_reflect::GetTypeRegistration
-        + bevy_reflect::Reflect
-        + serde::Serialize
-        + bevy_reflect::TypePath,
->(
-    world: &mut World,
-    register: &mut TypeRegistry,
-) {
-    world.init_component::<T>();
-    register.register::<T>();
-    register.register_type_data::<T, ReflectTestSuperTrait>()
 }

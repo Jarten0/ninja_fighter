@@ -31,8 +31,11 @@ impl Serialize for SceneData {
     }
 }
 
-/// A trait for serializing components, must be implemented to serialize and deserialize components
+/// A trait for serializing components, must be implemented to serialize and deserialize components.
+///
 /// To implement, simply importing it should do.
+///
+/// However, it does require that the component implements Component, Reflect, Serialize, and is 'static
 #[bevy_trait_query::queryable]
 #[reflect_trait]
 pub trait TestSuperTrait

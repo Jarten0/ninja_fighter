@@ -73,7 +73,7 @@ pub mod debuge {
 
         let initf = || {
             let (mut init_sched, tag) = game::init_schedule();
-            init_sched.add_systems(components::debug::init);
+            // init_sched.add_systems(components::debug::init);
             (init_sched, tag)
         };
 

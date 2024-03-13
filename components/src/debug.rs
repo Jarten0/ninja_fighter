@@ -82,6 +82,7 @@ pub fn update(
 }
 
 #[derive(Debug, Clone, Copy, Reflect, Default, Serialize)]
+#[reflect_value]
 enum PlaceState {
     #[default]
     Idle,
