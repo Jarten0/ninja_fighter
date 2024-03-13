@@ -6,9 +6,12 @@ use bevy_ecs::entity::Entity;
 use bevy_ecs::reflect::ReflectComponent;
 use bevy_ecs::world::World;
 use bevy_reflect::DynamicStruct;
+use bevy_reflect::DynamicTupleStruct;
 use bevy_reflect::Reflect;
+use bevy_reflect::ReflectOwned;
 use bevy_reflect::TypePath;
 use bevy_reflect::TypeRegistry;
+use log::*;
 use serde::de::Visitor;
 use serde::ser::SerializeStruct;
 use serde::Deserialize;
@@ -33,6 +36,7 @@ pub trait ToReflect {
     fn to_reflect(
         &self,
         expected_type_path: Option<&str>,
+        type_registry: &TypeRegistry,
     ) -> Result<Box<dyn Reflect>, Box<dyn Reflect>>;
 }
 
@@ -47,13 +51,15 @@ impl ToReflect for serde_json::Value {
     fn to_reflect(
         &self,
         expected_type: Option<&str>,
+        type_registry: &TypeRegistry,
     ) -> Result<Box<dyn Reflect>, Box<dyn Reflect>> {
         let value = match self {
             Value::Null => Reflect::reflect_owned(Box::new(())),
             Value::Bool(bool) => Reflect::reflect_owned(Box::new(bool.to_owned())),
             Value::Number(number) => convert_number(number, expected_type),
             Value::String(string) => convert_string(string, expected_type),
-            Value::Array(_array) => {
+            Value::Array(array) => {
+                convert_array(array, expected_type, type_registry);
                 dbg!(expected_type);
                 todo!()
             }
@@ -103,6 +109,46 @@ fn convert_number(
     Reflect::reflect_owned(value)
 }
 
+fn convert_array(
+    string: &Vec<Value>,
+    expected_type: Option<&str>,
+    type_registry: &TypeRegistry,
+) -> bevy_reflect::ReflectOwned {
+    if let Some(expected_type) = expected_type {
+        if let Some(type_registration) = type_registry.get_with_type_path(expected_type) {
+            match type_registration.type_info() {
+                bevy_reflect::TypeInfo::Struct(_) => todo!(),
+                bevy_reflect::TypeInfo::TupleStruct(tsinfo) => {
+                    let mut dyn_ts = DynamicTupleStruct::default();
+
+                    dyn_ts.set_represented_type(Some(type_registration.type_info()));
+
+                    for i in 0..tsinfo.field_len() {
+                        let field = tsinfo.field_at(i).unwrap();
+                        let value = string.get(i).unwrap();
+                        dyn_ts.insert_boxed(
+                            value
+                                .to_reflect(Some(field.type_path()), type_registry)
+                                .unwrap(),
+                        );
+                    }
+                    ReflectOwned::TupleStruct(Box::new(dyn_ts));
+                }
+                bevy_reflect::TypeInfo::Tuple(_) => todo!(),
+                bevy_reflect::TypeInfo::List(_) => todo!(),
+                bevy_reflect::TypeInfo::Array(_) => todo!(),
+                bevy_reflect::TypeInfo::Map(_) => todo!(),
+                bevy_reflect::TypeInfo::Enum(_) => todo!(),
+                bevy_reflect::TypeInfo::Value(_) => todo!(),
+            };
+
+            todo!();
+        }
+    }
+
+    todo!()
+}
+
 /// Downcasts an int to the expected type
 fn downcast_int(expected_type: Option<&str>, int: i64) -> Box<dyn Reflect> {
     match expected_type {
@@ -149,39 +195,41 @@ impl SerializedSceneData {
         world: &mut World,
         type_registry: &TypeRegistry,
     ) -> Result<Entity, SceneError> {
+        trace!("Initializing new scene...");
+
         let scene = component::Scene::new(self.name.to_owned());
 
         let mut entities: Vec<Entity> = Vec::new();
         for (entity_name, entity_hashmap) in self.entity_data {
+            trace!("Initializing {}", &entity_name);
+
             let bundle = SceneData {
                 object_name: entity_name,
                 scene_id: Some(scene.scene_id),
             };
 
+            let entity_name_debug = bundle.object_name.clone();
+
             let mut entity = world.spawn(bundle);
 
+            trace!(
+                "Spawned {} entity with SceneData component",
+                entity_name_debug
+            );
+
             for (component_path, component_data) in entity_hashmap {
+                trace!("Initializing component {}", component_path);
+
                 let component_registration: &bevy_reflect::TypeRegistration = type_registry
                     .get_with_type_path(&component_path)
                     .ok_or(SceneError::MissingTypeRegistry(component_path.clone()))?;
-
-                // let fields = match component_registration.type_info() {
-                //     bevy_reflect::TypeInfo::Struct(struct_info) => struct_info.field_names(),
-                //     bevy_reflect::TypeInfo::TupleStruct(_) => todo!(), // These `todo!()` 's shouldn't be hit, but if they are, implement something here.
-                //     bevy_reflect::TypeInfo::Tuple(_) => todo!(),
-                //     bevy_reflect::TypeInfo::List(_) => todo!(),
-                //     bevy_reflect::TypeInfo::Array(_) => todo!(),
-                //     bevy_reflect::TypeInfo::Map(_) => todo!(),
-                //     bevy_reflect::TypeInfo::Enum(_) => todo!(),
-                //     bevy_reflect::TypeInfo::Value(_) => todo!(),
-                // };
 
                 let mut component_patch = DynamicStruct::default();
 
                 component_patch.set_represented_type(Some(component_registration.type_info()));
 
                 for (name, field) in &component_data {
-                    println!("!");
+                    trace!("Initializing field {}: {}", field, name);
 
                     let type_info = match component_registration.type_info() {
                         bevy_reflect::TypeInfo::Struct(struct_info) => struct_info,
@@ -199,10 +247,18 @@ impl SerializedSceneData {
                         .ok_or(SceneError::MissingTypeRegistry(component_path.clone()))?
                         .type_path();
 
-                    let value = match field.to_reflect(Some(expected_type)) {
+                    let value = match field.to_reflect(Some(expected_type), type_registry) {
                         Ok(ok) => ok,
-                        Err(ok) => ok,
+                        Err(ok) => {
+                            error!(
+                                "Could not conform {} to the expected type {}",
+                                name, expected_type
+                            );
+                            ok
+                        }
                     };
+
+                    trace!("Initialized {}", name);
 
                     component_patch.insert_boxed(&name, value);
                 }

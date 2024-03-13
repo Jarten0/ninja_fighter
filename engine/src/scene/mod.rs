@@ -1,4 +1,5 @@
 mod component;
+mod converter;
 mod error;
 mod object_data;
 mod object_id;
@@ -15,6 +16,7 @@ pub use component::{
 };
 
 pub use component::Scene;
+pub use converter::*;
 pub use error::SceneError;
 pub use object_data::ReflectTestSuperTrait;
 pub use object_data::SceneData;
