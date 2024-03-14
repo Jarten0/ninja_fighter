@@ -116,7 +116,7 @@ fn convert_array(
 ) -> bevy_reflect::ReflectOwned {
     if let Some(expected_type) = expected_type {
         if let Some(type_registration) = type_registry.get_with_type_path(expected_type) {
-            match type_registration.type_info() {
+            let owned = match type_registration.type_info() {
                 bevy_reflect::TypeInfo::Struct(_) => todo!(),
                 bevy_reflect::TypeInfo::TupleStruct(tsinfo) => {
                     let mut dyn_ts = DynamicTupleStruct::default();
@@ -132,7 +132,7 @@ fn convert_array(
                                 .unwrap(),
                         );
                     }
-                    ReflectOwned::TupleStruct(Box::new(dyn_ts));
+                    ReflectOwned::TupleStruct(Box::new(dyn_ts))
                 }
                 bevy_reflect::TypeInfo::Tuple(_) => todo!(),
                 bevy_reflect::TypeInfo::List(_) => todo!(),
@@ -141,12 +141,18 @@ fn convert_array(
                 bevy_reflect::TypeInfo::Enum(_) => todo!(),
                 bevy_reflect::TypeInfo::Value(_) => todo!(),
             };
+            trace!("Converted JSON array into ReflectOwned");
+            owned
+        } else {
+            trace!("No type registration found for {}", expected_type);
 
-            todo!();
+            todo!()
         }
-    }
+    } else {
+        trace!("No expected type for array conversion");
 
-    todo!()
+        todo!()
+    }
 }
 
 /// Downcasts an int to the expected type

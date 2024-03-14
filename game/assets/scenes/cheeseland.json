@@ -28,11 +28,6 @@
                     ]
                 ]
             }
-        },
-        "DebugObject": {
-            "components::debug::DebugComponent": {
-                "current_place_state": "Idle"
-            }
         }
     },
     "name": "cheeseland"
