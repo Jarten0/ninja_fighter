@@ -50,25 +50,23 @@ pub fn update(
     engine: ResMut<GgezInterface>,
     input: ResMut<Input>,
     mut commands: Commands,
-) {
-    let is_just_pressed = input
-        .get_action("Click")
-        .unwrap()
-        .status()
-        .is_just_pressed();
+) -> Option<()> {
+    let is_just_pressed = input.get_action("RightClick")?.is_just_pressed();
 
     for mut debug in query.iter_mut() {
         match debug.current_place_state {
             PlaceState::Idle => {
                 if is_just_pressed {
-                    let spawn = commands.spawn(Collider::new(&engine));
+                    let spawn = commands.spawn(Collider::default());
 
                     debug.update_place_state(PlaceState::Pending(spawn.id()));
                 }
             }
             PlaceState::Pending(entity) => {
-                if let Ok(_) = collider_query.get(entity) {
-                    debug.update_place_state(PlaceState::Placing(0, entity))
+                if let Ok(mut collider_mesh) = collider_query.get_mut(entity) {
+                    collider_mesh
+                        .debug
+                        .update_place_state(PlaceState::Placing(0, entity))
                 }
             }
             PlaceState::Placing(_stage, _entity) => {
@@ -79,6 +77,8 @@ pub fn update(
             }
         }
     }
+
+    None
 }
 
 #[derive(Debug, Clone, Copy, Reflect, Default, Serialize)]

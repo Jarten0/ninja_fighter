@@ -8,6 +8,7 @@ use engine::GgezInterface;
 use bevy_ecs::component::Component;
 use bevy_ecs::system::Query;
 
+use ggez::graphics;
 use ggez::graphics::GraphicsContext;
 use ggez::graphics::Mesh as DrawMesh;
 use ggez::graphics::MeshData;
@@ -41,22 +42,44 @@ pub fn update(mut query: Query<&mut ColliderMesh>, engine: bevy_ecs::system::Res
 pub struct ColliderMesh {
     pub(crate) vertecies_list: Vec<Vertex>,
     #[reflect(ignore)]
+    pub(crate) draw_vertecies: Vec<graphics::Vertex>,
+    #[reflect(ignore)]
     pub(crate) drawable_mesh: Option<DrawMesh>,
+    #[reflect(ignore)]
     pub(crate) serialized_draw_mesh: Option<SerializedDrawMesh>,
 }
 
-#[derive(Debug, Clone, Reflect, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct SerializedDrawMesh {
-    // pub(crate) verts: ArcBuffer,
-    // pub(crate) inds: ArcBuffer,
+    pub vertices: Vec<graphics::Vertex>,
+    pub indicies: Vec<u32>,
     pub(crate) vertex_count: usize,
     pub(crate) index_count: usize,
     pub(crate) bounds: SerializedRect,
 }
 
 impl SerializedDrawMesh {
-    fn into_rect(self, gfx: &GraphicsContext) -> DrawMesh {
-        DrawMesh::from_data(gfx, raw)
+    fn into_mesh(self, gfx: &GraphicsContext) -> DrawMesh {
+        DrawMesh::from_data(
+            gfx,
+            MeshData {
+                vertices: &self
+                    .vertices
+                    .iter()
+                    .map(|v| Into::<graphics::Vertex>::into(*v))
+                    .collect::<Vec<graphics::Vertex>>(),
+                indices: &self.indicies,
+            },
+        )
+    }
+
+    pub fn new_vertex(&mut self, vertex: Vertex) {
+        self.vertices.push(vertex.into());
+        self.indicies.push(0);
+    }
+
+    pub fn pop_vertex(&mut self) -> Option<Vertex> {
+        self.vertices.pop()
     }
 }
 
@@ -80,23 +103,22 @@ impl Into<Rect> for SerializedRect {
 }
 
 impl ColliderMesh {
-    pub(crate) fn new(gfx: &GraphicsContext) -> Self {
-        let drawable_mesh = {
-            let raw = MeshData {
-                vertices: &[],
-                indices: &[],
-            };
+    pub fn new(gfx: &GraphicsContext, vertices: &[graphics::Vertex], indices: &[u32]) -> Self {
+        let drawable_mesh = Some({
+            let raw = MeshData { vertices, indices };
 
             DrawMesh::from_data(gfx, raw)
-        };
+        });
 
         Self {
             vertecies_list: Vec::default(),
-            drawable_mesh: Some(drawable_mesh),
+            drawable_mesh,
+            draw_vertecies: Vec::default(),
+            serialized_draw_mesh: None,
         }
     }
 
-    pub(crate) fn get_drawable(&self) -> &Option<DrawMesh> {
+    pub fn get_drawable(&self) -> &Option<DrawMesh> {
         &self.drawable_mesh
     }
 }
@@ -119,9 +141,6 @@ impl<'de> Deserialize<'de> for ColliderMesh {
     where
         D: serde::Deserializer<'de>,
     {
-        Ok(Self {
-            vertecies_list: Vec::new(),
-            drawable_mesh: todo!(),
-        })
+        Ok(Self::default())
     }
 }

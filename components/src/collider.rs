@@ -16,14 +16,18 @@ use self::gravity_settings::GravitySettings;
 
 use engine::space::Transform;
 
-#[derive(Debug, Clone, Bundle, Reflect)]
+#[derive(Debug, Clone, Bundle, Reflect, Default)]
 pub struct Collider {
     gravity: gravity_settings::GravitySettings,
     mesh: collider_mesh::ColliderMesh,
 }
 
 impl Collider {
-    pub fn new(engine: &GgezInterface) -> Self {
+    pub fn new(
+        engine: &GgezInterface,
+        vertices: &[ggez::graphics::Vertex],
+        indices: &[u32],
+    ) -> Self {
         let transform = Transform::default();
 
         let gravity = GravitySettings {
@@ -33,7 +37,7 @@ impl Collider {
 
         Self {
             gravity,
-            mesh: ColliderMesh::new(&engine.get_context().gfx),
+            mesh: ColliderMesh::new(&engine.get_context().gfx, vertices, indices),
         }
     }
 }
