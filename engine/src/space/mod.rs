@@ -25,7 +25,8 @@ pub use vel::Velocity;
 pub use vtx::Vertex;
 
 use bevy_reflect::{
-    DynamicTupleStruct, FromReflect, Reflect, ReflectRef, TupleStructInfo, TypePath, UnnamedField,
+    DynamicTupleStruct, FromReflect, GetTypeRegistration, Reflect, ReflectRef, TupleStructInfo,
+    TypeInfo, TypePath, Typed, UnnamedField,
 };
 use core::fmt;
 use once_cell::sync::Lazy;
@@ -221,11 +222,14 @@ impl<'de> Visitor<'de> for F32Visitor {
 
 // Reflection block //
 
-static STRUCT_INFO: Lazy<bevy_reflect::TypeInfo> = Lazy::new(|| {
-    bevy_reflect::TypeInfo::TupleStruct(TupleStructInfo::new::<Vector2>(&[
-        UnnamedField::new::<f32>(0),
-        UnnamedField::new::<f32>(1),
-    ]))
+static TYPE_INFO: Lazy<TypeInfo> =
+    Lazy::new(|| bevy_reflect::TypeInfo::TupleStruct(TUPLE_STRUCT_INFO.clone()));
+
+static STRUCT_INFO: Lazy<bevy_reflect::TypeInfo> =
+    Lazy::new(|| bevy_reflect::TypeInfo::TupleStruct(TUPLE_STRUCT_INFO.clone()));
+
+static TUPLE_STRUCT_INFO: Lazy<TupleStructInfo> = Lazy::new(|| {
+    TupleStructInfo::new::<Vector2>(&[UnnamedField::new::<f32>(0), UnnamedField::new::<f32>(1)])
 });
 
 impl bevy_reflect::TupleStruct for Vector2 {
@@ -333,6 +337,18 @@ impl Reflect for Vector2 {
 impl FromReflect for Vector2 {
     fn from_reflect(reflect: &dyn Reflect) -> Option<Self> {
         reflect.downcast_ref().cloned()
+    }
+}
+
+impl GetTypeRegistration for Vector2 {
+    fn get_type_registration() -> bevy_reflect::TypeRegistration {
+        bevy_reflect::TypeRegistration::of::<Self>()
+    }
+}
+
+impl Typed for Vector2 {
+    fn type_info() -> &'static bevy_reflect::TypeInfo {
+        &TYPE_INFO
     }
 }
 

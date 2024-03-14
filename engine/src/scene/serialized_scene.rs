@@ -5,8 +5,10 @@ use super::SceneError;
 use bevy_ecs::entity::Entity;
 use bevy_ecs::reflect::ReflectComponent;
 use bevy_ecs::world::World;
+use bevy_reflect::DynamicList;
 use bevy_reflect::DynamicStruct;
 use bevy_reflect::DynamicTupleStruct;
+use bevy_reflect::List;
 use bevy_reflect::Reflect;
 use bevy_reflect::ReflectOwned;
 use bevy_reflect::TypePath;
@@ -58,27 +60,20 @@ impl ToReflect for serde_json::Value {
             Value::Bool(bool) => Reflect::reflect_owned(Box::new(bool.to_owned())),
             Value::Number(number) => convert_number(number, expected_type),
             Value::String(string) => convert_string(string, expected_type),
-            Value::Array(array) => {
-                convert_array(array, expected_type, type_registry);
-                dbg!(expected_type);
-                todo!()
-            }
+            Value::Array(array) => convert_array(array, expected_type, type_registry),
             Value::Object(_object) => {
                 dbg!(expected_type);
                 todo!()
             }
         };
         Ok(Box::<dyn Reflect>::from(match value {
-            bevy_reflect::ReflectOwned::Struct(_e) => todo!(),
-            bevy_reflect::ReflectOwned::TupleStruct(_) => todo!(),
-            bevy_reflect::ReflectOwned::Tuple(_) => todo!(),
-            bevy_reflect::ReflectOwned::List(_) => todo!(),
-            bevy_reflect::ReflectOwned::Array(_) => todo!(),
-            bevy_reflect::ReflectOwned::Map(_) => todo!(),
-            bevy_reflect::ReflectOwned::Enum(en) => {
-                en.reflect_type_path();
-                todo!()
-            }
+            bevy_reflect::ReflectOwned::Struct(e) => e.into_reflect(),
+            bevy_reflect::ReflectOwned::TupleStruct(ts) => ts.into_reflect(),
+            bevy_reflect::ReflectOwned::Tuple(t) => t.into_reflect(),
+            bevy_reflect::ReflectOwned::List(l) => l.into_reflect(),
+            bevy_reflect::ReflectOwned::Array(a) => a.into_reflect(),
+            bevy_reflect::ReflectOwned::Map(m) => m.into_reflect(),
+            bevy_reflect::ReflectOwned::Enum(en) => en.into_reflect(),
             bevy_reflect::ReflectOwned::Value(e) => e,
         }))
     }
@@ -110,7 +105,7 @@ fn convert_number(
 }
 
 fn convert_array(
-    string: &Vec<Value>,
+    jesoon_array: &Vec<Value>,
     expected_type: Option<&str>,
     type_registry: &TypeRegistry,
 ) -> bevy_reflect::ReflectOwned {
@@ -125,7 +120,7 @@ fn convert_array(
 
                     for i in 0..tsinfo.field_len() {
                         let field = tsinfo.field_at(i).unwrap();
-                        let value = string.get(i).unwrap();
+                        let value = jesoon_array.get(i).unwrap();
                         dyn_ts.insert_boxed(
                             value
                                 .to_reflect(Some(field.type_path()), type_registry)
@@ -141,9 +136,27 @@ fn convert_array(
                 bevy_reflect::TypeInfo::Enum(_) => todo!(),
                 bevy_reflect::TypeInfo::Value(_) => todo!(),
             };
+
             trace!("Converted JSON array into ReflectOwned");
+
             owned
         } else {
+            if let Some(generic_type) = expected_type.strip_prefix("alloc::vec::Vec") {
+                let vec_type = generic_type.trim_start_matches('<').trim_end_matches('>');
+                let reflect_values = jesoon_array
+                    .iter()
+                    .map(|value| value.to_reflect(Some(vec_type), type_registry).unwrap())
+                    .collect::<Vec<Box<dyn Reflect>>>();
+
+                let mut dyn_list = DynamicList::default();
+
+                for item in reflect_values {
+                    dyn_list.insert(dyn_list.len(), item);
+                }
+
+                return bevy_reflect::ReflectOwned::List(Box::new(dyn_list));
+            }
+
             trace!("No type registration found for {}", expected_type);
 
             todo!()
@@ -268,7 +281,12 @@ impl SerializedSceneData {
 
                     component_patch.insert_boxed(&name, value);
                 }
-                let reflect_component = component_registration.data::<ReflectComponent>().unwrap();
+                let reflect_component = component_registration.data::<ReflectComponent>().ok_or(
+                    SceneError::MissingTypeRegistry(format!(
+                        "The {} component is missing a #[reflect(Component)] helper",
+                        component_path
+                    )),
+                )?;
 
                 reflect_component.apply_or_insert(&mut entity, &component_patch);
             }

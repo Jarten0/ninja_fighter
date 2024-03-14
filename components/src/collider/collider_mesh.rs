@@ -1,5 +1,6 @@
 use core::fmt;
 
+use bevy_ecs::reflect::ReflectComponent;
 use bevy_reflect::Reflect;
 use engine::space::Vertex;
 use engine::GgezInterface;
@@ -10,6 +11,7 @@ use bevy_ecs::system::Query;
 use ggez::graphics::GraphicsContext;
 use ggez::graphics::Mesh as DrawMesh;
 use ggez::graphics::MeshData;
+use ggez::graphics::Rect;
 use ggez::graphics::Vertex as DrawVertex;
 use serde::ser::SerializeSeq;
 use serde::Deserialize;
@@ -34,11 +36,47 @@ pub fn update(mut query: Query<&mut ColliderMesh>, engine: bevy_ecs::system::Res
     }
 }
 
-#[derive(Debug, Component, Clone, Reflect)]
+#[derive(Debug, Component, Clone, Reflect, Default)]
+#[reflect(Component)]
 pub struct ColliderMesh {
     pub(crate) vertecies_list: Vec<Vertex>,
     #[reflect(ignore)]
     pub(crate) drawable_mesh: Option<DrawMesh>,
+    pub(crate) serialized_draw_mesh: Option<SerializedDrawMesh>,
+}
+
+#[derive(Debug, Clone, Reflect, Default)]
+pub struct SerializedDrawMesh {
+    // pub(crate) verts: ArcBuffer,
+    // pub(crate) inds: ArcBuffer,
+    pub(crate) vertex_count: usize,
+    pub(crate) index_count: usize,
+    pub(crate) bounds: SerializedRect,
+}
+
+impl SerializedDrawMesh {
+    fn into_rect(self, gfx: &GraphicsContext) -> DrawMesh {
+        DrawMesh::from_data(gfx, raw)
+    }
+}
+
+#[derive(Debug, Reflect, Clone, Default)]
+pub struct SerializedRect {
+    x: f32,
+    y: f32,
+    w: f32,
+    h: f32,
+}
+
+impl Into<Rect> for SerializedRect {
+    fn into(self) -> Rect {
+        Rect {
+            x: self.x,
+            y: self.y,
+            w: self.w,
+            h: self.h,
+        }
+    }
 }
 
 impl ColliderMesh {

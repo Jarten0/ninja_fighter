@@ -10,6 +10,7 @@ mod test;
 
 use bevy_ecs::{component::Component, world::Mut};
 use bevy_reflect::{GetTypeRegistration, Reflect};
+use bevy_trait_query::RegisterExt;
 pub use component::{
     add_entity_to_scene, load_scene, new_scene, save_scene, to_serialized_scene, unload_scene,
     validate_name,
@@ -36,6 +37,7 @@ pub fn register_scene_types(world: &mut bevy_ecs::world::World) {
         register::<space::Scale>(world, &mut res);
         register::<space::TransformSettings>(world, &mut res);
         register::<space::Velocity>(world, &mut res);
+        register::<space::Vector2>(world, &mut res);
     });
 }
 
@@ -52,6 +54,7 @@ where
     res.type_registry.register::<T>();
     res.type_registry
         .register_type_data::<T, ReflectTestSuperTrait>();
+    world.register_component_as::<dyn TestSuperTrait, T>();
 }
 
 /// Enables the component to be serialized
