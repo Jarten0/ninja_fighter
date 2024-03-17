@@ -37,7 +37,26 @@ impl Into<DrawVertex> for Vertex {
         DrawVertex {
             position: [self.x, self.y],
             uv: [10.0, 10.0],
-            color: [0.0, 0.0, 0.0, 1.0],
+            color: [1.0, 0.0, 1.0, 1.0],
         }
+    }
+}
+
+impl From<DrawVertex> for Vertex {
+    fn from(value: DrawVertex) -> Self {
+        Self(Vector2 {
+            x: value.position[0],
+            y: value.position[1],
+        })
+    }
+}
+
+impl From<&DrawVertex> for Vertex {
+    fn from(value: &ggez::graphics::Vertex) -> Self {
+        let vector2 = Vector2 {
+            x: value.position[0],
+            y: value.position[1],
+        };
+        Self(vector2)
     }
 }

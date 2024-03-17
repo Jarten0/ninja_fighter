@@ -804,6 +804,7 @@ dependencies = [
  "engine",
  "erased-serde 0.4.4",
  "ggez",
+ "log",
  "mint",
  "nalgebra",
  "serde",

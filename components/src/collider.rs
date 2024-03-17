@@ -10,19 +10,24 @@ use bevy_ecs::{
     bundle::Bundle,
     system::{Query, Res},
 };
+use ggez::graphics::Drawable;
 
 use self::collider_mesh::ColliderMesh;
 use self::gravity_settings::GravitySettings;
 
 use engine::space::Transform;
 
+pub trait Collider {
+    fn drawable(&self) -> Option<&impl Drawable>;
+}
+
 #[derive(Debug, Clone, Bundle, Reflect, Default)]
-pub struct Collider {
+pub struct ColliderBundle {
     gravity: gravity_settings::GravitySettings,
     mesh: collider_mesh::ColliderMesh,
 }
 
-impl Collider {
+impl ColliderBundle {
     pub fn new(
         engine: &GgezInterface,
         vertices: &[ggez::graphics::Vertex],

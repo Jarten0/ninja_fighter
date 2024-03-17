@@ -15,7 +15,27 @@
 	// 	],
 	// 	"description": "Log output to console"
 	// }
-
+	// "": {
+	// 	"scope": "rust",
+	// 	"prefix": "",
+	// 	"body": [
+	// 		""
+	// 	],
+	// 	"description": ""
+	// },
+	"reflect_component": {
+		"scope": "rust",
+		"prefix": "rcomponent",
+		"body": [
+			"#[derive(Debug, Default, Clone, Component, Reflect)]",
+			"#[reflect(Component)]",
+			"pub struct $1 {",
+			"    $0",
+			"}"
+		],
+		"description": "Creates a new component with reflect capabilities."
+	},
+	
 	"get_scene": { 
 		"body": [
 			"$0world",

@@ -199,8 +199,15 @@ impl EventHandler for GameRoot {
     }
 
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
-        self.engine_mut()
-            .set_canvas(graphics::Canvas::from_frame(ctx, Color::WHITE));
+        self.engine_mut().set_canvas(graphics::Canvas::from_frame(
+            ctx,
+            Color {
+                r: 0.1,
+                g: 0.1,
+                b: 0.1,
+                a: 0.1,
+            },
+        ));
 
         self.update_context(ctx);
 

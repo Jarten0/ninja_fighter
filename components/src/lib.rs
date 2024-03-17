@@ -12,8 +12,9 @@ use bevy_ecs::prelude::*;
 use engine::scene::serialize_component;
 use engine::scene::SceneManager;
 
-#[allow(unused)]
+// #[allow(unused)]
 pub mod collider;
+pub mod collider_types;
 pub mod debug;
 pub mod protag;
 pub mod render;

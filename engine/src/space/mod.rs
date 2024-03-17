@@ -32,21 +32,23 @@ use core::fmt;
 use once_cell::sync::Lazy;
 use serde::{de::Visitor, ser::SerializeStruct, Deserialize, Serialize};
 use std::any::Any;
-use std::ops::{Add, AddAssign, Deref, DerefMut, Neg, Sub, SubAssign};
+use std::ops::{Add, AddAssign, Div, Mul, Neg, Sub, SubAssign};
 use std::time::Duration;
 
 // Struct block //
 
 #[derive(Debug, Clone, Copy, TypePath, Component)]
-pub struct Vector2(mint::Vector2<f32>);
+pub struct Vector2 {
+    pub x: f32,
+    pub y: f32,
+}
 
 impl Vector2 {
     pub const fn new(x: f32, y: f32) -> Self {
-        Self {
-            0: mint::Vector2 { x, y },
-        }
+        Self { x, y }
     }
 
+    /// Translates the given vertex a given amount, and returns a reference to that initial vector
     pub fn translate(&mut self, translation: &Vector2) -> &mut Self {
         self.x += translation.x;
         self.y += translation.y;
@@ -60,60 +62,50 @@ impl Vector2 {
     }
 }
 
-// Deref block //
-
-impl Deref for Vector2 {
-    type Target = mint::Vector2<f32>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl DerefMut for Vector2 {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
-
 // Initialization block //
 
 impl Vector2 {
     pub fn up() -> Self {
-        Vector2 {
-            0: mint::Vector2 { x: 0.0, y: -1.0 },
-        }
+        Vector2 { x: 0.0, y: -1.0 }
     }
     pub fn down() -> Self {
-        Vector2 {
-            0: mint::Vector2 { x: 0.0, y: 1.0 },
-        }
+        Vector2 { x: 0.0, y: 1.0 }
     }
     pub fn left() -> Self {
-        Vector2 {
-            0: mint::Vector2 { x: -1.0, y: 0.0 },
-        }
+        Vector2 { x: -1.0, y: 0.0 }
     }
     pub fn right() -> Self {
-        Vector2 {
-            0: mint::Vector2 { x: 1.0, y: 0.0 },
-        }
+        Vector2 { x: 1.0, y: 0.0 }
     }
     pub fn zero() -> Self {
-        Vector2 {
-            0: mint::Vector2 { x: 0.0, y: 0.0 },
-        }
+        Vector2 { x: 0.0, y: 0.0 }
     }
     pub fn one() -> Self {
-        Vector2 {
-            0: mint::Vector2 { x: 1.0, y: 1.0 },
-        }
+        Vector2 { x: 1.0, y: 1.0 }
     }
 }
 
 impl Default for Vector2 {
     fn default() -> Self {
         Self::new(0.0, 0.0)
+    }
+}
+
+// impl Into<mint::Vector2<f32>> for Vector2 {
+//     fn into(self) -> mint::Vector2<f32> {
+//         mint::Vector2 {
+//             x: self.x,
+//             y: self.y,
+//         }
+//     }
+// }
+
+impl From<mint::Vector2<f32>> for Vector2 {
+    fn from(value: mint::Vector2<f32>) -> Self {
+        Self {
+            x: value.x,
+            y: value.x,
+        }
     }
 }
 
@@ -138,7 +130,7 @@ impl From<&Vector2> for Box<Vector2> {
 
 impl fmt::Display for Vector2 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "({}, {})", self.0.x, self.0.y)
+        write!(f, "({}, {})", self.x, self.y)
     }
 }
 
@@ -153,9 +145,24 @@ impl Add for Vector2 {
         self
     }
 }
+impl Add<&Self> for Vector2 {
+    type Output = Vector2;
+
+    fn add(mut self, rhs: &Self) -> Self::Output {
+        self.x += rhs.x;
+        self.y += rhs.y;
+        self
+    }
+}
 
 impl AddAssign for Vector2 {
     fn add_assign(&mut self, rhs: Self) {
+        self.x += rhs.x;
+        self.y += rhs.y;
+    }
+}
+impl AddAssign<&Self> for Vector2 {
+    fn add_assign(&mut self, rhs: &Self) {
         self.x += rhs.x;
         self.y += rhs.y;
     }
@@ -170,11 +177,47 @@ impl Sub for Vector2 {
         self
     }
 }
+impl Sub<&Self> for Vector2 {
+    type Output = Vector2;
+
+    fn sub(mut self, rhs: &Self) -> Self::Output {
+        self.x -= rhs.x;
+        self.y -= rhs.y;
+        self
+    }
+}
 
 impl SubAssign for Vector2 {
     fn sub_assign(&mut self, rhs: Self) {
         self.x -= rhs.x;
         self.y -= rhs.y;
+    }
+}
+impl SubAssign<&Self> for Vector2 {
+    fn sub_assign(&mut self, rhs: &Self) {
+        self.x -= rhs.x;
+        self.y -= rhs.y;
+    }
+}
+
+impl Mul<f32> for Vector2 {
+    type Output = Vector2;
+
+    fn mul(self, rhs: f32) -> Self::Output {
+        Self {
+            x: self.x * rhs,
+            y: self.y * rhs,
+        }
+    }
+}
+impl Div<f32> for Vector2 {
+    type Output = Vector2;
+
+    fn div(self, rhs: f32) -> Self::Output {
+        Self {
+            x: self.x / rhs,
+            y: self.y / rhs,
+        }
     }
 }
 

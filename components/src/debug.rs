@@ -7,7 +7,7 @@ use engine::Input;
 use bevy_ecs::entity::Entity;
 use serde::Serialize;
 
-use crate::collider::Collider;
+use crate::collider::ColliderBundle;
 use bevy_ecs::prelude::*;
 use bevy_ecs::system::Commands;
 use bevy_ecs::system::Query;
@@ -46,28 +46,31 @@ impl DebugComponent {
 
 pub fn update(
     mut query: Query<&mut DebugComponent>,
-    collider_query: Query<&mut ColliderMesh>,
-    engine: ResMut<GgezInterface>,
-    input: ResMut<Input>,
+    mut collider_query: Query<&mut ColliderMesh>,
+    engine: Res<GgezInterface>,
+    input: Res<Input>,
     mut commands: Commands,
-) -> Option<()> {
-    let is_just_pressed = input.get_action("RightClick")?.is_just_pressed();
+) {
+    let is_just_pressed = match input.get_action("RightClick") {
+        Some(some) => some,
+        None => return,
+    }
+    .is_just_pressed();
 
     for mut debug in query.iter_mut() {
         match debug.current_place_state {
             PlaceState::Idle => {
                 if is_just_pressed {
-                    let spawn = commands.spawn(Collider::default());
+                    let spawn = commands.spawn(ColliderBundle::default());
 
                     debug.update_place_state(PlaceState::Pending(spawn.id()));
                 }
             }
             PlaceState::Pending(entity) => {
-                if let Ok(mut collider_mesh) = collider_query.get_mut(entity) {
-                    collider_mesh
-                        .debug
-                        .update_place_state(PlaceState::Placing(0, entity))
-                }
+                // if let Ok(mut collider_mesh) = collider_query.get_mut(entity) {
+                // collider_mesh.vertecies_list;
+                // debug.update_place_state(PlaceState::Placing(0, entity))
+                // }
             }
             PlaceState::Placing(_stage, _entity) => {
                 if !is_just_pressed {
@@ -77,8 +80,6 @@ pub fn update(
             }
         }
     }
-
-    None
 }
 
 #[derive(Debug, Clone, Copy, Reflect, Default, Serialize)]

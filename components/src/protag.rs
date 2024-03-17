@@ -1,8 +1,9 @@
-use crate::{collider::Collider, render::render_type::RenderType, render::Renderer};
+use crate::collider_types::BoxCollider;
+use crate::{collider::ColliderBundle, render::render_type::RenderType, render::Renderer};
 use bevy_ecs::prelude::*;
 use bevy_ecs::reflect::ReflectComponent;
 use bevy_reflect::Reflect;
-use engine::space::{Position, Transform, TransformSettings, Velocity};
+use engine::space::{Position, Transform, TransformSettings, Vector2, Velocity};
 use engine::GgezInterface;
 use engine::{space, Input};
 use ggez::graphics::{self, Color, DrawParam, Image, Rect};
@@ -22,7 +23,7 @@ pub struct ProtagBundle {
     controller: ProtagController,
     transform: Transform,
     renderer: Renderer,
-    collider: Collider,
+    collider: BoxCollider,
 }
 
 #[derive(Default, Debug, Component, Reflect, Serialize)]
@@ -129,7 +130,7 @@ impl ProtagBundle {
             space::Position::new(10.0, 0.0),
         );
 
-        let collider = Collider::new(engine);
+        let collider = BoxCollider::new(Vector2::one());
 
         let controller = ProtagController {
             acc: 0.5,

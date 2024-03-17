@@ -51,6 +51,14 @@ impl GgezInterface {
         self.current_canvas.take()
     }
 
+    pub fn is_debug_draw(&self) -> bool {
+        true
+    }
+
+    pub fn is_debug_mode(&self) -> bool {
+        false
+    }
+
     /// Returns a reference to the value that `self.context_ptr` points to.
     /// Panics if `self.context_ptr` is null or invalid, which should never be the case in normal scenarios. If it is, investigate immediately.
     pub fn get_context(&self) -> &ggez::Context {

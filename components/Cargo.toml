@@ -14,3 +14,4 @@ nalgebra = { version = "0.32.3", features = ["serde-serialize"] }
 serde.workspace = true
 bevy_reflect = "0.12.1"
 erased-serde = "0.4.4"
+log = "0.4.21"
