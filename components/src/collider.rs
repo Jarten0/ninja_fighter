@@ -1,6 +1,8 @@
 pub mod collider_mesh;
 pub mod gravity_settings;
 
+use std::any::Any;
+
 use bevy_reflect::Reflect;
 use engine::space::{Vector2, Velocity};
 
@@ -10,7 +12,6 @@ use bevy_ecs::{
     bundle::Bundle,
     system::{Query, Res},
 };
-use ggez::graphics::Drawable;
 
 use self::collider_mesh::ColliderMesh;
 use self::gravity_settings::GravitySettings;
@@ -18,7 +19,7 @@ use self::gravity_settings::GravitySettings;
 use engine::space::Transform;
 
 pub trait Collider {
-    fn drawable(&self) -> Option<&impl Drawable>;
+    fn drawable(&self) -> Option<&dyn Any>;
 }
 
 #[derive(Debug, Clone, Bundle, Reflect, Default)]

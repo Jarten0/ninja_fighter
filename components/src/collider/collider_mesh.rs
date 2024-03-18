@@ -40,7 +40,7 @@ pub fn update(
             }
         };
 
-        let translation_amount = *collider_mesh.position.deref() - entity_position.deref();
+        let translation_amount = *collider_mesh.position.deref(); // - entity_position.deref();
 
         for vertex in &mut collider_mesh.vertecies_list {
             vertex.translate(&translation_amount);
@@ -88,14 +88,14 @@ pub fn draw(query: Query<&ColliderMesh>, mut engine: ResMut<GgezInterface>, came
                 scale: _,
                 offset: _,
             } => dest,
-            graphics::Transform::Matrix(_matrix) => _matrix + camera.position,
+            graphics::Transform::Matrix(_matrix) => todo!(), //_matrix,// + camera.position,
         };
 
         let final_param = initial_param
             .clone()
             .color(Color::MAGENTA)
             .dest(dest)
-            .rotation(0.0).;
+            .rotation(0.0);
 
         canvas.draw(drawable, final_param)
     }
