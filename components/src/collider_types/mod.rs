@@ -1,6 +1,6 @@
 use bevy_ecs::{component::Component, reflect::ReflectComponent};
 use bevy_reflect::Reflect;
-use engine::space::{Vector2, Vertex};
+use engine::space::Vector2;
 
 use crate::collider::collider_mesh::ColliderMesh;
 

@@ -25,8 +25,8 @@ pub use vel::Velocity;
 pub use vtx::Vertex;
 
 use bevy_reflect::{
-    DynamicStruct, DynamicTupleStruct, FieldIter, FromReflect, GetTypeRegistration, NamedField,
-    Reflect, ReflectRef, StructInfo, TupleStructInfo, TypeInfo, TypePath, Typed, UnnamedField,
+    DynamicStruct, DynamicTypePath, FieldIter, FromReflect, GetTypeRegistration, NamedField,
+    Reflect, ReflectRef, StructInfo, TypeInfo, TypePath, Typed,
 };
 use core::fmt;
 use once_cell::sync::Lazy;
@@ -37,7 +37,7 @@ use std::time::Duration;
 
 // Struct block //
 
-#[derive(Debug, Clone, Copy, TypePath, Component)]
+#[derive(Debug, Clone, Copy, TypePath, Component, PartialEq, PartialOrd)]
 pub struct Vector2 {
     pub x: f32,
     pub y: f32,
@@ -363,8 +363,6 @@ impl Reflect for Vector2 {
     }
 
     fn apply(&mut self, value: &dyn Reflect) {
-        // value.
-
         let downcast_ref = match value.downcast_ref::<Self>() {
             Some(some) => some,
             None => {
@@ -404,11 +402,32 @@ impl Reflect for Vector2 {
     fn clone_value(&self) -> Box<dyn Reflect> {
         <Vector2 as Reflect>::into_reflect(Into::<Box<Vector2>>::into(self))
     }
+
+    fn type_name(&self) -> &str {
+        self.get_represented_type_info()
+            .map(|info| info.type_path())
+            .unwrap_or_else(|| self.reflect_type_path())
+    }
+
+    fn reflect_partial_eq(&self, value: &dyn Reflect) -> Option<bool> {
+        Some(self.eq(value.downcast_ref()?)) // TODO: make sure that downcast_ref works with traits
+    }
+
+    fn serializable(&self) -> Option<bevy_reflect::serde::Serializable> {
+        Some(bevy_reflect::serde::Serializable::Borrowed(self))
+    }
 }
 
 impl FromReflect for Vector2 {
     fn from_reflect(reflect: &dyn Reflect) -> Option<Self> {
-        reflect.downcast_ref().cloned()
+        if let ReflectRef::Struct(dyn_struct) = reflect.reflect_ref() {
+            Some(Self {
+                x: (f32::from_reflect(dyn_struct.field("x")?))?,
+                y: (f32::from_reflect(dyn_struct.field("y")?))?,
+            })
+        } else {
+            None
+        }
     }
 }
 
@@ -423,5 +442,3 @@ impl Typed for Vector2 {
         &TYPE_INFO
     }
 }
-
-// Into block //

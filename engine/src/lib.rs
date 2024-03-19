@@ -27,9 +27,6 @@ pub use root::GameRoot;
 
 use bevy_ecs::schedule::Schedule;
 use schedule::ScheduleTag;
-use serde::{Deserialize, Serialize};
-use std::fs::OpenOptions;
-use std::path::PathBuf;
 
 pub mod systems {
     pub use crate::space::transform::update;
@@ -49,7 +46,7 @@ fn register_types(world: &mut bevy_ecs::world::World) {
 
 #[derive(Debug, Clone)]
 pub struct EngineConfig {
-    pub scenes: Vec<PathBuf>,
+    pub scene_paths: &'static [&'static str],
     pub world_init: fn(&mut World) -> (),
     pub schedule_builder_functions: fn() -> Vec<fn() -> (Schedule, ScheduleTag)>,
     pub ticks_per_second: u32,

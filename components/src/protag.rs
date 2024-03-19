@@ -1,5 +1,5 @@
 use crate::collider_types::BoxCollider;
-use crate::{collider::ColliderBundle, render::render_type::RenderType, render::Renderer};
+use crate::{render::render_type::RenderType, render::Renderer};
 use bevy_ecs::prelude::*;
 use bevy_ecs::reflect::ReflectComponent;
 use bevy_reflect::Reflect;

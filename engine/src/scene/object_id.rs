@@ -1,31 +1,39 @@
-use std;
+use bevy_reflect::Reflect;
 use std::hash::{Hash, Hasher};
 use std::sync::atomic::{AtomicUsize, Ordering};
-
-use bevy_reflect::Reflect;
-
-#[derive(Debug, Eq, Clone, Copy, PartialOrd, Reflect)]
-pub struct ObjectID {
-    pub(crate) id: usize,
-}
-
-impl PartialEq for ObjectID {
-    fn eq(&self, other: &Self) -> bool {
-        self.id == other.id
-    }
-}
-
-impl Hash for ObjectID {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.id.hash(state);
-    }
-}
 
 pub(crate) static COUNTER: AtomicUsize = AtomicUsize::new(1);
 pub(crate) static ACTION_COUNTER: AtomicUsize = AtomicUsize::new(1);
 pub(crate) static SCENE_COUNTER: AtomicUsize = AtomicUsize::new(1);
 
-#[allow(unused)]
+#[derive(Debug, Eq, Clone, Copy, PartialOrd, Reflect)]
+// #[reflect_value]
+pub struct ObjectID {
+    #[reflect(ignore)]
+    pub(crate) id: usize,
+    counter: CounterType,
+}
+
+impl Default for ObjectID {
+    fn default() -> Self {
+        Self::new(CounterType::Scenes)
+    }
+}
+
+impl PartialEq for ObjectID {
+    /// For two identifiers to match, their number must match, and their counter must match aswell.
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id && self.counter == other.counter
+    }
+}
+
+impl Hash for ObjectID {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.counter.hash(state);
+        self.id.hash(state);
+    }
+}
+
 impl ObjectID {
     pub fn get_id() -> usize {
         COUNTER.fetch_add(1, Ordering::Relaxed)
@@ -42,10 +50,12 @@ impl ObjectID {
     pub fn new(counter: CounterType) -> ObjectID {
         ObjectID {
             id: Self::get_id_from_counter(counter),
+            counter,
         }
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Hash, Reflect)]
 pub enum CounterType {
     Global,
     Actions,

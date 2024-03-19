@@ -1,13 +1,1 @@
-{
-    "entity_data": {
-        "New entity": {
-            "engine::scene::object_data::SceneData": {
-                "object_name": "New entity",
-                "scene_id": {
-                    "id": 1
-                }
-            }
-        }
-    },
-    "name": "test_scene"
-}
+{"name":"test_scene","entity_data":{"New entity":{"components::protag::Protag":{}}}}

@@ -2,8 +2,10 @@ use bevy_ecs::schedule::*;
 use components::*;
 use engine::{schedule::ScheduleTag, EngineConfig};
 
+pub static INITIAL_SCENE: &str = "game/assets/scenes/test_scene.json";
+
 pub static ENGINE_CONFIG: EngineConfig = EngineConfig {
-    scenes: Vec::new(),
+    scene_paths: &[INITIAL_SCENE],
     world_init: crate::init_components_and_resources,
     schedule_builder_functions: crate::schedule_builders,
     ticks_per_second: 60,

@@ -8,9 +8,12 @@ use bevy_ecs::world::World;
 use bevy_reflect::DynamicList;
 use bevy_reflect::DynamicStruct;
 use bevy_reflect::DynamicTupleStruct;
+use bevy_reflect::DynamicTypePath;
 use bevy_reflect::List;
 use bevy_reflect::Reflect;
 use bevy_reflect::ReflectOwned;
+use bevy_reflect::Struct;
+use bevy_reflect::TypeInfo;
 use bevy_reflect::TypePath;
 use bevy_reflect::TypeRegistry;
 use log::*;
@@ -18,13 +21,14 @@ use serde::de::Visitor;
 use serde::ser::SerializeStruct;
 use serde::Deserialize;
 use serde::Serialize;
-use serde_json::Map;
 use serde_json::Value;
+use std::any::Any;
 use std::collections::HashMap;
+use std::fmt::format;
 
-pub type DataHashmap = HashMap<String, EntityHashmap>;
-pub type EntityHashmap = HashMap<String, ComponentHashmap>;
-pub type ComponentHashmap = HashMap<String, Value>;
+pub type DataHashmap = HashMap<String, EntityHashmap>; // string = entity name, entity hashmap = entities owned components
+pub type EntityHashmap = HashMap<String, ComponentData>; // static str = type path of component
+pub type ComponentData = serde_json::Value; // component data
 
 /// Private trait that converts [`serde_json::Value`] to [`Reflect`]
 pub trait ToReflect {
@@ -110,8 +114,8 @@ fn convert_array(
     if let Some(expected_type) = expected_type {
         if let Some(type_registration) = type_registry.get_with_type_path(expected_type) {
             let owned = match type_registration.type_info() {
-                bevy_reflect::TypeInfo::Struct(_) => todo!(),
-                bevy_reflect::TypeInfo::TupleStruct(tsinfo) => {
+                TypeInfo::Struct(_) => todo!(),
+                TypeInfo::TupleStruct(tsinfo) => {
                     let mut dyn_ts = DynamicTupleStruct::default();
 
                     dyn_ts.set_represented_type(Some(type_registration.type_info()));
@@ -124,12 +128,12 @@ fn convert_array(
                     }
                     ReflectOwned::TupleStruct(Box::new(dyn_ts))
                 }
-                bevy_reflect::TypeInfo::Tuple(_) => todo!(),
-                bevy_reflect::TypeInfo::List(_) => todo!(),
-                bevy_reflect::TypeInfo::Array(_) => todo!(),
-                bevy_reflect::TypeInfo::Map(_) => todo!(),
-                bevy_reflect::TypeInfo::Enum(_) => todo!(),
-                bevy_reflect::TypeInfo::Value(_) => todo!(),
+                TypeInfo::Tuple(_) => todo!(),
+                TypeInfo::List(_) => todo!(),
+                TypeInfo::Array(_) => todo!(),
+                TypeInfo::Map(_) => todo!(),
+                TypeInfo::Enum(_) => todo!(),
+                TypeInfo::Value(_) => todo!(),
             };
 
             trace!("Converted JSON array into ReflectOwned");
@@ -163,12 +167,60 @@ fn convert_array(
     }
 }
 
+#[allow(unused)]
 fn convert_struct(
     jesoon_object: &serde_json::Map<String, Value>,
     expected_type: Option<&str>,
     type_registry: &TypeRegistry,
 ) -> ReflectOwned {
-    todo!()
+    let type_path = expected_type.unwrap();
+
+    let type_info = type_registry
+        .get_with_type_path(type_path)
+        .expect(&format!(
+            "Expected a registered value type, got {}",
+            type_path
+        ))
+        .type_info();
+
+    if let TypeInfo::Struct(s_info) = type_info {
+        let mut dyn_struct = DynamicStruct::default();
+
+        for (name, field) in jesoon_object {
+            if let Some(some) = dyn_struct.field(name) {
+                let expected_type_path = Some(some.reflect_type_path());
+
+                dyn_struct.insert_boxed(name, field.to_reflect(expected_type_path, type_registry));
+            } else {
+                dyn_struct.insert_boxed(name, field.to_reflect(None, type_registry));
+            }
+        }
+
+        return ReflectOwned::Struct(Box::new(dyn_struct));
+    }
+    if let TypeInfo::TupleStruct(ts_info) = type_info {
+        todo!()
+    }
+    if let TypeInfo::Tuple(t_info) = type_info {
+        todo!()
+    }
+    if let TypeInfo::List(l_info) = type_info {
+        todo!()
+    }
+    if let TypeInfo::Array(a_info) = type_info {
+        todo!()
+    }
+    if let TypeInfo::Map(m_info) = type_info {
+        todo!()
+    }
+    if let TypeInfo::Enum(e_info) = type_info {
+        todo!()
+    }
+    if let TypeInfo::Value(v_info) = type_info {
+        todo!()
+    }
+
+    unreachable!()
 }
 
 /// Downcasts an int to the expected type
@@ -212,6 +264,8 @@ impl SerializedSceneData {
     /// Turns the [`SerializedSceneData`] into a [`Scene`], initializing every component and entity, and putting them into the world.
     ///
     /// Can throw a [`SceneError`] if no type registry for a type is found. Make sure to call `type_registry.register::<T>()` on your types.
+    ///
+    /// NOTE: If it doesn't state that your component was serialized, its because the functionality likely has yet to be implemented for the data structure type you're using.
     pub fn initialize(
         self,
         world: &mut World,
@@ -234,47 +288,15 @@ impl SerializedSceneData {
 
             let mut entity = world.spawn(bundle);
 
-            trace!(
-                "Spawned {} entity with SceneData component",
-                entity_name_debug
-            );
+            trace!("Spawned {} with SceneData component", entity_name_debug);
 
             for (component_path, component_data) in entity_hashmap {
                 trace!("Initializing component {}", component_path);
 
                 let component_registration: &bevy_reflect::TypeRegistration = type_registry
                     .get_with_type_path(&component_path)
-                    .ok_or(SceneError::MissingTypeRegistry(component_path.clone()))?;
+                    .ok_or(SceneError::MissingTypeRegistry(component_path.to_owned()))?;
 
-                let mut component_patch = DynamicStruct::default();
-
-                component_patch.set_represented_type(Some(component_registration.type_info()));
-
-                for (name, field) in &component_data {
-                    trace!("Initializing field {}: {}", field, name);
-
-                    let type_info = match component_registration.type_info() {
-                        bevy_reflect::TypeInfo::Struct(struct_info) => struct_info,
-                        bevy_reflect::TypeInfo::TupleStruct(_) => todo!(),
-                        bevy_reflect::TypeInfo::Tuple(_) => todo!(),
-                        bevy_reflect::TypeInfo::List(_) => todo!(),
-                        bevy_reflect::TypeInfo::Array(_) => todo!(),
-                        bevy_reflect::TypeInfo::Map(_) => todo!(),
-                        bevy_reflect::TypeInfo::Enum(_) => todo!(),
-                        bevy_reflect::TypeInfo::Value(_) => todo!(),
-                    };
-
-                    let expected_type = type_info
-                        .field(name)
-                        .ok_or(SceneError::MissingTypeRegistry(component_path.clone()))?
-                        .type_path();
-
-                    let value = field.to_reflect(Some(expected_type), type_registry);
-
-                    trace!("Initialized {}", name);
-
-                    component_patch.insert_boxed(&name, value);
-                }
                 let reflect_component = component_registration.data::<ReflectComponent>().ok_or(
                     SceneError::MissingTypeRegistry(format!(
                         "The {} component is missing a #[reflect(Component)] helper",
@@ -282,9 +304,25 @@ impl SerializedSceneData {
                     )),
                 )?;
 
-                reflect_component.apply_or_insert(&mut entity, &component_patch);
-            }
+                let type_info = component_registration.type_info();
 
+                if let TypeInfo::Struct(s_info) = type_info {
+                    let mut component_patch = DynamicStruct::default();
+
+                    component_patch.set_represented_type(Some(type_info));
+
+                    let reflected_component_data =
+                        component_data.to_reflect(Some(&component_path), type_registry);
+
+                    reflect_component.apply_or_insert(&mut entity, &component_patch);
+
+                    continue;
+                }
+                if let TypeInfo::TupleStruct(ts_info) = type_info {
+                    todo!()
+                } //TODO: Implement more structure types
+                todo!() //You used an unimplemented structure type
+            }
             entities.push(entity.id());
         }
 

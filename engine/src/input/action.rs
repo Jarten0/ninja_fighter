@@ -148,6 +148,7 @@ impl ActionData {
     /// Returns [`Ok`] if the key if found
     ///
     /// Returns [`Err`] if the key is not found
+    #[allow(unused)]
     pub(crate) fn remove_key(&mut self, key: KeycodeType) -> Result<KeycodeType, &str> {
         for enum_iterator in self.keys.iter().enumerate() {
 

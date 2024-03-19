@@ -1,5 +1,4 @@
 use core::fmt::Display;
-use std::fmt::write;
 
 #[derive(Debug)]
 pub enum SceneError {
@@ -18,6 +17,9 @@ pub enum SceneError {
     /// The type that's trying to be serialized does not have reflection type data inserted into the registry.
     /// To fix, add #[reflect(Component)] to your type
     NoReflectData(String),
+    /// The type that's trying to be serialized does not have the serialize trait.
+    /// String is the type that is missing the trait.
+    NoSerializationImplementation(String),
     /// Failed to instantiate a scene, though not because of an IO error.
     /// Might be because of an ECS failure somewhere.
     ///
@@ -56,6 +58,11 @@ impl Display for SceneError {
             }
             SceneError::NoReflectData(err) => write!(f, "No Reflection data [{}]", err),
             SceneError::NoEntitiesAvailable => write!(f, "No available entities"),
+            SceneError::NoSerializationImplementation(missing_type) => write!(
+                f,
+                "Missing Serialization Implementation for {}",
+                missing_type
+            ),
         }
     }
 }
