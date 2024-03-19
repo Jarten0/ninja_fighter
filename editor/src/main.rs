@@ -5,13 +5,7 @@ fn main() {
     let (mut context, event_loop) = ggez::ContextBuilder::new("Ninja Fighter Editor", "Jarten0")
         .build()
         .expect("aieee, could not create ggez context!");
-    let root = engine::GameRoot::new(
-        &mut context,
-        game::init_components_and_resources,
-        editor::debuge::wrap_schedules_with_debug,
-        60,
-        Some(editor::debug::debug_cli),
-    );
+    let root = engine::GameRoot::new(&mut context, &game::ENGINE_CONFIG);
 
     ggez::event::run(context, event_loop, root);
 }

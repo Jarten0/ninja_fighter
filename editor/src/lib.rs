@@ -1,5 +1,16 @@
 #![allow(unused)]
+
+use engine::EngineConfig;
 pub mod debug;
+
+pub static ENGINE_CONFIG: EngineConfig = EngineConfig {
+    scenes: Vec::new(),
+    world_init: game::init_components_and_resources,
+    schedule_builder_functions: game::schedule_builders,
+    ticks_per_second: 60,
+    debug_cli: Some(debug::debug_cli),
+};
+
 pub mod debuge {
     use bevy_ecs::schedule::{ExecutorKind, LogLevel, ScheduleBuildSettings};
     use bevy_ecs::{prelude::*, world};
@@ -67,7 +78,7 @@ pub mod debuge {
 
         let drawf = || {
             let (mut draw_sched, tag) = game::frame_schedule();
-            draw_sched.add_systems(components::debug::draw);
+            // draw_sched.add_systems(components::debug::draw);
             (draw_sched, tag)
         };
 

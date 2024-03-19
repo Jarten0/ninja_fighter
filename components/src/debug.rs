@@ -103,26 +103,3 @@ impl fmt::Display for PlaceState {
         }
     }
 }
-
-pub fn draw(query: Query<&ColliderMesh>, mut engine: ResMut<GgezInterface>) {
-    // if !engine.debug {
-    //     return;
-    // }
-
-    for mesh in query.iter() {
-        draw_vertecies(&mut engine, mesh);
-    }
-}
-
-pub(super) fn draw_vertecies(engine: &mut ResMut<GgezInterface>, mesh: &ColliderMesh) {
-    let param = DrawParam {
-        src: Rect::default(),
-        color: Color::CYAN,
-        transform: ggez::graphics::Transform::default(),
-        z: 0,
-    };
-    engine
-        .get_canvas_mut()
-        .unwrap()
-        .draw(&mesh.get_drawable().clone().unwrap(), param)
-}

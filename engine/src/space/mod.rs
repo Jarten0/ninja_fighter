@@ -91,14 +91,14 @@ impl Default for Vector2 {
     }
 }
 
-// impl Into<mint::Vector2<f32>> for Vector2 {
-//     fn into(self) -> mint::Vector2<f32> {
-//         mint::Vector2 {
-//             x: self.x,
-//             y: self.y,
-//         }
-//     }
-// }
+impl Into<mint::Vector2<f32>> for Vector2 {
+    fn into(self) -> mint::Vector2<f32> {
+        mint::Vector2 {
+            x: self.x,
+            y: self.y,
+        }
+    }
+}
 
 impl From<mint::Vector2<f32>> for Vector2 {
     fn from(value: mint::Vector2<f32>) -> Self {

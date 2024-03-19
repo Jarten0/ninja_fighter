@@ -148,7 +148,7 @@ impl EventHandler for GameRoot {
         if ctx.time.remaining_update_time() > Duration::from_millis(80) {
             debug!("Lag spike of 5+ frames")
         }
-        while ctx.time.remaining_update_time() > Duration::from_millis(100) {
+        while ctx.time.remaining_update_time() > Duration::from_millis(80) {
             ctx.time.check_update_time(self.ticks_per_second);
         }
 
