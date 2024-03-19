@@ -1,6 +1,14 @@
 use bevy_ecs::schedule::*;
 use components::*;
-use engine::schedule::ScheduleTag;
+use engine::{schedule::ScheduleTag, EngineConfig};
+
+pub static ENGINE_CONFIG: EngineConfig = EngineConfig {
+    scenes: Vec::new(),
+    world_init: crate::init_components_and_resources,
+    schedule_builder_functions: crate::schedule_builders,
+    ticks_per_second: 60,
+    debug_cli: None,
+};
 
 pub fn init_components_and_resources(world: &mut bevy_ecs::world::World) {
     components::init_components(world);
@@ -69,4 +77,3 @@ pub(crate) static INIT_SETTINGS: ScheduleBuildSettings = ScheduleBuildSettings {
     use_shortnames: false,
     report_sets: true,
 };
-pub static TICKS_PER_SECOND: u32 = 60;

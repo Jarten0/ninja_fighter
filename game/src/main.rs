@@ -32,13 +32,7 @@ fn main() -> ! {
         .build()
         .expect("aieee, could not create ggez context!");
 
-    let root = engine::GameRoot::new(
-        &mut context,
-        game::init_components_and_resources,
-        game::schedule_builders,
-        game::TICKS_PER_SECOND.clone(),
-        None,
-    );
+    let root = engine::GameRoot::new(&mut context, &game::ENGINE_CONFIG);
 
     ggez::event::run(context, event_loop, root);
 }

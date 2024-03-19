@@ -46,7 +46,7 @@ pub fn update(
             }
         };
 
-        let translation_amount = *collider_mesh.position.deref() - entity_position.deref();
+        let translation_amount = *collider_mesh.position.deref(); // - entity_position.deref();
 
         for vertex in &mut collider_mesh.vertecies_list {
             vertex.translate(&translation_amount);

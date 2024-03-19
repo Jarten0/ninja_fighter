@@ -15,6 +15,7 @@ use crate::schedule::ScheduleTag;
 use crate::schedule::Scheduler;
 use crate::space::Vector2;
 use crate::Camera;
+use crate::EngineConfig;
 use crate::GgezInterface;
 use crate::Input;
 use log::*;
@@ -49,13 +50,9 @@ where
 
 impl GameRoot {
     /// Loads and initialized essential data for [`bevy_ecs`] operations, specifically the [`GameRoot`] and [`MainCanvas`] structs
-    pub fn new(
-        context: &mut Context,
-        world_init: fn(&mut World) -> (),
-        schedule_builder_functions: fn() -> Vec<fn() -> (Schedule, ScheduleTag)>,
-        ticks_per_second: u32,
-        debug_cli: Option<fn(&mut Self)>,
-    ) -> Self {
+    ///
+    /// To pass in a `config`, create a static [`EngineConfig`] and pass in a reference
+    pub fn new(context: &mut Context, config: &'static EngineConfig) -> Self {
         let mut world = World::new();
 
         if let Err(err) = log::set_logger(&logging::LOGGER) {
@@ -66,7 +63,7 @@ impl GameRoot {
 
         info!("Begin log");
 
-        let scheduler = Scheduler::new(schedule_builder_functions());
+        let scheduler = Scheduler::new((config.schedule_builder_functions)());
         World::insert_resource(&mut world, scheduler);
 
         let game_info = GgezInterface::new(context);
@@ -90,12 +87,12 @@ impl GameRoot {
 
         let mut root = GameRoot {
             world,
-            ticks_per_second,
-            debug_cli,
+            ticks_per_second: config.ticks_per_second,
+            debug_cli: config.debug_cli,
         };
         GameRoot::update_context(&mut root, context);
 
-        world_init(&mut root.world);
+        (config.world_init)(&mut root.world);
 
         trace!("Initialized world and created game root");
 
