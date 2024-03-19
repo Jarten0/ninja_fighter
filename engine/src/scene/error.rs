@@ -1,4 +1,5 @@
 use core::fmt::Display;
+use std::fmt::write;
 
 #[derive(Debug)]
 pub enum SceneError {
@@ -28,6 +29,8 @@ pub enum SceneError {
     NoSceneComponent,
     /// The scene object entity you were working on did not have a [`SceneData`](super::SceneData) component
     NoSceneDataComponent,
+    /// There were no entities available to operate upon.
+    NoEntitiesAvailable,
 }
 
 impl Display for SceneError {
@@ -52,6 +55,7 @@ impl Display for SceneError {
                 write!(f, "Scene Serialize failure [{}]", err.to_string())
             }
             SceneError::NoReflectData(err) => write!(f, "No Reflection data [{}]", err),
+            SceneError::NoEntitiesAvailable => write!(f, "No available entities"),
         }
     }
 }

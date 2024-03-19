@@ -17,7 +17,8 @@ use bevy_ecs::{
 };
 
 use bevy_reflect::{
-    DynamicStruct, Reflect, ReflectOwned, StructInfo, TypeData, TypeInfo, UnnamedField,
+    DynamicStruct, DynamicTupleStruct, Reflect, ReflectOwned, StructInfo, TypeData, TypeInfo,
+    UnnamedField,
 };
 use engine::scene::ToReflect;
 use inquire::{validator::Validation, Confirm, CustomType, InquireError, Select, Text};
@@ -375,6 +376,18 @@ fn add_component(root: &mut GameRoot) -> Result<(), String> {
                     .get::<Scene>(res.target_scene.ok_or(SceneError::NoTargetScene)?)
                     .ok_or(SceneError::NoSceneComponent)?;
 
+                let entity_names = world
+                    .get::<Scene>(res.target_scene.ok_or(SceneError::NoTargetScene)?)
+                    .ok_or(SceneError::NoSceneComponent)?
+                    .get_entities()
+                    .iter()
+                    .map(|entity| world.get::<SceneData>(*entity).unwrap().object_name.clone())
+                    .collect::<Vec<String>>();
+
+                if entity_names.len() == 0 {
+                    return Err(SceneError::NoEntitiesAvailable);
+                }
+
                 // Display the available components that can be serialized
                 let types = res
                     .type_registry
@@ -403,13 +416,6 @@ fn add_component(root: &mut GameRoot) -> Result<(), String> {
                     )),
                 )?;
 
-                let entity_names = world
-                    .get::<Scene>(res.target_scene.ok_or(SceneError::NoTargetScene)?)
-                    .ok_or(SceneError::NoSceneComponent)?
-                    .get_entities()
-                    .iter()
-                    .map(|entity| world.get::<SceneData>(*entity).unwrap().object_name.clone())
-                    .collect::<Vec<String>>();
                 // Figure out the entity to add the new component to.
                 let entity = loop {
                     let name = inquire::Select::new(
@@ -419,12 +425,6 @@ fn add_component(root: &mut GameRoot) -> Result<(), String> {
                     .prompt()
                     .unwrap();
 
-                    if name == "exit" {
-                        return Err(SceneError::SerializeFailure(
-                            "Aborted before entity could be instantiated".to_owned(),
-                        ));
-                    }
-
                     let entity = scene
                         .get_entity(world, name)
                         .ok_or("The entity does not exist!");
@@ -432,34 +432,23 @@ fn add_component(root: &mut GameRoot) -> Result<(), String> {
                     if let Ok(entity) = entity {
                         break entity;
                     }
-
-                    println!("{}", entity.unwrap_err());
                 };
 
                 let mut entity = world.entity_mut(entity);
 
+                let represented_type = Some(component_registration.type_info());
+
                 let component_patch: ReflectOwned = match component_registration.type_info() {
-                    TypeInfo::Struct(info) => new_dyn_struct(
-                        info,
-                        component_registration,
-                        component_path,
-                        &res.type_registry,
-                    )?,
-                    TypeInfo::TupleStruct(info) => new_dyn_tuple_struct(
-                        info,
-                        component_registration,
-                        component_path,
-                        &res.type_registry,
-                        |unnamed_field: UnnamedField| {
-                            Text::new(&format!(
-                                "Enter value for field [{}: {}] >",
-                                unnamed_field.index(),
-                                unnamed_field.type_path()
-                            ))
-                            .prompt()
-                            .unwrap()
-                        },
-                    )?,
+                    TypeInfo::Struct(info) => {
+                        let mut dynamic_struct = DynamicStruct::default();
+                        dynamic_struct.set_represented_type(represented_type);
+                        ReflectOwned::Struct(Box::new(dynamic_struct))
+                    }
+                    TypeInfo::TupleStruct(info) => {
+                        let mut dynamic_struct = DynamicTupleStruct::default();
+                        dynamic_struct.set_represented_type(represented_type);
+                        ReflectOwned::TupleStruct(Box::new(dynamic_struct))
+                    }
                     TypeInfo::Tuple(info) => {
                         new_dyn_tuple(info, component_registration, component_path)?
                     }

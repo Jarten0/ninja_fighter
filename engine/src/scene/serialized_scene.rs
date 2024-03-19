@@ -18,6 +18,7 @@ use serde::de::Visitor;
 use serde::ser::SerializeStruct;
 use serde::Deserialize;
 use serde::Serialize;
+use serde_json::Map;
 use serde_json::Value;
 use std::collections::HashMap;
 
@@ -39,7 +40,7 @@ pub trait ToReflect {
         &self,
         expected_type_path: Option<&str>,
         type_registry: &TypeRegistry,
-    ) -> Result<Box<dyn Reflect>, Box<dyn Reflect>>;
+    ) -> Box<dyn Reflect>;
 }
 
 /// A string based data type that stores useful data to convert [`Scene`]'s and bevy_ecs [`Entity`]'s to strings and back.
@@ -54,19 +55,16 @@ impl ToReflect for serde_json::Value {
         &self,
         expected_type: Option<&str>,
         type_registry: &TypeRegistry,
-    ) -> Result<Box<dyn Reflect>, Box<dyn Reflect>> {
+    ) -> Box<dyn Reflect> {
         let value = match self {
             Value::Null => Reflect::reflect_owned(Box::new(())),
             Value::Bool(bool) => Reflect::reflect_owned(Box::new(bool.to_owned())),
             Value::Number(number) => convert_number(number, expected_type),
             Value::String(string) => convert_string(string, expected_type),
             Value::Array(array) => convert_array(array, expected_type, type_registry),
-            Value::Object(_object) => {
-                dbg!(expected_type);
-                todo!()
-            }
+            Value::Object(object) => convert_struct(object, expected_type, type_registry),
         };
-        Ok(Box::<dyn Reflect>::from(match value {
+        Box::<dyn Reflect>::from(match value {
             bevy_reflect::ReflectOwned::Struct(e) => e.into_reflect(),
             bevy_reflect::ReflectOwned::TupleStruct(ts) => ts.into_reflect(),
             bevy_reflect::ReflectOwned::Tuple(t) => t.into_reflect(),
@@ -75,7 +73,7 @@ impl ToReflect for serde_json::Value {
             bevy_reflect::ReflectOwned::Map(m) => m.into_reflect(),
             bevy_reflect::ReflectOwned::Enum(en) => en.into_reflect(),
             bevy_reflect::ReflectOwned::Value(e) => e,
-        }))
+        })
     }
 }
 
@@ -121,11 +119,8 @@ fn convert_array(
                     for i in 0..tsinfo.field_len() {
                         let field = tsinfo.field_at(i).unwrap();
                         let value = jesoon_array.get(i).unwrap();
-                        dyn_ts.insert_boxed(
-                            value
-                                .to_reflect(Some(field.type_path()), type_registry)
-                                .unwrap(),
-                        );
+                        dyn_ts
+                            .insert_boxed(value.to_reflect(Some(field.type_path()), type_registry));
                     }
                     ReflectOwned::TupleStruct(Box::new(dyn_ts))
                 }
@@ -145,7 +140,7 @@ fn convert_array(
                 let vec_type = generic_type.trim_start_matches('<').trim_end_matches('>');
                 let reflect_values = jesoon_array
                     .iter()
-                    .map(|value| value.to_reflect(Some(vec_type), type_registry).unwrap())
+                    .map(|value| value.to_reflect(Some(vec_type), type_registry))
                     .collect::<Vec<Box<dyn Reflect>>>();
 
                 let mut dyn_list = DynamicList::default();
@@ -166,6 +161,14 @@ fn convert_array(
 
         todo!()
     }
+}
+
+fn convert_struct(
+    jesoon_object: &serde_json::Map<String, Value>,
+    expected_type: Option<&str>,
+    type_registry: &TypeRegistry,
+) -> ReflectOwned {
+    todo!()
 }
 
 /// Downcasts an int to the expected type
@@ -266,16 +269,7 @@ impl SerializedSceneData {
                         .ok_or(SceneError::MissingTypeRegistry(component_path.clone()))?
                         .type_path();
 
-                    let value = match field.to_reflect(Some(expected_type), type_registry) {
-                        Ok(ok) => ok,
-                        Err(ok) => {
-                            error!(
-                                "Could not conform {} to the expected type {}",
-                                name, expected_type
-                            );
-                            ok
-                        }
-                    };
+                    let value = field.to_reflect(Some(expected_type), type_registry);
 
                     trace!("Initialized {}", name);
 

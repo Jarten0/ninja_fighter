@@ -27,11 +27,31 @@ impl Log for Logger {
             return;
         }
         match record.level() {
-            log::Level::Error => println!("Error: [{}]: {}", record.file().unwrap(), record.args()),
-            log::Level::Warn => println!("Warn: [{}]: {}", record.file().unwrap(), record.args()),
-            log::Level::Info => println!("Info: [{}]: {}", record.file().unwrap(), record.args()),
-            log::Level::Debug => println!("Debug: [{}]: {}", record.file().unwrap(), record.args()),
-            log::Level::Trace => println!("Trace: [{}]: {}", record.file().unwrap(), record.args()),
+            log::Level::Error => println!(
+                "Error: [{}]: {}",
+                record.file().unwrap().to_owned() + ":" + &record.line().unwrap().to_string(),
+                record.args()
+            ),
+            log::Level::Warn => println!(
+                "Warn: [{}]: {}",
+                record.file().unwrap().to_owned() + ":" + &record.line().unwrap().to_string(),
+                record.args()
+            ),
+            log::Level::Info => println!(
+                "Info: [{}]: {}",
+                record.file().unwrap().to_owned() + ":" + &record.line().unwrap().to_string(),
+                record.args()
+            ),
+            log::Level::Debug => println!(
+                "Debug: [{}]: {}",
+                record.file().unwrap().to_owned() + ":" + &record.line().unwrap().to_string(),
+                record.args()
+            ),
+            log::Level::Trace => println!(
+                "Trace: [{}]: {}",
+                record.file().unwrap().to_owned() + ":" + &record.line().unwrap().to_string(),
+                record.args()
+            ),
         }
     }
 

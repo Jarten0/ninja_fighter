@@ -4,6 +4,8 @@
 //!
 //! * draw - Draws collider meshes if is_debug_draw is enabled
 
+#![allow(unused)]
+
 use std::ops::Deref;
 
 use bevy_ecs::component::Component;
@@ -25,6 +27,10 @@ use ggez::graphics::MeshData;
 use serde::ser::SerializeStruct;
 use serde::Deserialize;
 use serde::Serialize;
+
+// use engine::space::Vector2 as eVector2;
+// use mint::Vector2 as mVector2;
+// use nalgebra::Vector2 as nVector2;
 
 /// Runs physics updates for collider meshes
 pub fn update(
@@ -88,14 +94,19 @@ pub fn draw(query: Query<&ColliderMesh>, mut engine: ResMut<GgezInterface>, came
                 scale: _,
                 offset: _,
             } => dest,
-            graphics::Transform::Matrix(_matrix) => _matrix + camera.position,
+            graphics::Transform::Matrix(_matrix) => {
+                // let into: mVector2<f32> = (*camera.position).into();
+                // let into = nVector2::from(into);
+                // matrix + into;
+                todo!()
+            }
         };
 
         let final_param = initial_param
             .clone()
             .color(Color::MAGENTA)
             .dest(dest)
-            .rotation(0.0).;
+            .rotation(0.0);
 
         canvas.draw(drawable, final_param)
     }

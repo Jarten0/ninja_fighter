@@ -4,8 +4,7 @@ use std::str::FromStr;
 
 use super::keycode_converter::{self, KeycodeType};
 
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct StringifiableKeyCode(pub KeycodeType);
 
 impl std::ops::Deref for StringifiableKeyCode {

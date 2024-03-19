@@ -26,7 +26,9 @@ use serde::Serialize;
 use serde_json::Value;
 
 use std::collections::HashMap;
+use std::ffi::OsStr;
 use std::fs::File;
+use std::fs::OpenOptions;
 use std::path::PathBuf;
 
 /// Entity managment for loading and unloading in batches rather than having everything loaded at once.
@@ -167,11 +169,32 @@ pub fn save_scene(
         Err(err) => err?,
     };
 
+    if !(path.extension().unwrap_or(OsStr::new("none")) == "json") {
+        return Err(SceneError::SerializeFailure(format!(
+            "Invalid file type: Must be JSON. [{}]",
+            path.display()
+        )));
+    }
+
     trace!("Found path");
 
-    let new_file = match File::create(path.clone()) {
-        Ok(ok) => ok,
-        Err(err) => return Err(error::SceneError::IOError(err)), //Could the target scene's path be incorrect?)
+    let save_file = match OpenOptions::new()
+        .read(false)
+        .write(true)
+        .create(true)
+        .open(path.clone())
+    {
+        Ok(ok) => {
+            trace!("A file was found! Will overwrite the found file after serializing scene.");
+            ok
+        }
+        Err(err) => {
+            trace!("No file found, creating new file. [{}]", err);
+            match File::create(path.clone()) {
+                Ok(ok) => ok,
+                Err(err) => return Err(error::SceneError::IOError(err)), //Could the target scene's path be incorrect?)
+            }
+        }
     };
 
     let value = to_serialized_scene(world, registry, entity)
@@ -179,7 +202,7 @@ pub fn save_scene(
 
     trace!("Writing saved data to disk");
 
-    serde_json::to_writer(new_file, &value)
+    serde_json::to_writer(save_file, &value)
         .map_err(|err| error::SceneError::SerializeFailure(err.to_string()))?;
 
     trace!("Saved scene successfully");

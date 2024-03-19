@@ -33,9 +33,7 @@ pub fn frame_schedule() -> (Schedule, ScheduleTag) {
         .set_build_settings(FRAME_SETTINGS.clone())
         .set_executor_kind(ExecutorKind::SingleThreaded);
 
-    draw_sched
-        .add_systems(render::draw)
-        .add_systems(debug::draw);
+    draw_sched.add_systems(render::draw);
 
     (draw_sched, ScheduleTag::Frame)
 }

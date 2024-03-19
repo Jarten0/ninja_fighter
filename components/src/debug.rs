@@ -12,10 +12,6 @@ use bevy_ecs::prelude::*;
 use bevy_ecs::system::Commands;
 use bevy_ecs::system::Query;
 use bevy_ecs::system::Res;
-use bevy_ecs::system::ResMut;
-use ggez::graphics::Color;
-use ggez::graphics::DrawParam;
-use ggez::graphics::Rect;
 
 use super::collider::collider_mesh::ColliderMesh;
 
@@ -102,27 +98,4 @@ impl fmt::Display for PlaceState {
             PlaceState::Placing(stage, entity) => write!(f, "Placing {}, {:#?}", stage, entity),
         }
     }
-}
-
-pub fn draw(query: Query<&ColliderMesh>, mut engine: ResMut<GgezInterface>) {
-    // if !engine.debug {
-    //     return;
-    // }
-
-    for mesh in query.iter() {
-        draw_vertecies(&mut engine, mesh);
-    }
-}
-
-pub(super) fn draw_vertecies(engine: &mut ResMut<GgezInterface>, mesh: &ColliderMesh) {
-    let param = DrawParam {
-        src: Rect::default(),
-        color: Color::CYAN,
-        transform: ggez::graphics::Transform::default(),
-        z: 0,
-    };
-    engine
-        .get_canvas_mut()
-        .unwrap()
-        .draw(&mesh.get_drawable().clone().unwrap(), param)
 }

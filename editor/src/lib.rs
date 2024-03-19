@@ -67,7 +67,6 @@ pub mod debuge {
 
         let drawf = || {
             let (mut draw_sched, tag) = game::frame_schedule();
-            draw_sched.add_systems(components::debug::draw);
             (draw_sched, tag)
         };
 
