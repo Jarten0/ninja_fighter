@@ -18,12 +18,15 @@ use engine::space;
 use engine::space::Position;
 use engine::Camera;
 use engine::GgezInterface;
+use ggez::context::Has;
 use ggez::graphics;
 use ggez::graphics::Color;
 use ggez::graphics::DrawParam;
+use ggez::graphics::FillOptions;
 use ggez::graphics::GraphicsContext;
 use ggez::graphics::Mesh as DrawMesh;
 use ggez::graphics::MeshData;
+use ggez::graphics::Rect;
 use serde::ser::SerializeStruct;
 use serde::Deserialize;
 use serde::Serialize;
@@ -99,8 +102,33 @@ pub fn draw(query: Query<&ColliderMesh>, mut engine: ResMut<GgezInterface>, came
 
         let final_param = initial_param.clone();
 
-        canvas.draw(drawable, final_param)
+        // canvas.draw(dbg!(drawable), final_param)
+
+        drawtempmesh(&mut engine);
     }
+}
+
+fn drawtempmesh(mut engine: ResMut<GgezInterface>) {
+    let mut builder = ggez::graphics::MeshBuilder::new();
+
+    builder.rectangle(
+        graphics::DrawMode::Fill(FillOptions::DEFAULT),
+        Rect {
+            x: 50.0,
+            y: 50.0,
+            w: 100.0,
+            h: 100.0,
+        },
+        Color::CYAN,
+    );
+
+    let meshdata = builder.build();
+    let drawable = graphics::Mesh::from_data(&engine.get_context_mut().gfx, meshdata);
+
+    engine
+        .get_canvas_mut()
+        .unwrap()
+        .draw(&drawable, DrawParam::default())
 }
 
 #[derive(Debug, Component, Clone, Reflect, Default)]
@@ -118,7 +146,11 @@ pub struct ColliderMesh {
 }
 
 impl ColliderMesh {
-    pub fn new(gfx: &GraphicsContext, vertices: &[graphics::Vertex], indices: &[u32]) -> Self {
+    pub fn new_with_drawable(
+        gfx: &GraphicsContext,
+        vertices: &[graphics::Vertex],
+        indices: &[u32],
+    ) -> Self {
         let debug_drawable_mesh = Some({
             let raw = MeshData { vertices, indices };
 
@@ -135,6 +167,25 @@ impl ColliderMesh {
 
             debug_drawable_mesh,
             debug_vertecies: vertices.to_owned(),
+            debug_draw_param: Some(draw_param),
+            position: Position::default(),
+        }
+    }
+
+    pub fn new(vertices: Vec<space::Vertex>) -> Self {
+        let draw_param = DrawParam::new().color(Color::MAGENTA);
+
+        let debug_vertecies;
+        debug_vertecies = vertices
+            .clone()
+            .iter()
+            .map(|value| (*value).into())
+            .collect::<Vec<graphics::Vertex>>();
+
+        Self {
+            debug_drawable_mesh: None,
+            debug_vertecies,
+            vertecies_list: vertices,
             debug_draw_param: Some(draw_param),
             position: Position::default(),
         }

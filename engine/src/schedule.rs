@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use bevy_ecs::schedule::Schedule;
+use bevy_ecs::schedule::{IntoSystemConfigs, Schedule, SystemConfig};
 use bevy_ecs::system::Resource;
 
 #[derive(Resource)]

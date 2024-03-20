@@ -6,18 +6,22 @@
 
 // Hi! If your reading this, welcome to my fun little project. Some shenanigans are afoot!
 
+use std::path::PathBuf;
 use std::time::Duration;
 
 use crate::input::KeycodeType;
 use crate::logging;
+use crate::scene::SceneError;
 use crate::scene::SceneManager;
 use crate::schedule::ScheduleTag;
 use crate::schedule::Scheduler;
 use crate::space::Vector2;
 use crate::Camera;
 use crate::EngineConfig;
+use crate::EngineConfigError;
 use crate::GgezInterface;
 use crate::Input;
+use crate::SomeError;
 use log::*;
 
 use bevy_ecs::world::*;
@@ -118,34 +122,39 @@ impl GameRoot {
         root.world
             .resource_scope(|world, mut scheduler: Mut<Scheduler>| {
                 scheduler
+                    .get_schedule_mut(ScheduleTag::Tick)
+                    .expect("a schedule that has a Tick tag")
+                    .add_systems(crate::space::transform::update);
+
+                trace!("Added Transform to tick schedule");
+
+                scheduler
                     .get_schedule_mut(ScheduleTag::Init)
                     .expect("a schedule that has the Init tag")
                     .run(world);
+
+                trace!("Ran Init schedule")
             });
 
-        loop {
-            if let Err(err) = root
-                .world
-                .resource_scope(|world, mut res: Mut<SceneManager>| {
-                    res.load_scene(
-                        world,
-                        config
-                            .scene_paths
-                            .get(0)
-                            .expect("A scene to initialize")
-                            .try_into()
-                            .expect("A path leading to a scene file"),
-                    )
-                })
-            {
-                error!("Scene load error! [{}]", err);
-                break Err(err);
-            }
-            break Ok(());
-        }
-        .map_err(|err| err.to_string())?;
+        root.world
+            .resource_scope(
+                |world,
+                 mut res: Mut<SceneManager>|
+                 -> Result<bevy_ecs::entity::Entity, SomeError> {
+                    let path_str = config
+                        .scene_paths
+                        .get(0)
+                        .ok_or(SomeError::EngineConfig(EngineConfigError::NoScenePaths))?;
 
-        trace!("Ran init schedule");
+                    let path: PathBuf = path_str.into();
+
+                    res.load_scene(world, path)
+                        .map_err(|err| SomeError::Scene(err))
+                },
+            )
+            .map_err(|err| err.to_string())?;
+
+        trace!("Loaded default scene from EngineConfig");
 
         Ok(root)
     }

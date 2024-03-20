@@ -8,7 +8,6 @@ use bevy_ecs::world::World;
 use bevy_reflect::DynamicList;
 use bevy_reflect::DynamicStruct;
 use bevy_reflect::DynamicTupleStruct;
-use bevy_reflect::DynamicTypePath;
 use bevy_reflect::List;
 use bevy_reflect::Reflect;
 use bevy_reflect::ReflectOwned;
@@ -22,9 +21,7 @@ use serde::ser::SerializeStruct;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_json::Value;
-use std::any::Any;
 use std::collections::HashMap;
-use std::fmt::format;
 
 pub type DataHashmap = HashMap<String, EntityHashmap>; // string = entity name, entity hashmap = entities owned components
 pub type EntityHashmap = HashMap<String, ComponentData>; // static str = type path of component

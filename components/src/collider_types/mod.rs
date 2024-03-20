@@ -1,6 +1,6 @@
-use bevy_ecs::{component::Component, reflect::ReflectComponent, world::World};
+use bevy_ecs::{component::Component, reflect::ReflectComponent};
 use bevy_reflect::Reflect;
-use engine::space::Vector2;
+use engine::space::{self, Vector2};
 use ggez::{
     context::Has,
     graphics::{self, Color, DrawParam, FillOptions, GraphicsContext, Rect, StrokeOptions},
@@ -16,7 +16,7 @@ pub struct BoxCollider;
 
 impl BoxCollider {
     pub fn new(scale: Vector2) -> (BoxCollider, ColliderMesh) {
-        let mut builder = ggez::graphics::MeshBuilder::new();
+        // let mut builder = ggez::graphics::MeshBuilder::new();
 
         let bounds = Rect {
             x: 0.0,
@@ -25,12 +25,28 @@ impl BoxCollider {
             h: 1.1 * scale.y,
         };
 
-        let fill = FillOptions::DEFAULT.with_fill_rule(graphics::FillRule::NonZero);
-        let mut mode = graphics::DrawMode::Fill(fill);
+        let vertices: Vec<space::Vertex> = vec![
+            space::Vertex::from(Vector2 { x: 0.0, y: 0.0 }),
+            space::Vertex::from(Vector2 {
+                x: 1.0 * scale.x,
+                y: 0.0,
+            }),
+            space::Vertex::from(Vector2 {
+                x: 1.0 * scale.x,
+                y: 1.0 * scale.y,
+            }),
+            space::Vertex::from(Vector2 {
+                x: 0.0,
+                y: 1.0 * scale.y,
+            }),
+        ];
 
-        builder
-            .rectangle(mode, bounds, Color::from_rgb(224, 224, 224))
-            .unwrap();
+        // let fill = FillOptions::DEFAULT.with_fill_rule(graphics::FillRule::NonZero);
+        // let mode = graphics::DrawMode::Fill(fill);
+
+        // builder
+        //     .rectangle(mode, bounds, Color::from_rgb(224, 224, 224))
+        //     .unwrap();
 
         // builder
         //     .line(
@@ -48,11 +64,11 @@ impl BoxCollider {
         //     )
         //     .unwrap();
 
-        let mesh_data = builder.build();
+        // let mesh_data = builder.build();
 
         trace!("Created new BoxCollider");
 
-        let mut mesh = ColliderMesh::from(mesh_data);
+        let mut mesh = ColliderMesh::new(vertices);
 
         mesh.debug_draw_param = Some(DrawParam {
             src: bounds,

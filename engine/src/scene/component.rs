@@ -17,13 +17,10 @@ use bevy_ecs::component::Component;
 use bevy_ecs::entity::Entity;
 use bevy_ecs::world::World;
 
-use bevy_reflect::serde::ReflectSerializer;
 use bevy_reflect::TypeRegistry;
 use inquire::Text;
 use log::error;
 use log::trace;
-use serde::Serialize;
-use serde_json::Value;
 
 use std::collections::HashMap;
 use std::ffi::OsStr;

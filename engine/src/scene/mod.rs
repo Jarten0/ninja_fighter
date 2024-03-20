@@ -11,12 +11,12 @@ mod test;
 use bevy_ecs::{component::Component, world::Mut};
 use bevy_reflect::{GetTypeRegistration, Reflect};
 use bevy_trait_query::RegisterExt;
+
+pub use component::Scene;
 pub use component::{
     add_entity_to_scene, load_scene, new_scene, save_scene, to_serializable_scene_data,
     unload_scene, validate_name,
 };
-
-pub use component::Scene;
 pub use converter::*;
 pub use error::SceneError;
 pub use object_data::ReflectTestSuperTrait;

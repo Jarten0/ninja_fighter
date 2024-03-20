@@ -1,7 +1,4 @@
-use bevy_ecs::{
-    component::Component,
-    reflect::{self, ReflectComponent},
-};
+use bevy_ecs::{component::Component, reflect::ReflectComponent};
 
 use bevy_reflect::Reflect;
 use engine::space;

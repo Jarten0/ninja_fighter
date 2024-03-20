@@ -43,7 +43,7 @@ impl ColliderBundle {
 
         Self {
             gravity,
-            mesh: ColliderMesh::new(&engine.get_context().gfx, vertices, indices),
+            mesh: ColliderMesh::new_with_drawable(&engine.get_context().gfx, vertices, indices),
         }
     }
 }

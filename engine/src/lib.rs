@@ -24,15 +24,33 @@ pub use input::{ActionData, Input, Key};
 pub use render::render_type::RenderType;
 pub use root::GameRoot;
 
-use bevy_ecs::schedule::Schedule;
-use bevy_ecs::world::World;
-use schedule::ScheduleTag;
-
 #[derive(Debug, Clone)]
 pub struct EngineConfig {
     pub scene_paths: &'static [&'static str],
-    pub world_init: fn(&mut World) -> (),
-    pub schedule_builder_functions: fn() -> Vec<fn() -> (Schedule, ScheduleTag)>,
+    pub world_init: fn(&mut bevy_ecs::prelude::World) -> (),
+    pub schedule_builder_functions:
+        fn() -> Vec<fn() -> (bevy_ecs::schedule::Schedule, schedule::ScheduleTag)>,
     pub ticks_per_second: u32,
     pub debug_cli: Option<fn(&mut GameRoot)>,
+}
+
+pub enum EngineConfigError {
+    NoScenePaths,
+    InvalidScenePath(&'static str),
+    InvalidTicksPerSecond,
+    MissingSchedule,
+}
+
+pub enum SomeError {
+    Scene(crate::scene::SceneError),
+    Ggez(ggez::GameError),
+    IO(std::io::Error),
+    Misc(String),
+    EngineConfig(EngineConfigError),
+}
+
+impl ToString for SomeError {
+    fn to_string(&self) -> String {
+        todo!()
+    }
 }
