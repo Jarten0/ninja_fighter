@@ -57,7 +57,7 @@ where
 
 impl<T> TestSuperTrait for T
 where
-    T: erased_serde::Serialize + Component + Reflect,
+    T: erased_serde::Serialize + Component + Reflect + serde::Serialize,
 {
     fn erased_serialize(&self, serializer: &mut dyn Serializer) -> Result<(), erased_serde::Error> {
         <T as erased_serde::Serialize>::erased_serialize(self, serializer)

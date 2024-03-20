@@ -51,10 +51,7 @@ pub fn new_dyn_struct(
             .ok_or(SceneError::MissingTypeRegistry(component_path.to_owned()))?
             .type_path();
 
-        let value = match field.to_reflect(Some(expected_type), type_registry) {
-            Ok(ok) => ok,
-            Err(ok) => ok,
-        };
+        let value = field.to_reflect(Some(expected_type), type_registry);
 
         component_patch.insert_boxed(&name, value);
     }
@@ -92,10 +89,7 @@ pub fn new_dyn_tuple_struct(
             .ok_or(SceneError::MissingTypeRegistry(component_path.to_owned()))?
             .type_path();
 
-        let value = match field.to_reflect(Some(expected_type), type_registry) {
-            Ok(ok) => ok,
-            Err(ok) => ok,
-        };
+        let value = field.to_reflect(Some(expected_type), type_registry);
 
         component_patch.insert_boxed(value);
     }

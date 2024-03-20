@@ -1,6 +1,6 @@
 use bevy_ecs::{component::Component, reflect::ReflectComponent, world::World};
 use bevy_reflect::Reflect;
-use engine::space::{Vector2, Vertex};
+use engine::space::Vector2;
 use ggez::{
     context::Has,
     graphics::{self, Color, DrawParam, FillOptions, GraphicsContext, Rect, StrokeOptions},

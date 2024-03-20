@@ -1,13 +1,10 @@
 //! Provides several conversion tables for converting from strings and keycodes
-//!
 
+use ggez::event::{Button, MouseButton};
+use ggez::input::keyboard::KeyCode;
 use std::fmt::{Display, Error};
 use std::str::FromStr;
 use std::{collections::HashMap, sync::OnceLock};
-
-use enum_iterator::Sequence;
-use ggez::event::{Button, MouseButton};
-use ggez::input::keyboard::KeyCode;
 
 #[derive(Debug, Clone, Copy, PartialEq, Hash, Eq)]
 pub enum KeycodeType {
@@ -15,12 +12,6 @@ pub enum KeycodeType {
     Gamepad(Button),    // 18 variants
     Mouse(MouseButton), // 4 variants
 }
-
-// impl ToString for KeycodeType {
-//     fn to_string(&self) -> String {
-//         String::from(keycode_to_str(*self).unwrap())
-//     }
-// }
 
 impl FromStr for KeycodeType {
     type Err = &'static str;
@@ -33,18 +24,6 @@ impl FromStr for KeycodeType {
     }
 }
 
-impl PartialOrd for KeycodeType {
-    fn partial_cmp(&self, _other: &Self) -> Option<std::cmp::Ordering> {
-        todo!()
-    }
-}
-
-impl Ord for KeycodeType {
-    fn cmp(&self, _other: &Self) -> std::cmp::Ordering {
-        todo!()
-    }
-}
-
 impl Display for KeycodeType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let result = keycode_to_str(self.to_owned());
@@ -54,178 +33,6 @@ impl Display for KeycodeType {
         };
 
         Ok(())
-    }
-}
-
-impl Sequence for KeycodeType {
-    const CARDINALITY: usize = 183;
-
-    fn next(&self) -> Option<Self> {
-        if *self == KeycodeType::Keyboard(KeyCode::Tab) {
-            return Some(KeycodeType::Gamepad(Button::South));
-        } else if *self == KeycodeType::Gamepad(Button::Unknown) {
-            return Some(KeycodeType::Mouse(MouseButton::Left));
-        } else if *self == KeycodeType::Mouse(MouseButton::Other(0)) {
-            return None;
-        } else {
-            Some(match self {
-                KeycodeType::Keyboard(keycode) => KeycodeType::Keyboard(match keycode {
-                    KeyCode::Key1 => KeyCode::Key2,
-                    KeyCode::Key2 => KeyCode::Key3,
-                    KeyCode::Key3 => KeyCode::Key4,
-                    KeyCode::Key4 => KeyCode::Key5,
-                    KeyCode::Key5 => KeyCode::Key6,
-                    KeyCode::Key6 => KeyCode::Key7,
-                    KeyCode::Key7 => KeyCode::Key8,
-                    KeyCode::Key8 => KeyCode::Key9,
-                    KeyCode::Key9 => KeyCode::Key0,
-                    KeyCode::Key0 => KeyCode::A,
-                    KeyCode::A => KeyCode::B,
-                    KeyCode::B => KeyCode::C,
-                    KeyCode::C => KeyCode::D,
-                    KeyCode::D => KeyCode::E,
-                    KeyCode::E => KeyCode::F,
-                    KeyCode::F => KeyCode::G,
-                    KeyCode::G => KeyCode::H,
-                    KeyCode::H => KeyCode::I,
-                    KeyCode::I => KeyCode::J,
-                    KeyCode::J => KeyCode::K,
-                    KeyCode::K => KeyCode::L,
-                    KeyCode::L => KeyCode::M,
-                    KeyCode::M => KeyCode::N,
-                    KeyCode::N => KeyCode::O,
-                    KeyCode::O => KeyCode::P,
-                    KeyCode::P => KeyCode::Q,
-                    KeyCode::Q => KeyCode::R,
-                    KeyCode::R => KeyCode::S,
-                    KeyCode::S => KeyCode::T,
-                    KeyCode::T => KeyCode::U,
-                    KeyCode::U => KeyCode::V,
-                    KeyCode::V => KeyCode::W,
-                    KeyCode::W => KeyCode::X,
-                    KeyCode::X => KeyCode::Y,
-                    KeyCode::Y => KeyCode::Z,
-                    KeyCode::Z => KeyCode::Escape,
-                    KeyCode::Escape => KeyCode::F1,
-                    KeyCode::F1 => KeyCode::F2,
-                    KeyCode::F2 => KeyCode::F3,
-                    KeyCode::F3 => KeyCode::F4,
-                    KeyCode::F4 => KeyCode::F5,
-                    KeyCode::F5 => KeyCode::F6,
-                    KeyCode::F6 => KeyCode::F7,
-                    KeyCode::F7 => KeyCode::F8,
-                    KeyCode::F8 => KeyCode::F9,
-                    KeyCode::F9 => KeyCode::F10,
-                    KeyCode::F10 => KeyCode::F11,
-                    KeyCode::F11 => KeyCode::F12,
-                    KeyCode::F12 => KeyCode::F13,
-                    KeyCode::F13 => KeyCode::F14,
-                    KeyCode::F14 => KeyCode::F15,
-                    KeyCode::F15 => KeyCode::F16,
-                    KeyCode::F16 => KeyCode::F17,
-                    KeyCode::F17 => KeyCode::F18,
-                    KeyCode::F18 => KeyCode::F19,
-                    KeyCode::F19 => KeyCode::F20,
-                    KeyCode::F20 => KeyCode::F21,
-                    KeyCode::F21 => KeyCode::F22,
-                    KeyCode::F22 => KeyCode::F23,
-                    KeyCode::F23 => KeyCode::F24,
-                    KeyCode::F24 => KeyCode::Insert,
-                    KeyCode::Insert => KeyCode::Home,
-                    KeyCode::Home => KeyCode::Delete,
-                    KeyCode::Delete => KeyCode::End,
-                    KeyCode::End => KeyCode::PageDown,
-                    KeyCode::PageDown => KeyCode::PageUp,
-                    KeyCode::PageUp => KeyCode::Left,
-                    KeyCode::Left => KeyCode::Up,
-                    KeyCode::Up => KeyCode::Left,
-                    KeyCode::Right => KeyCode::Down,
-                    KeyCode::Down => KeyCode::Back,
-                    KeyCode::Back => KeyCode::Return,
-                    KeyCode::Return => KeyCode::Space,
-                    KeyCode::Space => KeyCode::Compose,
-                    KeyCode::Compose => KeyCode::Caret,
-                    KeyCode::Caret => KeyCode::Numlock,
-                    KeyCode::Numlock => KeyCode::Numpad0,
-                    KeyCode::Numpad0 => KeyCode::Numpad1,
-                    KeyCode::Numpad1 => KeyCode::Numpad2,
-                    KeyCode::Numpad2 => KeyCode::Numpad3,
-                    KeyCode::Numpad3 => KeyCode::Numpad4,
-                    KeyCode::Numpad4 => KeyCode::Numpad5,
-                    KeyCode::Numpad5 => KeyCode::Numpad6,
-                    KeyCode::Numpad6 => KeyCode::Numpad7,
-                    KeyCode::Numpad7 => KeyCode::Numpad8,
-                    KeyCode::Numpad8 => KeyCode::Numpad9,
-                    KeyCode::Numpad9 => KeyCode::NumpadAdd,
-                    KeyCode::NumpadAdd => KeyCode::NumpadDivide,
-                    KeyCode::NumpadDivide => KeyCode::NumpadDecimal,
-                    KeyCode::NumpadDecimal => KeyCode::NumpadComma,
-                    KeyCode::NumpadComma => KeyCode::NumpadEnter,
-                    KeyCode::NumpadEnter => KeyCode::NumpadEquals,
-                    KeyCode::NumpadEquals => KeyCode::NumpadMultiply,
-                    KeyCode::NumpadMultiply => KeyCode::NumpadSubtract,
-                    KeyCode::NumpadSubtract => KeyCode::Backslash,
-                    KeyCode::Backslash => KeyCode::Equals,
-                    KeyCode::Equals => KeyCode::LAlt,
-                    KeyCode::LAlt => KeyCode::LBracket,
-                    KeyCode::LBracket => KeyCode::LControl,
-                    KeyCode::LControl => KeyCode::LShift,
-                    KeyCode::LShift => KeyCode::LWin,
-                    KeyCode::LWin => KeyCode::Minus,
-                    KeyCode::Minus => KeyCode::Period,
-                    KeyCode::Period => KeyCode::RAlt,
-                    KeyCode::RAlt => KeyCode::RShift,
-                    KeyCode::RShift => KeyCode::RWin,
-                    KeyCode::RWin => KeyCode::Semicolon,
-                    KeyCode::Semicolon => KeyCode::Slash,
-                    KeyCode::Slash => KeyCode::Tab,
-                    _ => unimplemented!(),
-                }),
-                KeycodeType::Gamepad(buttoncode) => KeycodeType::Gamepad(match buttoncode {
-                    Button::South => Button::East,
-                    Button::East => Button::North,
-                    Button::North => Button::West,
-                    Button::West => Button::C,
-                    Button::C => Button::Z,
-                    Button::Z => Button::LeftTrigger,
-                    Button::LeftTrigger => Button::LeftTrigger2,
-                    Button::LeftTrigger2 => Button::RightTrigger,
-                    Button::RightTrigger => Button::RightTrigger2,
-                    Button::RightTrigger2 => Button::Select,
-                    Button::Select => Button::Start,
-                    Button::Start => Button::Mode,
-                    Button::Mode => Button::LeftThumb,
-                    Button::LeftThumb => Button::RightThumb,
-                    Button::RightThumb => Button::DPadUp,
-                    Button::DPadUp => Button::DPadDown,
-                    Button::DPadDown => Button::DPadLeft,
-                    Button::DPadLeft => Button::DPadRight,
-                    Button::DPadRight => Button::Unknown,
-                    Button::Unknown => unreachable!(),
-                }),
-                KeycodeType::Mouse(mousekeycode) => KeycodeType::Mouse(match mousekeycode {
-                    MouseButton::Left => MouseButton::Right,
-                    MouseButton::Right => MouseButton::Middle,
-                    MouseButton::Middle => MouseButton::Other(0),
-                    MouseButton::Other(_othermousekeycode) => unimplemented!(
-                        "Mouse keycode {} is currently unimplemented",
-                        _othermousekeycode
-                    ),
-                }),
-            })
-        }
-    }
-
-    fn previous(&self) -> Option<Self> {
-        todo!()
-    }
-
-    fn first() -> Option<Self> {
-        Some(KeycodeType::Keyboard(KeyCode::A))
-    }
-
-    fn last() -> Option<Self> {
-        Some(KeycodeType::Mouse(MouseButton::Other(0)))
     }
 }
 

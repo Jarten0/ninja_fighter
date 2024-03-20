@@ -20,13 +20,13 @@ use log::error;
 pub use pos::Position;
 pub use rtt::Rotation;
 pub use scl::Scale;
-pub use transform::{Transform, TransformSettings, DEFAULT_TRANSFORM};
+pub use transform::{update, Transform, TransformSettings, DEFAULT_TRANSFORM};
 pub use vel::Velocity;
 pub use vtx::Vertex;
 
 use bevy_reflect::{
-    DynamicTupleStruct, FromReflect, GetTypeRegistration, Reflect, ReflectRef, TupleStructInfo,
-    TypeInfo, TypePath, Typed, UnnamedField,
+    DynamicStruct, DynamicTypePath, FieldIter, FromReflect, GetTypeRegistration, NamedField,
+    Reflect, ReflectRef, StructInfo, TypeInfo, TypePath, Typed,
 };
 use core::fmt;
 use once_cell::sync::Lazy;
@@ -37,7 +37,7 @@ use std::time::Duration;
 
 // Struct block //
 
-#[derive(Debug, Clone, Copy, TypePath, Component)]
+#[derive(Debug, Clone, Copy, TypePath, Component, PartialEq, PartialOrd)]
 pub struct Vector2 {
     pub x: f32,
     pub y: f32,
@@ -109,12 +109,12 @@ impl From<mint::Vector2<f32>> for Vector2 {
     }
 }
 
-impl Into<(f32, f32)> for Vector2 {
-    /// Returns the [`Vector2`] as a tuple struct, where 0 = vec.x and 1 = vec.y
-    fn into(self) -> (f32, f32) {
-        (self.x, self.y)
-    }
-}
+// impl Into<(f32, f32)> for Vector2 {
+//     /// Returns the [`Vector2`] as a tuple struct, where 0 = vec.x and 1 = vec.y
+//     fn into(self) -> (f32, f32) {
+//         (self.x, self.y)
+//     }
+// }
 
 impl From<(f32, f32)> for Vector2 {
     fn from((x, y): (f32, f32)) -> Self {
@@ -266,46 +266,70 @@ impl<'de> Visitor<'de> for F32Visitor {
 // Reflection block //
 
 static TYPE_INFO: Lazy<TypeInfo> =
-    Lazy::new(|| bevy_reflect::TypeInfo::TupleStruct(TUPLE_STRUCT_INFO.clone()));
+    Lazy::new(|| bevy_reflect::TypeInfo::Struct(TUPLE_STRUCT_INFO.clone()));
 
 static STRUCT_INFO: Lazy<bevy_reflect::TypeInfo> =
-    Lazy::new(|| bevy_reflect::TypeInfo::TupleStruct(TUPLE_STRUCT_INFO.clone()));
+    Lazy::new(|| bevy_reflect::TypeInfo::Struct(TUPLE_STRUCT_INFO.clone()));
 
-static TUPLE_STRUCT_INFO: Lazy<TupleStructInfo> = Lazy::new(|| {
-    TupleStructInfo::new::<Vector2>(&[UnnamedField::new::<f32>(0), UnnamedField::new::<f32>(1)])
+static TUPLE_STRUCT_INFO: Lazy<StructInfo> = Lazy::new(|| {
+    StructInfo::new::<Vector2>(&[NamedField::new::<f32>("x"), NamedField::new::<f32>("y")])
 });
 
-impl bevy_reflect::TupleStruct for Vector2 {
-    fn field(&self, name: usize) -> Option<&dyn Reflect> {
-        match name {
+impl bevy_reflect::Struct for Vector2 {
+    fn field_len(&self) -> usize {
+        2
+    }
+
+    fn iter_fields(&self) -> FieldIter<'_> {
+        bevy_reflect::FieldIter::new(self)
+    }
+
+    fn clone_dynamic(&self) -> DynamicStruct {
+        let mut dynamic_struct = DynamicStruct::default();
+        dynamic_struct.set_represented_type(Some(self.get_represented_type_info().unwrap()));
+        dynamic_struct.insert("x", self.x);
+        dynamic_struct.insert("y", self.y);
+        dynamic_struct
+    }
+
+    fn field_at(&self, index: usize) -> Option<&dyn Reflect> {
+        match index {
             0 => Some(self.x.as_reflect()),
             1 => Some(self.y.as_reflect()),
             _ => None,
         }
     }
 
-    fn field_mut(&mut self, name: usize) -> Option<&mut dyn Reflect> {
-        match name {
+    fn field_at_mut(&mut self, index: usize) -> Option<&mut dyn Reflect> {
+        match index {
             0 => Some(self.x.as_reflect_mut()),
             1 => Some(self.y.as_reflect_mut()),
             _ => None,
         }
     }
 
-    fn field_len(&self) -> usize {
-        2
+    fn name_at(&self, index: usize) -> Option<&str> {
+        match index {
+            0 => Some("x"),
+            1 => Some("y"),
+            _ => None,
+        }
     }
 
-    fn iter_fields(&self) -> bevy_reflect::TupleStructFieldIter {
-        bevy_reflect::TupleStructFieldIter::new(self)
+    fn field(&self, name: &str) -> Option<&dyn Reflect> {
+        match name {
+            "x" => Some(self.x.as_reflect()),
+            "y" => Some(self.y.as_reflect()),
+            _ => None,
+        }
     }
 
-    fn clone_dynamic(&self) -> bevy_reflect::DynamicTupleStruct {
-        let mut dynamic_struct = DynamicTupleStruct::default();
-        dynamic_struct.set_represented_type(Some(self.get_represented_type_info().unwrap()));
-        dynamic_struct.insert(self.x);
-        dynamic_struct.insert(self.y);
-        dynamic_struct
+    fn field_mut(&mut self, name: &str) -> Option<&mut dyn Reflect> {
+        match name {
+            "x" => Some(self.x.as_reflect_mut()),
+            "y" => Some(self.y.as_reflect_mut()),
+            _ => None,
+        }
     }
 }
 
@@ -342,7 +366,10 @@ impl Reflect for Vector2 {
         let downcast_ref = match value.downcast_ref::<Self>() {
             Some(some) => some,
             None => {
-                error!("Could not apply Reflect to Vector2: value is not a Vector2");
+                error!(
+                    "Could not apply Reflect to Vector2: value is not a Vector2. value type: {}",
+                    value.reflect_type_path()
+                );
                 return;
             }
         };
@@ -361,25 +388,46 @@ impl Reflect for Vector2 {
     }
 
     fn reflect_ref(&self) -> bevy_reflect::ReflectRef {
-        ReflectRef::TupleStruct(self)
+        ReflectRef::Struct(self)
     }
 
     fn reflect_mut(&mut self) -> bevy_reflect::ReflectMut {
-        bevy_reflect::ReflectMut::TupleStruct(self)
+        bevy_reflect::ReflectMut::Struct(self)
     }
 
     fn reflect_owned(self: Box<Self>) -> bevy_reflect::ReflectOwned {
-        bevy_reflect::ReflectOwned::TupleStruct(self)
+        bevy_reflect::ReflectOwned::Struct(self)
     }
 
     fn clone_value(&self) -> Box<dyn Reflect> {
         <Vector2 as Reflect>::into_reflect(Into::<Box<Vector2>>::into(self))
     }
+
+    fn type_name(&self) -> &str {
+        self.get_represented_type_info()
+            .map(|info| info.type_path())
+            .unwrap_or_else(|| self.reflect_type_path())
+    }
+
+    fn reflect_partial_eq(&self, value: &dyn Reflect) -> Option<bool> {
+        Some(self.eq(value.downcast_ref()?)) // TODO: make sure that downcast_ref works with traits
+    }
+
+    fn serializable(&self) -> Option<bevy_reflect::serde::Serializable> {
+        Some(bevy_reflect::serde::Serializable::Borrowed(self))
+    }
 }
 
 impl FromReflect for Vector2 {
     fn from_reflect(reflect: &dyn Reflect) -> Option<Self> {
-        reflect.downcast_ref().cloned()
+        if let ReflectRef::Struct(dyn_struct) = reflect.reflect_ref() {
+            Some(Self {
+                x: (f32::from_reflect(dyn_struct.field("x")?))?,
+                y: (f32::from_reflect(dyn_struct.field("y")?))?,
+            })
+        } else {
+            None
+        }
     }
 }
 
@@ -394,5 +442,3 @@ impl Typed for Vector2 {
         &TYPE_INFO
     }
 }
-
-// Into block //

@@ -12,10 +12,6 @@ use bevy_ecs::prelude::*;
 use bevy_ecs::system::Commands;
 use bevy_ecs::system::Query;
 use bevy_ecs::system::Res;
-use bevy_ecs::system::ResMut;
-use ggez::graphics::Color;
-use ggez::graphics::DrawParam;
-use ggez::graphics::Rect;
 
 use super::collider::collider_mesh::ColliderMesh;
 

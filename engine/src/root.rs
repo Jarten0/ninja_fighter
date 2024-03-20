@@ -20,7 +20,6 @@ use crate::GgezInterface;
 use crate::Input;
 use log::*;
 
-use bevy_ecs::schedule::Schedule;
 use bevy_ecs::world::*;
 use ggez::event::{self, EventHandler};
 use ggez::graphics::{self, Color};
@@ -44,78 +43,10 @@ where
     Self: 'static,
 {
     pub world: World,
-    debug_cli: Option<fn(&mut Self)>,
     pub ticks_per_second: u32,
 }
 
 impl GameRoot {
-    /// Loads and initialized essential data for [`bevy_ecs`] operations, specifically the [`GameRoot`] and [`MainCanvas`] structs
-    ///
-    /// To pass in a `config`, create a static [`EngineConfig`] and pass in a reference
-    pub fn new(context: &mut Context, config: &'static EngineConfig) -> Self {
-        let mut world = World::new();
-
-        if let Err(err) = log::set_logger(&logging::LOGGER) {
-            eprintln!("Failed to create logger! [{}]", err.to_string())
-        }
-
-        log::set_max_level(LevelFilter::Trace);
-
-        info!("Begin log");
-
-        let scheduler = Scheduler::new((config.schedule_builder_functions)());
-        World::insert_resource(&mut world, scheduler);
-
-        let game_info = GgezInterface::new(context);
-        World::insert_resource(&mut world, game_info);
-
-        let input = Input::load();
-        World::insert_resource(&mut world, input);
-
-        let assets = Assets::new();
-        World::insert_resource(&mut world, assets);
-
-        let scene_manager = SceneManager::default();
-        World::insert_resource(&mut world, scene_manager);
-
-        let camera = Camera::default();
-        World::insert_resource(&mut world, camera);
-
-        trace!("Created resources");
-
-        crate::register_types(&mut world);
-
-        let mut root = GameRoot {
-            world,
-            ticks_per_second: config.ticks_per_second,
-            debug_cli: config.debug_cli,
-        };
-        GameRoot::update_context(&mut root, context);
-
-        (config.world_init)(&mut root.world);
-
-        trace!("Initialized world and created game root");
-
-        root.world.resource_scope(|world, mut a: Mut<Scheduler>| {
-            a.get_schedule_mut(ScheduleTag::Init)
-                .expect("a schedule that has the Init tag")
-                .run(world);
-        });
-
-        // if let Err(err) = root
-        //     .world
-        //     .resource_scope(|world, mut res: Mut<SceneManager>| {
-        //         res.load_scene(world, "game/assets/scenes/cheeseland.json".into())
-        //     })
-        // {
-        //     error!("Scene load error! [{}]", err)
-        // }
-
-        trace!("Ran init schedule");
-
-        root
-    }
-
     /// Simply changes the context value in the GameInfo resource to the input
     fn update_context(&mut self, ctx: &mut Context) {
         self.engine_mut().context_ptr = ctx;
@@ -137,9 +68,91 @@ impl GameRoot {
     // pub fn context_mut(&mut self) -> &mut Context {
     //     self.world.resource_mut::<GgezInterface>().get_context_mut()
     // }
+
+    /// Loads and initialized essential data, and calls the [`ScheduleTag::Init`] systems
+    ///
+    /// To pass in a `config`, create a static [`EngineConfig`] and pass in a reference
+    pub fn new(context: &mut Context, config: &'static EngineConfig) -> Result<Self, String> {
+        let mut world = World::new();
+
+        if let Err(err) = log::set_logger(&logging::LOGGER) {
+            eprintln!("Failed to create logger! [{}]", err.to_string())
+        }
+
+        log::set_max_level(LevelFilter::Trace);
+
+        info!("Begin log");
+
+        let scheduler = Scheduler::new((config.schedule_builder_functions)());
+        World::insert_resource(&mut world, scheduler);
+
+        let game_info = GgezInterface::new(context, config.debug_cli);
+        World::insert_resource(&mut world, game_info);
+
+        let input = Input::load();
+        World::insert_resource(&mut world, input);
+
+        let assets = Assets::new();
+        World::insert_resource(&mut world, assets);
+
+        let scene_manager = SceneManager::default();
+        World::insert_resource(&mut world, scene_manager);
+
+        let camera = Camera::default();
+        World::insert_resource(&mut world, camera);
+
+        trace!("Created resources");
+
+        crate::scene::register_scene_types(&mut world);
+
+        let mut root = GameRoot {
+            world,
+            ticks_per_second: config.ticks_per_second,
+        };
+        GameRoot::update_context(&mut root, context);
+
+        (config.world_init)(&mut root.world);
+
+        trace!("Initialized world and created game root");
+
+        root.world
+            .resource_scope(|world, mut scheduler: Mut<Scheduler>| {
+                scheduler
+                    .get_schedule_mut(ScheduleTag::Init)
+                    .expect("a schedule that has the Init tag")
+                    .run(world);
+            });
+
+        loop {
+            if let Err(err) = root
+                .world
+                .resource_scope(|world, mut res: Mut<SceneManager>| {
+                    res.load_scene(
+                        world,
+                        config
+                            .scene_paths
+                            .get(0)
+                            .expect("A scene to initialize")
+                            .try_into()
+                            .expect("A path leading to a scene file"),
+                    )
+                })
+            {
+                error!("Scene load error! [{}]", err);
+                break Err(err);
+            }
+            break Ok(());
+        }
+        .map_err(|err| err.to_string())?;
+
+        trace!("Ran init schedule");
+
+        Ok(root)
+    }
 }
 
 impl EventHandler for GameRoot {
+    /// Passes guard clauses depending on the TPS, checks for debug logic, updates resources then runs [`ScheduleTag::Tick`]
     fn update(&mut self, ctx: &mut Context) -> GameResult {
         // FPS limiter: read `check_update_time` docs for more details
         if !ctx.time.check_update_time(self.ticks_per_second) {
@@ -155,11 +168,11 @@ impl EventHandler for GameRoot {
         // Debug console: if `debug_mode` is enabled, it will open the console and pause ticks until it is closed
         if self.engine().debug_mode {
             // Debug schedule is optional
-            println!("Entered debug mode");
+            debug!("Entered debug mode");
 
-            match self.debug_cli {
+            match self.world.resource::<GgezInterface>().debug_cli {
                 Some(e) => e(self),
-                None => (),
+                None => debug!("No debug CLI function found!"),
             }
 
             self.world
@@ -167,10 +180,12 @@ impl EventHandler for GameRoot {
                     Some(a.get_schedule_mut(ScheduleTag::Debug)?.run(world))
                 });
 
+            trace!("Ran debug schedule");
+
             self.engine_mut().debug_mode = false;
             ctx.time.tick();
 
-            println!("Exited Debug mode");
+            debug!("Exited Debug mode");
 
             return Ok(());
         }
@@ -195,6 +210,7 @@ impl EventHandler for GameRoot {
         Ok(())
     }
 
+    /// Creates a new [`Canvas`](graphics::Canvas) and calls the [`ScheduleTag::Frame`] schedule as often as possible
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
         self.engine_mut().set_canvas(graphics::Canvas::from_frame(
             ctx,

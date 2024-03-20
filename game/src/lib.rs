@@ -2,8 +2,10 @@ use bevy_ecs::schedule::*;
 use components::*;
 use engine::{schedule::ScheduleTag, EngineConfig};
 
+pub static INITIAL_SCENE: &str = "game/assets/scenes/test_scene.json";
+
 pub static ENGINE_CONFIG: EngineConfig = EngineConfig {
-    scenes: Vec::new(),
+    scene_paths: &[INITIAL_SCENE],
     world_init: crate::init_components_and_resources,
     schedule_builder_functions: crate::schedule_builders,
     ticks_per_second: 60,
@@ -27,7 +29,6 @@ pub fn tick_schedule() -> (Schedule, ScheduleTag) {
 
     // Systems block
     sched
-        .add_systems(engine::systems::update)
         .add_systems(collider::collider_mesh::update)
         .add_systems(collider::update)
         .add_systems(protag::update);

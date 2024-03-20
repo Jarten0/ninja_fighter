@@ -17,6 +17,9 @@ pub enum SceneError {
     /// The type that's trying to be serialized does not have reflection type data inserted into the registry.
     /// To fix, add #[reflect(Component)] to your type
     NoReflectData(String),
+    /// The type that's trying to be serialized does not have the serialize trait.
+    /// String is the type that is missing the trait.
+    NoSerializationImplementation(String),
     /// Failed to instantiate a scene, though not because of an IO error.
     /// Might be because of an ECS failure somewhere.
     ///
@@ -28,6 +31,8 @@ pub enum SceneError {
     NoSceneComponent,
     /// The scene object entity you were working on did not have a [`SceneData`](super::SceneData) component
     NoSceneDataComponent,
+    /// There were no entities available to operate upon.
+    NoEntitiesAvailable,
 }
 
 impl Display for SceneError {
@@ -52,6 +57,12 @@ impl Display for SceneError {
                 write!(f, "Scene Serialize failure [{}]", err.to_string())
             }
             SceneError::NoReflectData(err) => write!(f, "No Reflection data [{}]", err),
+            SceneError::NoEntitiesAvailable => write!(f, "No available entities"),
+            SceneError::NoSerializationImplementation(missing_type) => write!(
+                f,
+                "Missing Serialization Implementation for {}",
+                missing_type
+            ),
         }
     }
 }

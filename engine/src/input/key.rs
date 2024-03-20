@@ -8,7 +8,7 @@ use super::action::KeyStatus;
 use ggez::input::keyboard::KeyCode;
 use stringcode::StringifiableKeyCode;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Key {
     pub keycode: StringifiableKeyCode,
     pub name: &'static str,

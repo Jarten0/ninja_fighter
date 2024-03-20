@@ -12,8 +12,8 @@ use bevy_ecs::{component::Component, world::Mut};
 use bevy_reflect::{GetTypeRegistration, Reflect};
 use bevy_trait_query::RegisterExt;
 pub use component::{
-    add_entity_to_scene, load_scene, new_scene, save_scene, to_serialized_scene, unload_scene,
-    validate_name,
+    add_entity_to_scene, load_scene, new_scene, save_scene, to_serializable_scene_data,
+    unload_scene, validate_name,
 };
 
 pub use component::Scene;
@@ -31,7 +31,6 @@ use crate::space;
 pub fn register_scene_types(world: &mut bevy_ecs::world::World) {
     world.init_resource::<scene_manager::SceneManager>();
     world.resource_scope(|world, mut res: Mut<SceneManager>| {
-        register::<object_data::SceneData>(world, &mut res);
         register::<space::Position>(world, &mut res);
         register::<space::Rotation>(world, &mut res);
         register::<space::Scale>(world, &mut res);

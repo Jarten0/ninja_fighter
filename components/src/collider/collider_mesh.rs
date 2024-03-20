@@ -4,6 +4,8 @@
 //!
 //! * draw - Draws collider meshes if is_debug_draw is enabled
 
+#![allow(unused)]
+
 use std::ops::Deref;
 
 use bevy_ecs::component::Component;
@@ -25,6 +27,10 @@ use ggez::graphics::MeshData;
 use serde::ser::SerializeStruct;
 use serde::Deserialize;
 use serde::Serialize;
+
+// use engine::space::Vector2 as eVector2;
+// use mint::Vector2 as mVector2;
+// use nalgebra::Vector2 as nVector2;
 
 /// Runs physics updates for collider meshes
 pub fn update(

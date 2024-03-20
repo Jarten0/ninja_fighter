@@ -148,11 +148,15 @@ impl ActionData {
     /// Returns [`Ok`] if the key if found
     ///
     /// Returns [`Err`] if the key is not found
+    #[allow(unused)]
     pub(crate) fn remove_key(&mut self, key: KeycodeType) -> Result<KeycodeType, &str> {
-        match self.keys.binary_search(&key) {
-            Ok(index) => Ok(self.keys.remove(index)),
-            Err(_) => Err("Key doesn't exist, or the list is not sorted"),
+        for enum_iterator in self.keys.iter().enumerate() {
+
+            // Ok(index) => Ok(self.keys.remove(index)),
+            // Err(_) => Err("Key doesn't exist, or the list is not sorted"),
         }
+
+        todo!()
     }
 
     /// Updates the [`ActionData`]'s status based upon the keys in it's list.
