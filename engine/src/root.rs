@@ -103,7 +103,7 @@ impl GameRoot {
 
         trace!("Created resources");
 
-        crate::register_types(&mut world);
+        crate::scene::register_scene_types(&mut world);
 
         let mut root = GameRoot {
             world,
