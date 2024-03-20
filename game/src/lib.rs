@@ -29,7 +29,6 @@ pub fn tick_schedule() -> (Schedule, ScheduleTag) {
 
     // Systems block
     sched
-        .add_systems(engine::systems::update)
         .add_systems(collider::collider_mesh::update)
         .add_systems(collider::update)
         .add_systems(protag::update);
