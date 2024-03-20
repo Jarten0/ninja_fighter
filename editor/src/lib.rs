@@ -66,6 +66,18 @@ pub fn wrap_schedules_with_debug() -> Vec<fn() -> (Schedule, ScheduleTag)> {
         (tick_sched, tag)
     };
 
+    let drawf = || {
+        let (mut draw_sched, tag) = game::frame_schedule();
+        // draw_sched.add_systems(components::collider::collider_mesh::draw);
+        (draw_sched, tag)
+    };
+
+    let initf = || {
+        let (mut init_sched, tag) = game::init_schedule();
+        // init_sched.add_systems(components::debug::init);
+        (init_sched, tag)
+    };
+
     log::trace!("Wrapped schedules with debug versions");
 
     vec![

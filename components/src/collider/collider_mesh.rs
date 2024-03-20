@@ -87,26 +87,17 @@ pub fn draw(query: Query<&ColliderMesh>, mut engine: ResMut<GgezInterface>, came
             None => continue,
         };
 
-        let dest = match initial_param.transform {
-            graphics::Transform::Values {
-                dest,
-                rotation: _,
-                scale: _,
-                offset: _,
-            } => dest,
-            graphics::Transform::Matrix(_matrix) => {
-                // let into: mVector2<f32> = (*camera.position).into();
-                // let into = nVector2::from(into);
-                // matrix + into;
-                todo!()
-            }
-        };
+        // let dest = match initial_param.transform {
+        //     graphics::Transform::Values {
+        //         dest,
+        //         rotation: _,
+        //         scale: _,
+        //         offset: _,
+        //     } => dest,
+        //     graphics::Transform::Matrix(_matrix) => todo!(), //_matrix,// + camera.position,
+        // };
 
-        let final_param = initial_param
-            .clone()
-            .color(Color::MAGENTA)
-            .dest(dest)
-            .rotation(0.0);
+        let final_param = initial_param.clone();
 
         canvas.draw(drawable, final_param)
     }
@@ -166,6 +157,32 @@ impl ColliderMesh {
     pub fn pop_vertex(&mut self) {
         self.vertecies_list.pop();
         self.debug_vertecies.pop();
+    }
+}
+
+impl Into<Option<graphics::Mesh>> for ColliderMesh {
+    fn into(self) -> Option<graphics::Mesh> {
+        self.debug_drawable_mesh
+    }
+}
+
+impl<'md> From<graphics::MeshData<'md>> for ColliderMesh {
+    fn from(value: graphics::MeshData) -> Self {
+        let vec = value
+            .vertices
+            .iter()
+            .map(|value| space::Vertex::from(value))
+            .collect::<Vec<space::Vertex>>();
+
+        let position = Position::new(0.0, 0.0);
+
+        Self {
+            position,
+            vertecies_list: vec,
+            debug_vertecies: value.vertices.to_vec(),
+            debug_drawable_mesh: None,
+            debug_draw_param: None,
+        }
     }
 }
 

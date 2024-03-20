@@ -1,3 +1,4 @@
+use crate::collider::collider_mesh::ColliderMesh;
 use crate::collider_types::BoxCollider;
 use crate::{render::render_type::RenderType, render::Renderer};
 use bevy_ecs::prelude::*;
@@ -9,9 +10,15 @@ use engine::{space, Input};
 use ggez::graphics::{self, Color, DrawParam, Image, Rect};
 use serde::Serialize;
 
-// pub fn init(mut commands: Commands, engine: Res<GgezInterface>) {
-//     // commands.spawn(ProtagBundle::new(&engine));
-// }
+pub fn init(mut commands: Commands, engine: Res<GgezInterface>) {
+    commands.spawn(ProtagBundle::new(&engine));
+    commands
+        .spawn(dbg!(BoxCollider::new((15.0, 10.0).into())))
+        .add(|mut entity: EntityWorldMut| {
+            // entity.insert(Renderer::new(None, Transform::new()));
+            entity.insert(Position::new(10.0, 100.0));
+        });
+}
 
 #[derive(Default, Component, Reflect, Serialize, Clone, Debug)]
 #[reflect(Component)]
@@ -23,7 +30,8 @@ pub struct ProtagBundle {
     controller: ProtagController,
     transform: Transform,
     renderer: Renderer,
-    collider: BoxCollider,
+    // collider: BoxCollider,
+    // collider_mesh: ColliderMesh,
 }
 
 #[derive(Default, Debug, Component, Reflect, Serialize)]
@@ -130,7 +138,19 @@ impl ProtagBundle {
             space::Position::new(10.0, 0.0),
         );
 
-        let collider = BoxCollider::new(Vector2::one());
+        let (collider, mut collider_mesh) = BoxCollider::new(Vector2::one());
+
+        collider_mesh.debug_draw_param = Some(DrawParam {
+            src: Rect::default(),
+            color: Color::CYAN,
+            transform: graphics::Transform::Values {
+                dest: mint::Point2 { x: 20.0, y: 10.0 },
+                rotation: 0.0,
+                scale: space::Vector2::one().into(),
+                offset: mint::Point2 { x: 5.0, y: 0.0 },
+            },
+            z: 1,
+        });
 
         let controller = ProtagController {
             acc: 0.5,
@@ -144,8 +164,9 @@ impl ProtagBundle {
             protag,
             transform,
             renderer,
-            collider,
+            // collider,
             controller,
+            // collider_mesh,
         }
     }
 }
