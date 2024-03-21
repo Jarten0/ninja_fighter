@@ -60,6 +60,14 @@ impl Vector2 {
         // <Vector2 as Deref>::Target
         todo!()
     }
+
+    /// Gets the degree angle between two vectors.
+    ///
+    /// Returns a positive number between 0 and 360, if
+    pub fn get_angle_between(self, other: Self) -> f32 {
+        let hyp_vec = self - other;
+        libm::atan2(hyp_vec.y as f64, hyp_vec.x as f64).to_degrees() as f32
+    }
 }
 
 // Initialization block //

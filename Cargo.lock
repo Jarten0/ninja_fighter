@@ -1102,6 +1102,7 @@ dependencies = [
  "ggez",
  "inquire",
  "keycode",
+ "libm",
  "log",
  "mint",
  "nalgebra",

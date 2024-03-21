@@ -13,7 +13,7 @@ use bevy_ecs::system::Commands;
 use bevy_ecs::system::Query;
 use bevy_ecs::system::Res;
 
-use super::collider::collider_mesh::ColliderMesh;
+use super::collider::collider_mesh::ConvexColliderMesh;
 
 pub fn init(mut commands: Commands, engine: Res<GgezInterface>) {
     if !engine.debug_mode {
@@ -42,7 +42,7 @@ impl DebugComponent {
 
 pub fn update(
     mut query: Query<&mut DebugComponent>,
-    mut collider_query: Query<&mut ColliderMesh>,
+    mut collider_query: Query<&mut ConvexColliderMesh>,
     engine: Res<GgezInterface>,
     input: Res<Input>,
     mut commands: Commands,

@@ -8,14 +8,14 @@ use ggez::{
 use log::trace;
 use mint::Point2;
 
-use crate::collider::collider_mesh::ColliderMesh;
+use crate::collider::collider_mesh::ConvexColliderMesh;
 
 #[derive(Debug, Default, Clone, Component, Reflect)]
 #[reflect(Component)]
 pub struct BoxCollider;
 
 impl BoxCollider {
-    pub fn new(scale: Vector2) -> (BoxCollider, ColliderMesh) {
+    pub fn new(scale: Vector2) -> (BoxCollider, ConvexColliderMesh) {
         // let mut builder = ggez::graphics::MeshBuilder::new();
 
         let bounds = Rect {
@@ -68,7 +68,7 @@ impl BoxCollider {
 
         trace!("Created new BoxCollider");
 
-        let mut mesh = ColliderMesh::new(vertices);
+        let mut mesh = ConvexColliderMesh::new(vertices);
 
         mesh.debug_draw_param = Some(DrawParam {
             src: bounds,
