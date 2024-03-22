@@ -4,7 +4,7 @@ pub mod gravity_settings;
 use std::any::Any;
 
 use bevy_reflect::Reflect;
-use engine::space::{Vector2, Velocity};
+use engine::space::{self, Vector2, Velocity};
 
 use engine::GgezInterface;
 
@@ -29,24 +29,22 @@ pub struct ColliderBundle {
 }
 
 impl ColliderBundle {
-    pub fn new(
-        engine: &GgezInterface,
-        vertices: &[ggez::graphics::Vertex],
-        indices: &[u32],
-    ) -> Self {
+    pub fn new(engine: &GgezInterface, vertices: &[ggez::graphics::Vertex]) -> Self {
         let transform = Transform::default();
 
         let gravity = GravitySettings {
-            force: Vector2::down(),
+            force: space::DOWN,
             force_cap: 5.0,
         };
+
+        let indices = Vec::new();
 
         Self {
             gravity,
             mesh: ConvexColliderMesh::new_with_drawable(
                 &engine.get_context().gfx,
                 vertices,
-                indices,
+                &indices,
             ),
         }
     }

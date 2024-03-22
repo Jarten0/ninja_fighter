@@ -138,7 +138,7 @@ impl ProtagBundle {
             space::Position::new(10.0, 0.0),
         );
 
-        let (collider, mut collider_mesh) = BoxCollider::new(Vector2::one());
+        let (collider, mut collider_mesh) = BoxCollider::new(space::ONE);
 
         collider_mesh.debug_draw_param = Some(DrawParam {
             src: Rect::default(),
@@ -146,7 +146,7 @@ impl ProtagBundle {
             transform: graphics::Transform::Values {
                 dest: mint::Point2 { x: 20.0, y: 10.0 },
                 rotation: 0.0,
-                scale: space::Vector2::one().into(),
+                scale: space::ONE.into(),
                 offset: mint::Point2 { x: 5.0, y: 0.0 },
             },
             z: 1,

@@ -32,7 +32,7 @@ use core::fmt;
 use once_cell::sync::Lazy;
 use serde::{de::Visitor, ser::SerializeStruct, Deserialize, Serialize};
 use std::any::Any;
-use std::ops::{Add, AddAssign, Div, Mul, Neg, Sub, SubAssign};
+use std::ops::{Add, AddAssign, Deref, DerefMut, Div, Mul, Neg, Sub, SubAssign};
 use std::time::Duration;
 
 // Struct block //
@@ -65,16 +65,67 @@ impl Angle {
 
     /// Sets the angle to a value between 0 and 360
     pub fn clamp_360(&self) -> Self {
-        Self {
-            degrees: self.degrees.clamp(0.0, 360.0),
-        }
+        Self::from((self.degrees / 360.0).fract() * 360.0)
     }
 
-    /// Sets the angle to a value between -180 and 180
+    /// Sets the angle to a value between -180 and 180, using
     pub fn clamp_180(&self) -> Self {
+        let clamp_360 = self.clamp_360();
+        Angle::from(if clamp_360 > 180.into() {
+            *clamp_360 - 360.0
+        } else {
+            *clamp_360
+        })
+    }
+
+    /// Returns the degrees with 0 pointing up (or north-origin angle), and incrementing clockwise.
+    ///
+    /// This might be the more intuitive solution you're looking for, but if you want to create an east-origin angle, use [`from()`](Angle::from())
+    pub fn from_degrees_north(value: f32) -> Self {
         Self {
-            degrees: self.degrees.clamp(0.0, 360.0),
+            degrees: value - 90.0,
         }
+    }
+}
+
+impl From<f32> for Angle {
+    /// Converts a float value to an angle, as the default east-origin angle.
+    ///
+    /// Do not feed a north-origin value, use [`from_degrees_north()`](Angle::from_degrees_north) instead
+    fn from(value: f32) -> Self {
+        Self { degrees: value }
+    }
+}
+impl From<f64> for Angle {
+    /// Converts a float value to an angle, as the default east-origin angle.
+    ///
+    /// Do not feed a north-origin value, use [`from_degrees_north()`](Angle::from_degrees_north) instead
+    fn from(value: f64) -> Self {
+        Self {
+            degrees: value as f32,
+        }
+    }
+}
+impl From<i32> for Angle {
+    /// Converts a float value to an angle, as the default east-origin angle.
+    ///
+    /// Do not feed a north-origin value, use [`from_degrees_north()`](Angle::from_degrees_north) instead
+    fn from(value: i32) -> Self {
+        Self {
+            degrees: value as f32,
+        }
+    }
+}
+impl Deref for Angle {
+    type Target = f32;
+
+    fn deref(&self) -> &Self::Target {
+        &self.degrees
+    }
+}
+impl DerefMut for Angle {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.degrees
     }
 }
 
@@ -101,47 +152,42 @@ impl Vector2 {
         f32::hypot(self.x, self.y)
     }
 
+    pub fn normalized(&self) -> Vector2 {
+        let magnitude = self.magnitude();
+        Self {
+            x: self.x / magnitude,
+            y: self.y / magnitude,
+        }
+    }
+
     /// Linear
     pub fn lerp(&mut self, _translation: &Vector2, _time: Duration) {
         // <Vector2 as Deref>::Target
         todo!()
     }
 
+    pub fn angle(&self) -> f32 {
+        libm::atan2(self.y as f64, self.x as f64).to_degrees() as f32
+    }
+
     /// Gets the degree angle between two vectors.
     ///
     /// Returns a positive number between 0 and 360, if
-    pub fn get_angle_between(self, other: Self) -> f32 {
-        let hyp_vec = self - other;
-        libm::atan2(hyp_vec.y as f64, hyp_vec.x as f64).to_degrees() as f32
+    pub fn get_angle_between(self, other: Self) -> Angle {
+        Angle::from(self.angle() - other.angle())
+    }
+
+    /// Creates a new [`Vector2`] with the position of `self` as a new origin and `other` as the value
+    pub fn inverse_sum(self, other: Self) -> Vector2 {
+        -(self - other)
     }
 }
 
 // Initialization block //
 
-impl Vector2 {
-    pub fn up() -> Self {
-        Vector2 { x: 0.0, y: -1.0 }
-    }
-    pub fn down() -> Self {
-        Vector2 { x: 0.0, y: 1.0 }
-    }
-    pub fn left() -> Self {
-        Vector2 { x: -1.0, y: 0.0 }
-    }
-    pub fn right() -> Self {
-        Vector2 { x: 1.0, y: 0.0 }
-    }
-    pub fn zero() -> Self {
-        Vector2 { x: 0.0, y: 0.0 }
-    }
-    pub fn one() -> Self {
-        Vector2 { x: 1.0, y: 1.0 }
-    }
-}
-
 impl Default for Vector2 {
     fn default() -> Self {
-        Self::new(0.0, 0.0)
+        ZERO
     }
 }
 
@@ -162,13 +208,6 @@ impl From<mint::Vector2<f32>> for Vector2 {
         }
     }
 }
-
-// impl Into<(f32, f32)> for Vector2 {
-//     /// Returns the [`Vector2`] as a tuple struct, where 0 = vec.x and 1 = vec.y
-//     fn into(self) -> (f32, f32) {
-//         (self.x, self.y)
-//     }
-// }
 
 impl From<(f32, f32)> for Vector2 {
     fn from((x, y): (f32, f32)) -> Self {

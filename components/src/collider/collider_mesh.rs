@@ -254,10 +254,28 @@ impl ConvexColliderMesh {
             return Err(0);
         }
         let origin_vertex = self.vertecies_list[0];
+        let mut previous_vertex = self.vertecies_list[1];
+        let mut checking_vertex;
+        let mut angle = origin_vertex.inverse_sum(*previous_vertex).angle();
 
-        for i in 1..len {
-            let checking_vertex = self.vertecies_list[i];
+        let mut previous_angle = angle;
+        for i in 2..len {
+            checking_vertex = self.vertecies_list[i];
+
+            let checking_angle = previous_vertex.inverse_sum(*checking_vertex).angle();
+            if checking_angle <= previous_angle {
+                return Err(i.try_into().unwrap());
+            }
+
+            previous_angle = checking_angle;
+            previous_vertex = checking_vertex;
         }
+
+        return Ok(());
+    }
+
+    pub fn build_indices(&self) -> Result<Vec<u32>, u32> {
+        self.validate_convex()?;
 
         todo!()
     }

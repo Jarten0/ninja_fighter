@@ -65,7 +65,7 @@ impl Default for Input {
             actions: HashMap::new(),
             key_list: HashMap::new(),
             key_update_queue: LinkedList::new(),
-            mouse_pos: space::Vector2::zero(),
+            mouse_pos: space::ZERO,
             action_ids: HashMap::new(),
         }
     }
