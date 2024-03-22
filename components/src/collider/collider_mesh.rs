@@ -38,7 +38,7 @@ use serde::Serialize;
 
 /// Runs physics updates for collider meshes
 pub fn update(
-    mut query: Query<(&mut ConvexColliderMesh, Option<&Position>)>,
+    mut query: Query<(&mut ConvexMesh, Option<&Position>)>,
     engine: bevy_ecs::system::Res<GgezInterface>,
 ) {
     for (mut collider_mesh, entity_position) in query.iter_mut() {
@@ -70,11 +70,7 @@ pub fn update(
 }
 
 /// Draws collider vertecies/edges if debug is enabled
-pub fn draw(
-    query: Query<&ConvexColliderMesh>,
-    mut engine: ResMut<GgezInterface>,
-    camera: Res<Camera>,
-) {
+pub fn draw(query: Query<&ConvexMesh>, mut engine: ResMut<GgezInterface>, camera: Res<Camera>) {
     if !engine.is_debug_draw() {
         return;
     }
@@ -129,7 +125,7 @@ fn drawtempmesh(mut engine: ResMut<GgezInterface>) {
     let meshdata = builder.build();
     // let drawable = graphics::Mesh::from_data(&engine.get_context_mut().gfx, meshdata);
 
-    let mut collider_mesh = ConvexColliderMesh::from(meshdata);
+    let mut collider_mesh = ConvexMesh::from(meshdata);
 
     let from_data = graphics::Mesh::from_data(
         &engine.get_context().gfx,
@@ -156,7 +152,7 @@ fn drawtempmesh(mut engine: ResMut<GgezInterface>) {
 /// [Demo](game\assets\demos\polygonmesh.png)
 #[derive(Debug, Component, Clone, Reflect, Default)]
 #[reflect(Component)]
-pub struct ConvexColliderMesh {
+pub struct ConvexMesh {
     pub(crate) position: space::Position,
     pub(crate) vertecies_list: Vec<space::Vertex>,
     // The bottom three fields are updated in `update`, then drawn in `draw`
@@ -170,7 +166,7 @@ pub struct ConvexColliderMesh {
     pub(crate) indices: Vec<u32>,
 }
 
-impl ConvexColliderMesh {
+impl ConvexMesh {
     pub fn new_with_drawable(
         gfx: &GraphicsContext,
         vertices: &[graphics::Vertex],
@@ -201,22 +197,24 @@ impl ConvexColliderMesh {
     pub fn new(vertices: Vec<space::Vertex>) -> Self {
         let draw_param = DrawParam::new().color(Color::MAGENTA);
 
-        let debug_vertecies;
-        debug_vertecies = vertices
+        let debug_vertecies = vertices
             .clone()
             .iter()
             .map(|value| (*value).into())
             .collect::<Vec<graphics::Vertex>>();
 
-        let range: Range<u32> = 0..debug_vertecies.len() as u32;
-        Self {
+        let mut convex_mesh = Self {
             debug_drawable_mesh: None,
             debug_vertecies,
             vertecies_list: vertices,
             debug_draw_param: Some(draw_param),
             position: Position::default(),
-            indices: range.into_iter().collect::<Vec<u32>>(),
-        }
+            indices: Vec::new(),
+        };
+
+        convex_mesh.build_indices();
+
+        convex_mesh
     }
 
     pub fn get_drawable(&self) -> &Option<DrawMesh> {
@@ -249,45 +247,76 @@ impl ConvexColliderMesh {
     ///
     /// If there are too few vertecies to make a triangle, returns zero.
     pub fn validate_convex(&self) -> Result<(), u32> {
-        let len = self.vertecies_list.len();
-        if len < 3 {
-            return Err(0);
-        }
-        let origin_vertex = self.vertecies_list[0];
-        let mut previous_vertex = self.vertecies_list[1];
-        let mut checking_vertex;
-        let mut angle = origin_vertex.inverse_sum(*previous_vertex).angle();
-
-        let mut previous_angle = angle;
-        for i in 2..len {
-            checking_vertex = self.vertecies_list[i];
-
-            let checking_angle = previous_vertex.inverse_sum(*checking_vertex).angle();
-            if checking_angle <= previous_angle {
-                return Err(i.try_into().unwrap());
-            }
-
-            previous_angle = checking_angle;
-            previous_vertex = checking_vertex;
-        }
-
-        return Ok(());
+        validate_vertices(&self.vertecies_list)
     }
 
-    pub fn build_indices(&self) -> Result<Vec<u32>, u32> {
+    /// Builds a vec of indices that correlate to how triangles are connected.
+    ///
+    /// For more info, check out [demo](game\assets\demos\polygonmesh.png).
+    pub fn build_indices(&mut self) -> Result<(), u32> {
         self.validate_convex()?;
 
-        todo!()
+        self.indices = build_convex_indices(self.vertecies_list.len() as u32, Vec::new())?;
+
+        Ok(())
     }
 }
 
-impl Into<Option<graphics::Mesh>> for ConvexColliderMesh {
+/// Builds a vec of indices that correlate to how triangles are connected.
+///
+/// When calling this function, validate that the vertices are valid before attempting to build triangles with it.
+/// This code assumes that you've already checked and that each triangle can be constructed from the index.
+///
+/// For more info, check out [demo](game\assets\demos\polygonmesh.png).
+fn build_convex_indices(len: u32, mut vec: Vec<u32>) -> Result<Vec<u32>, u32> {
+    for i in 0..len - 2 {
+        vec.extend([0, 1 + i, 2 + i]);
+    }
+
+    Ok(vec)
+}
+
+/// Checks to see if every vertex is convex.
+///
+/// The idea is that it checks the angle between the origin and every vertex, and if the angle goes backwards, the triangle is invalid.
+/// Check out this [demo](game\assets\demos\polygonmesh.png) for more details.
+///
+/// This makes it easier and more performant to render triangles.
+///
+/// If the vertex is invalid, returns the index of the vertex that is invalid.
+///
+/// If there are too few vertecies to make a triangle, returns zero.
+pub fn validate_vertices(vec: &Vec<space::Vertex>) -> Result<(), u32> {
+    let len = vec.len();
+    if len < 3 {
+        return Err(0);
+    }
+    let origin_vertex = vec[0];
+    let mut previous_vertex = vec[1];
+    let mut checking_vertex;
+    let mut angle = origin_vertex.inverse_sum(*previous_vertex).angle();
+    let mut previous_angle = angle;
+    for i in 2..len {
+        checking_vertex = vec[i];
+
+        let checking_angle = previous_vertex.inverse_sum(*checking_vertex).angle();
+        if checking_angle < previous_angle {
+            return Err(i.try_into().unwrap());
+        }
+
+        previous_angle = checking_angle;
+        previous_vertex = checking_vertex;
+    }
+    Ok(())
+}
+
+impl Into<Option<graphics::Mesh>> for ConvexMesh {
     fn into(self) -> Option<graphics::Mesh> {
         self.debug_drawable_mesh
     }
 }
 
-impl<'md> From<graphics::MeshData<'md>> for ConvexColliderMesh {
+impl<'md> From<graphics::MeshData<'md>> for ConvexMesh {
     fn from(value: graphics::MeshData) -> Self {
         let vec = value
             .vertices
@@ -308,7 +337,9 @@ impl<'md> From<graphics::MeshData<'md>> for ConvexColliderMesh {
     }
 }
 
-impl Serialize for ConvexColliderMesh {
+// Serialization
+
+impl Serialize for ConvexMesh {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
@@ -320,7 +351,7 @@ impl Serialize for ConvexColliderMesh {
     }
 }
 
-impl<'de> Deserialize<'de> for ConvexColliderMesh {
+impl<'de> Deserialize<'de> for ConvexMesh {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
@@ -328,15 +359,15 @@ impl<'de> Deserialize<'de> for ConvexColliderMesh {
         deserializer.deserialize_struct(
             "ColliderMesh",
             &["position", "vertices"],
-            ColliderMeshVisitor,
+            ConvexMeshVisitor,
         )
     }
 }
 
-struct ColliderMeshVisitor;
+struct ConvexMeshVisitor;
 
-impl<'de> serde::de::Visitor<'de> for ColliderMeshVisitor {
-    type Value = ConvexColliderMesh;
+impl<'de> serde::de::Visitor<'de> for ConvexMeshVisitor {
+    type Value = ConvexMesh;
 
     fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(formatter, "Was expecting a collider mesh struct")

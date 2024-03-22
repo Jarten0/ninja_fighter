@@ -23,7 +23,7 @@ pub fn init_components(world: &mut World) -> () {
     world.resource_scope(|world: &mut World, mut manager: Mut<SceneManager>| {
         let register = &mut manager.type_registry;
         serialize_component::<render::Renderer>(world, register);
-        serialize_component::<collider::collider_mesh::ConvexColliderMesh>(world, register);
+        serialize_component::<collider::collider_mesh::ConvexMesh>(world, register);
         serialize_component::<collider::gravity_settings::GravitySettings>(world, register);
         serialize_component::<protag::Protag>(world, register);
         serialize_component::<protag::ProtagController>(world, register);

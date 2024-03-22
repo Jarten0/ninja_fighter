@@ -13,7 +13,7 @@ use bevy_ecs::{
     system::{Query, Res},
 };
 
-use self::collider_mesh::ConvexColliderMesh;
+use self::collider_mesh::ConvexMesh;
 use self::gravity_settings::GravitySettings;
 
 use engine::space::Transform;
@@ -25,7 +25,7 @@ pub trait Collider {
 #[derive(Debug, Clone, Bundle, Reflect, Default)]
 pub struct ColliderBundle {
     gravity: gravity_settings::GravitySettings,
-    mesh: collider_mesh::ConvexColliderMesh,
+    mesh: collider_mesh::ConvexMesh,
 }
 
 impl ColliderBundle {
@@ -41,11 +41,7 @@ impl ColliderBundle {
 
         Self {
             gravity,
-            mesh: ConvexColliderMesh::new_with_drawable(
-                &engine.get_context().gfx,
-                vertices,
-                &indices,
-            ),
+            mesh: ConvexMesh::new_with_drawable(&engine.get_context().gfx, vertices, &indices),
         }
     }
 }

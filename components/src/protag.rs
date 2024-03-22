@@ -1,4 +1,4 @@
-use crate::collider::collider_mesh::ConvexColliderMesh;
+use crate::collider::collider_mesh::ConvexMesh;
 use crate::collider_types::BoxCollider;
 use crate::{render::render_type::RenderType, render::Renderer};
 use bevy_ecs::prelude::*;

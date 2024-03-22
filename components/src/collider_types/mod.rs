@@ -8,14 +8,14 @@ use ggez::{
 use log::trace;
 use mint::Point2;
 
-use crate::collider::collider_mesh::ConvexColliderMesh;
+use crate::collider::collider_mesh::ConvexMesh;
 
 #[derive(Debug, Default, Clone, Component, Reflect)]
 #[reflect(Component)]
 pub struct BoxCollider;
 
 impl BoxCollider {
-    pub fn new(scale: Vector2) -> (BoxCollider, ConvexColliderMesh) {
+    pub fn new(scale: Vector2) -> (BoxCollider, ConvexMesh) {
         // let mut builder = ggez::graphics::MeshBuilder::new();
 
         let bounds = Rect {
@@ -41,34 +41,9 @@ impl BoxCollider {
             }),
         ];
 
-        // let fill = FillOptions::DEFAULT.with_fill_rule(graphics::FillRule::NonZero);
-        // let mode = graphics::DrawMode::Fill(fill);
-
-        // builder
-        //     .rectangle(mode, bounds, Color::from_rgb(224, 224, 224))
-        //     .unwrap();
-
-        // builder
-        //     .line(
-        //         &[
-        //             Point2 { x: 0.0, y: 0.0 },
-        //             Point2 {
-        //                 x: 1000.0,
-        //                 y: 800.0,
-        //             },
-        //             // Point2 { x: 80.0, y: 100.0 },
-        //             // Point2 { x: 40.0, y: 200.0 },
-        //         ],
-        //         20.0,
-        //         Color::BLUE,
-        //     )
-        //     .unwrap();
-
-        // let mesh_data = builder.build();
-
         trace!("Created new BoxCollider");
 
-        let mut mesh = ConvexColliderMesh::new(vertices);
+        let mut mesh = ConvexMesh::new(vertices);
 
         mesh.debug_draw_param = Some(DrawParam {
             src: bounds,
