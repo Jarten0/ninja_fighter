@@ -354,7 +354,7 @@ pub fn validate_name(names: &mut dyn Iterator<Item = &String>, name_to_check: &m
 /// Creates a [`SerializableScene`] using the scene's component data
 pub fn to_serializable_scene_data<'a>(
     world: &'a mut World,
-    registry: &TypeRegistry,
+    _registry: &TypeRegistry,
     scene_entity: Entity,
 ) -> Result<serialized_scene::SerializedSceneData, SceneError> {
     let scene = world

@@ -43,6 +43,48 @@ pub struct Vector2 {
     pub y: f32,
 }
 
+/// An angle, working in tandem with Vector2's and [`ggez`].
+///
+/// This is used to demystify any ambiguity by giving a direct way of converting from types of rotations easily.
+#[derive(Debug, Default, Clone, Copy, Reflect, PartialEq, PartialOrd)]
+pub struct Angle {
+    degrees: f32,
+}
+
+impl Angle {
+    /// Returns the angle as a degree between 0 and 360, with 0 pointing directly up and each degree moving clockwise
+    pub fn degrees_north(&self) -> f32 {
+        self.degrees + 90.0
+    }
+
+    /// Returns the angle as a degree between -360 and +360, with 0/360/-360 pointing east.
+    /// This is the default that is used between math libraries, and the default for the Angle struct.
+    pub fn degrees(&self) -> f32 {
+        self.degrees
+    }
+
+    /// Sets the angle to a value between 0 and 360
+    pub fn clamp_360(&self) -> Self {
+        Self {
+            degrees: self.degrees.clamp(0.0, 360.0),
+        }
+    }
+
+    /// Sets the angle to a value between -180 and 180
+    pub fn clamp_180(&self) -> Self {
+        Self {
+            degrees: self.degrees.clamp(0.0, 360.0),
+        }
+    }
+}
+
+pub static UP: Vector2 = Vector2 { x: 0.0, y: 1.0 };
+pub static DOWN: Vector2 = Vector2 { x: 0.0, y: -1.0 };
+pub static LEFT: Vector2 = Vector2 { x: -1.0, y: 0.0 };
+pub static RIGHT: Vector2 = Vector2 { x: 1.0, y: 0.0 };
+pub static ZERO: Vector2 = Vector2 { x: 0.0, y: 0.0 };
+pub static ONE: Vector2 = Vector2 { x: 1.0, y: 1.0 };
+
 impl Vector2 {
     pub const fn new(x: f32, y: f32) -> Self {
         Self { x, y }
@@ -53,6 +95,10 @@ impl Vector2 {
         self.x += translation.x;
         self.y += translation.y;
         self
+    }
+
+    pub fn magnitude(&self) -> f32 {
+        f32::hypot(self.x, self.y)
     }
 
     /// Linear
