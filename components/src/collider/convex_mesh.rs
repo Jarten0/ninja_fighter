@@ -28,6 +28,7 @@ use ggez::graphics::GraphicsContext;
 use ggez::graphics::Mesh as DrawMesh;
 use ggez::graphics::MeshData;
 use ggez::graphics::Rect;
+use log::trace;
 use serde::ser::SerializeStruct;
 use serde::Deserialize;
 use serde::Serialize;
@@ -39,9 +40,10 @@ use serde::Serialize;
 /// Runs physics updates for collider meshes
 pub fn update(
     mut query: Query<(&mut ConvexMesh, Option<&Position>)>,
-    engine: bevy_ecs::system::Res<GgezInterface>,
+    engine: Res<GgezInterface>,
+    input: Res<engine::Input>,
 ) {
-    for (mut collider_mesh, entity_position) in query.iter_mut() {
+    for (mut convex_mesh, entity_position) in query.iter_mut() {
         let entity_position = match entity_position {
             Some(pos) => pos,
             None => {
@@ -50,21 +52,29 @@ pub fn update(
             }
         };
 
-        let translation_amount = *collider_mesh.position.deref(); // - entity_position.deref();
+        let translation_amount = *convex_mesh.position.deref(); // - entity_position.deref();
 
-        for vertex in &mut collider_mesh.vertecies_list {
+        for vertex in &mut convex_mesh.vertices {
             vertex.translate(&translation_amount);
         }
 
         if engine.is_debug_draw() {
-            collider_mesh.debug_drawable_mesh = Some(DrawMesh::from_data(
+            for vertex in &mut convex_mesh.vertices {
+                vertex.
+            }
+
+            convex_mesh.build_indices();
+            convex_mesh.debug_drawable_mesh = Some(DrawMesh::from_data(
                 &engine.get_context().gfx,
                 MeshData {
-                    vertices: &collider_mesh.debug_vertecies,
-                    indices: &(0..(collider_mesh.debug_vertecies.len() as u32))
-                        .collect::<Vec<u32>>(),
+                    vertices: &convex_mesh.debug_vertecies,
+                    indices: &convex_mesh.indices,
                 },
             ));
+
+            if input.get_action("debuglog").unwrap().is_just_pressed() {
+                dbg!(convex_mesh);
+            }
         }
     }
 }
@@ -91,58 +101,11 @@ pub fn draw(query: Query<&ConvexMesh>, mut engine: ResMut<GgezInterface>, camera
             None => continue,
         };
 
-        // let dest = match initial_param.transform {
-        //     graphics::Transform::Values {
-        //         dest,
-        //         rotation: _,
-        //         scale: _,
-        //         offset: _,
-        //     } => dest,
-        //     graphics::Transform::Matrix(_matrix) => todo!(), //_matrix,// + camera.position,
-        // };
-
+        // dont worry about it for now, just take those initial parameters
         let final_param = initial_param.clone();
 
-        canvas.draw(drawable, final_param)
+        canvas.draw(drawable, final_param);
     }
-    // drawtempmesh(engine);
-}
-
-fn drawtempmesh(mut engine: ResMut<GgezInterface>) {
-    let mut builder = ggez::graphics::MeshBuilder::new();
-
-    builder.rectangle(
-        graphics::DrawMode::Fill(FillOptions::DEFAULT),
-        Rect {
-            x: 50.0,
-            y: 50.0,
-            w: 100.0,
-            h: 100.0,
-        },
-        Color::CYAN,
-    );
-
-    let meshdata = builder.build();
-    // let drawable = graphics::Mesh::from_data(&engine.get_context_mut().gfx, meshdata);
-
-    let mut collider_mesh = ConvexMesh::from(meshdata);
-
-    let from_data = graphics::Mesh::from_data(
-        &engine.get_context().gfx,
-        dbg!(MeshData {
-            vertices: &collider_mesh.debug_vertecies,
-            indices: &collider_mesh.indices,
-        }),
-    );
-
-    collider_mesh.debug_drawable_mesh = Some(from_data);
-
-    let drawable = collider_mesh.get_drawable().as_ref().unwrap();
-
-    engine
-        .get_canvas_mut()
-        .unwrap()
-        .draw(drawable, DrawParam::default())
 }
 
 /// A mesh that works for collision.
@@ -154,7 +117,10 @@ fn drawtempmesh(mut engine: ResMut<GgezInterface>) {
 #[reflect(Component)]
 pub struct ConvexMesh {
     pub(crate) position: space::Position,
-    pub(crate) vertecies_list: Vec<space::Vertex>,
+    /// The vertices used to calculate where the mesh's corners are.
+    ///
+    /// Uses vector vertices, not graphic vertices.
+    pub(crate) vertices: Vec<space::Vertex>,
     // The bottom three fields are updated in `update`, then drawn in `draw`
     #[reflect(ignore)]
     pub(crate) debug_vertecies: Vec<graphics::Vertex>,
@@ -169,25 +135,29 @@ pub struct ConvexMesh {
 impl ConvexMesh {
     pub fn new_with_drawable(
         gfx: &GraphicsContext,
-        vertices: &[graphics::Vertex],
+        ggez_vertices: &[graphics::Vertex],
         indices: &[u32],
     ) -> Self {
         let debug_drawable_mesh = Some({
-            let raw = MeshData { vertices, indices };
+            let raw = MeshData {
+                vertices: ggez_vertices,
+                indices,
+            };
 
             DrawMesh::from_data(gfx, raw)
         });
 
         let draw_param = DrawParam::new().color(Color::MAGENTA);
 
-        Self {
-            vertecies_list: vertices
-                .iter()
-                .map(|value| space::Vertex::from(value))
-                .collect::<Vec<space::Vertex>>(),
+        let vertices = ggez_vertices
+            .iter()
+            .map(|value| space::Vertex::from(value))
+            .collect::<Vec<space::Vertex>>();
 
+        Self {
+            vertices,
             debug_drawable_mesh,
-            debug_vertecies: vertices.to_owned(),
+            debug_vertecies: ggez_vertices.to_owned(),
             debug_draw_param: Some(draw_param),
             position: Position::default(),
             indices: indices.to_owned(),
@@ -206,13 +176,16 @@ impl ConvexMesh {
         let mut convex_mesh = Self {
             debug_drawable_mesh: None,
             debug_vertecies,
-            vertecies_list: vertices,
+            vertices,
             debug_draw_param: Some(draw_param),
             position: Position::default(),
             indices: Vec::new(),
         };
 
-        convex_mesh.build_indices();
+        convex_mesh
+            .build_indices()
+            .map_err(|err| format!("Invalid indices build: {}", err))
+            .unwrap();
 
         convex_mesh
     }
@@ -222,17 +195,17 @@ impl ConvexMesh {
     }
 
     pub fn add_vertex(&mut self, vertex: space::Vertex) {
-        self.vertecies_list.push(vertex);
+        self.vertices.push(vertex);
         self.debug_vertecies.push(space::Vertex::into(vertex));
     }
 
     pub fn add_debug_vertex(&mut self, vertex: graphics::Vertex) {
-        self.vertecies_list.push(space::Vertex::from(vertex));
+        self.vertices.push(space::Vertex::from(vertex));
         self.debug_vertecies.push(vertex);
     }
 
     pub fn pop_vertex(&mut self) {
-        self.vertecies_list.pop();
+        self.vertices.pop();
         self.debug_vertecies.pop();
     }
 
@@ -246,17 +219,18 @@ impl ConvexMesh {
     /// If the vertex is invalid, returns the index of the vertex that is invalid.
     ///
     /// If there are too few vertecies to make a triangle, returns zero.
-    pub fn validate_convex(&self) -> Result<(), u32> {
-        validate_vertices(&self.vertecies_list)
+    pub fn validate_convex(&self) -> Result<(), f32> {
+        validate_vertices(&self.vertices)
     }
 
     /// Builds a vec of indices that correlate to how triangles are connected.
     ///
     /// For more info, check out [demo](game\assets\demos\polygonmesh.png).
-    pub fn build_indices(&mut self) -> Result<(), u32> {
+    pub fn build_indices(&mut self) -> Result<(), f32> {
         self.validate_convex()?;
 
-        self.indices = build_convex_indices(self.vertecies_list.len() as u32, Vec::new())?;
+        self.indices =
+            build_convex_indices(self.vertices.len() as u32, Vec::new()).map_err(|v| v as f32)?;
 
         Ok(())
     }
@@ -286,23 +260,30 @@ fn build_convex_indices(len: u32, mut vec: Vec<u32>) -> Result<Vec<u32>, u32> {
 /// If the vertex is invalid, returns the index of the vertex that is invalid.
 ///
 /// If there are too few vertecies to make a triangle, returns zero.
-pub fn validate_vertices(vec: &Vec<space::Vertex>) -> Result<(), u32> {
+pub fn validate_vertices(vec: &Vec<space::Vertex>) -> Result<(), f32> {
     let len = vec.len();
     if len < 3 {
-        return Err(0);
+        return Err(0.0);
     }
     let origin_vertex = vec[0];
     let mut previous_vertex = vec[1];
     let mut checking_vertex;
-    let mut angle = origin_vertex.inverse_sum(*previous_vertex).angle();
-    let mut previous_angle = angle;
-    for i in 2..len {
-        checking_vertex = vec[i];
 
-        let checking_angle = previous_vertex.inverse_sum(*checking_vertex).angle();
-        if checking_angle < previous_angle {
-            return Err(i.try_into().unwrap());
-        }
+    let mut previous_angle = dbg!(origin_vertex.inverse_sum(*previous_vertex)).angle();
+    dbg!(vec);
+    for i in 2..len {
+        trace!("vtx#{}, prev angle: {}", i, previous_angle);
+        checking_vertex = dbg!(vec[i]);
+
+        let checking_angle =
+            dbg!(dbg!(dbg!(previous_vertex).inverse_sum(*checking_vertex)).angle());
+        let angle_difference = dbg!(checking_angle - previous_angle);
+        assert_eq!(angle_difference, 90.0);
+
+        // if angle_difference > 0.0 {
+        //     // TODO: make it less than or equal to when not doing box collider
+        //     return Err(angle_difference);
+        // }
 
         previous_angle = checking_angle;
         previous_vertex = checking_vertex;
@@ -328,7 +309,7 @@ impl<'md> From<graphics::MeshData<'md>> for ConvexMesh {
 
         Self {
             position,
-            vertecies_list: vec,
+            vertices: vec,
             debug_vertecies: value.vertices.to_vec(),
             debug_drawable_mesh: None,
             debug_draw_param: None,
@@ -346,7 +327,7 @@ impl Serialize for ConvexMesh {
     {
         let mut serialize_seq = serializer.serialize_struct("ColliderMesh", 3)?;
         serialize_seq.serialize_field("position", &self.position)?;
-        serialize_seq.serialize_field("vertices", &self.vertecies_list)?;
+        serialize_seq.serialize_field("vertices", &self.vertices)?;
         serialize_seq.end()
     }
 }

@@ -13,7 +13,7 @@ use bevy_ecs::system::Commands;
 use bevy_ecs::system::Query;
 use bevy_ecs::system::Res;
 
-use super::collider::collider_mesh::ConvexMesh;
+use super::collider::ConvexMesh;
 
 pub fn init(mut commands: Commands, engine: Res<GgezInterface>) {
     if !engine.debug_mode {

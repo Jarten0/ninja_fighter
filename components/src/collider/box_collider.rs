@@ -1,14 +1,11 @@
 use bevy_ecs::{component::Component, reflect::ReflectComponent};
 use bevy_reflect::Reflect;
 use engine::space::{self, Vector2};
-use ggez::{
-    context::Has,
-    graphics::{self, Color, DrawParam, FillOptions, GraphicsContext, Rect, StrokeOptions},
-};
+use ggez::graphics::{self, Color, DrawParam, Rect};
 use log::trace;
 use mint::Point2;
 
-use crate::collider::collider_mesh::ConvexMesh;
+use crate::collider::convex_mesh::ConvexMesh;
 
 #[derive(Debug, Default, Clone, Component, Reflect)]
 #[reflect(Component)]
@@ -26,15 +23,13 @@ impl BoxCollider {
         };
 
         let vertices: Vec<space::Vertex> = vec![
-            space::Vertex::from(Vector2 { x: 0.0, y: 0.0 }),
-            space::Vertex::from(Vector2 {
-                x: 1.0 * scale.x,
-                y: 0.0,
-            }),
-            space::Vertex::from(Vector2 {
+            engine::space::ZERO.into(),
+            (engine::space::RIGHT * scale.x).into(),
+            Vector2 {
                 x: 1.0 * scale.x,
                 y: 1.0 * scale.y,
-            }),
+            }
+            .into(),
             space::Vertex::from(Vector2 {
                 x: 0.0,
                 y: 1.0 * scale.y,
@@ -57,6 +52,10 @@ impl BoxCollider {
             z: 0,
         });
 
-        (Self, dbg!(mesh))
+        mesh.build_indices()
+            .map_err(|err| format!("Invalid indices build: {}", err))
+            .unwrap();
+
+        (Self, mesh)
     }
 }

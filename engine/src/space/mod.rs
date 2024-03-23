@@ -179,7 +179,17 @@ impl Vector2 {
 
     /// Creates a new [`Vector2`] with the position of `self` as a new origin and `other` as the value
     pub fn inverse_sum(self, other: Self) -> Vector2 {
-        -(self - other)
+        other - self
+    }
+
+    pub fn dot(self, other: Self) -> f32 {
+        f32::cos(Vector2::get_angle_between(self, other).degrees_north()) // cos0
+            * self.magnitude()
+            * other.magnitude()
+    }
+
+    pub fn cross_product(self, other: Self) -> Self {
+        ONE * (f32::sin(self.get_angle_between(other).abs()) * self.magnitude() * other.magnitude())
     }
 }
 

@@ -1,10 +1,9 @@
-use log::Log;
-
-pub(crate) static LOGGER: Logger = Logger;
+use std::fmt::Debug;
 
 pub struct Logger;
+pub(crate) static LOGGER: Logger = Logger;
 
-impl Log for Logger {
+impl log::Log for Logger {
     fn enabled(&self, _metadata: &log::Metadata) -> bool {
         // find the crate name, and if calling from a module, use just the name instead of the full module path for checking with the whitelist
         let caller_module_path = &_metadata.target();
@@ -57,5 +56,18 @@ impl Log for Logger {
 
     fn flush(&self) {
         todo!()
+    }
+}
+
+pub trait LogData {
+    fn log(&self) -> ();
+}
+
+impl<T> LogData for T
+where
+    T: Debug,
+{
+    fn log(&self) {
+        dbg!(self);
     }
 }

@@ -2,11 +2,12 @@
 
 use ggez::event::{Button, MouseButton};
 use ggez::input::keyboard::KeyCode;
+use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Error};
 use std::str::FromStr;
 use std::{collections::HashMap, sync::OnceLock};
 
-#[derive(Debug, Clone, Copy, PartialEq, Hash, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Hash, Eq, Serialize, Deserialize)]
 pub enum KeycodeType {
     Keyboard(KeyCode),  // 161 variants
     Gamepad(Button),    // 18 variants

@@ -7,7 +7,10 @@ use bevy_ecs::system::Res;
 use bevy_ecs::world;
 use engine::input::key::keycode_converter::keycode_to_str;
 
-use engine::scene::*;
+use engine::{
+    scene::{self, *},
+    LogData,
+};
 
 use engine::GameRoot;
 
@@ -24,27 +27,13 @@ use engine::scene::ToReflect;
 use inquire::{validator::Validation, Confirm, CustomType, InquireError, Select, Text};
 use log::error;
 
-const HOME_HELP_TEXT: &str = "
-Welcome to my humble abode
-
-Little help is currently available, you'll have to pour through the code yourself
-
-Sorry :\
-";
-
-const ACTION_EDITOR_HELP_TEXT: &str = "
-This is where you can edit the keybinds of the current action.
-
-* `add` - 
-* `exit` - exits the debug CLI, returning to the main loop.
-";
-
 fn commands() -> &'static Vec<DebugCommand> {
     static COMMANDS: OnceLock<Vec<DebugCommand>> = OnceLock::new();
 
     COMMANDS.get_or_init(|| {
         vec![
             DebugCommand::new("help", help, "Shows this"),
+            DebugCommand::new("log", log, "Logs as much info as possible into the standard output"),
             DebugCommand::new(
                 "newscene",
                 new_scene,
@@ -518,4 +507,11 @@ fn list_components(root: &mut GameRoot) -> Result<(), String> {
             Ok(())
         })
         .map_err(|err| err.to_string())
+}
+
+fn log(root: &mut GameRoot) -> Result<(), String> {
+    root.world.resource::<engine::Input>().log();
+    root.world.resource::<scene::SceneManager>().log();
+    root.world.resource::<engine::GgezInterface>().log();
+    Ok(())
 }

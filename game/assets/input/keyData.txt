@@ -5,3 +5,4 @@ Down/s;down;|
 Left/a;left;|
 Right/d;right;|
 debug_mode/grave;|
+debug_log/f2;|

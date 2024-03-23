@@ -1,22 +1,17 @@
-pub mod collider_mesh;
-pub mod gravity_settings;
+mod box_collider;
+mod convex_mesh;
+mod gravity_settings;
 
-use std::any::Any;
+pub use box_collider::BoxCollider;
+pub use convex_mesh::ConvexMesh;
+pub use convex_mesh::{draw, update};
+pub use gravity_settings::GravitySettings;
 
+use bevy_ecs::bundle::Bundle;
 use bevy_reflect::Reflect;
-use engine::space::{self, Vector2, Velocity};
-
+use engine::space;
 use engine::GgezInterface;
-
-use bevy_ecs::{
-    bundle::Bundle,
-    system::{Query, Res},
-};
-
-use self::collider_mesh::ConvexMesh;
-use self::gravity_settings::GravitySettings;
-
-use engine::space::Transform;
+use std::any::Any;
 
 pub trait Collider {
     fn drawable(&self) -> Option<&dyn Any>;
@@ -25,12 +20,12 @@ pub trait Collider {
 #[derive(Debug, Clone, Bundle, Reflect, Default)]
 pub struct ColliderBundle {
     gravity: gravity_settings::GravitySettings,
-    mesh: collider_mesh::ConvexMesh,
+    mesh: convex_mesh::ConvexMesh,
 }
 
 impl ColliderBundle {
     pub fn new(engine: &GgezInterface, vertices: &[ggez::graphics::Vertex]) -> Self {
-        let transform = Transform::default();
+        // let transform = Transform::default();
 
         let gravity = GravitySettings {
             force: space::DOWN,
@@ -44,10 +39,4 @@ impl ColliderBundle {
             mesh: ConvexMesh::new_with_drawable(&engine.get_context().gfx, vertices, &indices),
         }
     }
-}
-
-pub fn update(mut query: Query<(&mut Velocity, &GravitySettings)>, engine: Res<GgezInterface>) {
-    // for (mut velocity, gravity_settings) in query.iter_mut() {
-    // velocity.translate(&gravity_settings.force * engine.get_context().time.delta().as_secs())
-    // }
 }

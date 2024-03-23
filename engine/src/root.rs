@@ -6,6 +6,7 @@
 
 // Hi! If your reading this, welcome to my fun little project. Some shenanigans are afoot!
 
+use std::any::Any;
 use std::path::PathBuf;
 use std::time::Duration;
 
@@ -22,6 +23,7 @@ use crate::EngineConfigError;
 use crate::GgezInterface;
 use crate::Input;
 use crate::SomeError;
+use bevy_reflect::TypeData;
 use log::*;
 
 use bevy_ecs::world::*;
@@ -86,6 +88,9 @@ impl GameRoot {
         log::set_max_level(LevelFilter::Trace);
 
         info!("Begin log");
+        if config.debug_cli.is_some() {
+            info!("Debugging using debug CLI [editor/src/debug.rs]");
+        }
 
         let scheduler = Scheduler::new((config.schedule_builder_functions)());
         World::insert_resource(&mut world, scheduler);

@@ -29,7 +29,7 @@ pub fn tick_schedule() -> (Schedule, ScheduleTag) {
 
     // Systems block
     sched
-        .add_systems(collider::collider_mesh::update)
+        .add_systems(collider::update)
         .add_systems(collider::update)
         .add_systems(protag::update);
 
@@ -45,7 +45,7 @@ pub fn frame_schedule() -> (Schedule, ScheduleTag) {
     draw_sched
         .add_systems(render::draw)
         // .add_systems(debug::draw)
-        .add_systems(collider::collider_mesh::draw);
+        .add_systems(collider::draw);
 
     (draw_sched, ScheduleTag::Frame)
 }

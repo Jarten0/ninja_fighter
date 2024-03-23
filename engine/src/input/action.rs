@@ -13,6 +13,8 @@ use super::Input;
 use super::KeycodeType;
 use crate::scene::ObjectID;
 use crate::Key;
+use serde::ser::SerializeStruct;
+use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, str::FromStr};
 
 /// Declares the current state of the action.
@@ -39,7 +41,7 @@ use std::{collections::HashMap, str::FromStr};
 ///
 /// * `is_held(&self) -> bool` - returns whether the action is currently active or not.
 ///
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum KeyStatus {
     /// The key has just been pressed this frame
     Pressed,
@@ -102,12 +104,16 @@ impl core::fmt::Display for KeyStatus {
 /// When any of the keys are pressed, `status` is set to [`KeyStatus::Pressed`].
 ///
 /// It also contains a set of default keys that can only be changed outside of gameplay.
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Deserialize)]
 pub struct ActionData {
     pub name: String,
+    #[serde(default)]
     pub id: ActionID,
+    #[serde(default)]
     pub(crate) keys: Vec<KeycodeType>,
+    #[serde(default)]
     pub(super) status: KeyStatus,
+    #[serde(default)]
     pub(crate) default_keys: Vec<KeycodeType>,
 }
 
@@ -307,11 +313,42 @@ impl FromStr for ActionData {
     type Err = &'static str;
 }
 
+impl Serialize for ActionData {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut ser_struct = serializer.serialize_struct("ActionData", 4)?;
+
+        ser_struct.serialize_field("name", &self.name)?;
+
+        ser_struct.serialize_field(
+            "keys",
+            &self
+                .keys
+                .iter()
+                .map(|key| key.to_string())
+                .collect::<Vec<String>>(),
+        )?;
+
+        ser_struct.serialize_field(
+            "default_keys",
+            &self
+                .default_keys
+                .iter()
+                .map(|value| value.to_string())
+                .collect::<Vec<String>>(),
+        )?;
+
+        ser_struct.end()
+    }
+}
+
 /// A simple ID for uniquely identifying [`ActionData`]'s currently loaded.
 ///
 /// Don't save ID's between different sessions, since the ID is assigned at runtime and does not take the action's factors into account
 /// when assigning, instead just assigning on an incremental basis that can have differing results between reloads.
-#[derive(Debug, Clone, Copy, Hash, PartialEq, PartialOrd, Eq)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, PartialOrd, Eq, Serialize, Deserialize)]
 pub struct ActionID {
     id: usize,
 }

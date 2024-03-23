@@ -1,4 +1,4 @@
-use crate::space;
+use crate::{space, LogData};
 
 use super::action::{ActionData, ActionID, KeyStatus};
 use super::key::input_hashmap::InputFile;
@@ -258,14 +258,14 @@ impl FromStr for Input {
 
         for character in value.chars() {
             if character == '|' {
-                let action = match ActionData::from_str(action_token_buf.as_str()) {
-                    Ok(action) => action,
+                match ActionData::from_str(action_token_buf.as_str()) {
+                    Ok(action) => {
+                        new_input_module.new_action(action);
+                    }
                     Err(err) => {
-                        eprintln!("{}", err);
-                        return Err(err);
+                        log::error!("{}", err);
                     }
                 };
-                new_input_module.new_action(action);
 
                 action_token_buf = String::new();
             } else if character.is_ascii_alphanumeric() || character == ';' || character == '/' {

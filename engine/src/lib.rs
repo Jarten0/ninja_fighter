@@ -21,6 +21,7 @@ pub use camera::Camera;
 pub use engine::GgezInterface;
 pub use input::input_cli_editor;
 pub use input::{ActionData, Input, Key};
+pub use logging::LogData;
 pub use render::render_type::RenderType;
 pub use root::GameRoot;
 

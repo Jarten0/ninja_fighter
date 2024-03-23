@@ -1,5 +1,4 @@
-use crate::collider::collider_mesh::ConvexMesh;
-use crate::collider_types::BoxCollider;
+use crate::collider::BoxCollider;
 use crate::{render::render_type::RenderType, render::Renderer};
 use bevy_ecs::prelude::*;
 use bevy_ecs::reflect::ReflectComponent;
@@ -11,9 +10,9 @@ use ggez::graphics::{self, Color, DrawParam, Image, Rect};
 use serde::Serialize;
 
 pub fn init(mut commands: Commands, engine: Res<GgezInterface>) {
-    commands.spawn(ProtagBundle::new(&engine));
+    // commands.spawn(ProtagBundle::new(&engine));
     commands
-        .spawn(dbg!(BoxCollider::new((15.0, 10.0).into())))
+        .spawn(BoxCollider::new((15.0, 10.0).into()))
         .add(|mut entity: EntityWorldMut| {
             // entity.insert(Renderer::new(None, Transform::new()));
             entity.insert(Position::new(10.0, 100.0));
