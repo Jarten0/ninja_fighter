@@ -17,6 +17,7 @@ pub(crate) mod vtx;
 
 use bevy_ecs::prelude::*;
 use log::error;
+use mint::Point2;
 pub use pos::Position;
 pub use rtt::Rotation;
 pub use scl::Scale;
@@ -147,6 +148,32 @@ impl Vector2 {
         self.y += translation.y;
         self
     }
+    /// Translates the given vertex a given amount, and returns a reference to that initial vector
+    pub fn translated(&self, translation: &Vector2) -> Self {
+        Vector2 {
+            x: self.x + translation.x,
+            y: self.y + translation.y,
+        }
+    }
+
+    pub fn set(&mut self, set: Vector2) -> &mut Self {
+        self.x = set.x;
+        self.y = set.y;
+        self
+    }
+
+    pub fn scale(&mut self, scale: &Vector2) -> &mut Self {
+        self.x *= scale.x;
+        self.y *= scale.y;
+        self
+    }
+
+    pub fn scaled(&self, scale: &Vector2) -> Self {
+        Vector2 {
+            x: self.x * scale.x,
+            y: self.y * scale.y,
+        }
+    }
 
     pub fn magnitude(&self) -> f32 {
         f32::hypot(self.x, self.y)
@@ -209,6 +236,20 @@ impl Into<mint::Vector2<f32>> for Vector2 {
         }
     }
 }
+impl Into<[f32; 2]> for Vector2 {
+    fn into(self) -> [f32; 2] {
+        [self.x, self.y]
+    }
+}
+
+impl From<[f32; 2]> for Vector2 {
+    fn from(value: [f32; 2]) -> Self {
+        Self {
+            x: value[0],
+            y: value[1],
+        }
+    }
+}
 
 impl From<mint::Vector2<f32>> for Vector2 {
     fn from(value: mint::Vector2<f32>) -> Self {
@@ -222,6 +263,12 @@ impl From<mint::Vector2<f32>> for Vector2 {
 impl From<(f32, f32)> for Vector2 {
     fn from((x, y): (f32, f32)) -> Self {
         Vector2::new(x, y)
+    }
+}
+
+impl From<Point2<f32>> for Vector2 {
+    fn from(value: Point2<f32>) -> Self {
+        Vector2::new(value.x, value.y)
     }
 }
 

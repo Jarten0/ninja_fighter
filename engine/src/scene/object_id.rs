@@ -5,6 +5,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 pub(crate) static COUNTER: AtomicUsize = AtomicUsize::new(1);
 pub(crate) static ACTION_COUNTER: AtomicUsize = AtomicUsize::new(1);
 pub(crate) static SCENE_COUNTER: AtomicUsize = AtomicUsize::new(1);
+pub(crate) static CLICK_COUNTER: AtomicUsize = AtomicUsize::new(1);
 
 #[derive(Debug, Eq, Clone, Copy, PartialOrd, Reflect)]
 // #[reflect_value]
@@ -44,6 +45,9 @@ impl ObjectID {
             CounterType::Global => COUNTER.fetch_add(1, Ordering::Relaxed),
             CounterType::Actions => ACTION_COUNTER.fetch_add(1, Ordering::Relaxed),
             CounterType::Scenes => SCENE_COUNTER.fetch_add(1, Ordering::Relaxed),
+            CounterType::Component => CLICK_COUNTER.fetch_add(1, Ordering::Relaxed),
+            #[allow(unreachable_patterns)]
+            _ => panic!("Counter not implemented: {:?}", counter),
         }
     }
 
@@ -55,9 +59,11 @@ impl ObjectID {
     }
 }
 
+/// Before adding any variants to this, make sure you update [`ObjectID::get_id_from_counter()`]
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Hash, Reflect)]
 pub enum CounterType {
     Global,
     Actions,
     Scenes,
+    Component,
 }

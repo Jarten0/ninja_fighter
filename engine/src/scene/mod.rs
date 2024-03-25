@@ -22,7 +22,8 @@ pub use error::SceneError;
 pub use object_data::ReflectTestSuperTrait;
 pub use object_data::SceneData;
 pub use object_data::TestSuperTrait;
-pub use object_id::{CounterType, ObjectID};
+pub use object_id::CounterType;
+pub use object_id::ObjectID;
 pub use scene_manager::SceneManager;
 pub use serialized_scene::ToReflect;
 

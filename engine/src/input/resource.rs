@@ -1,4 +1,5 @@
-use crate::{space, LogData};
+use crate::scene::ObjectID;
+use crate::space;
 
 use super::action::{ActionData, ActionID, KeyStatus};
 use super::key::input_hashmap::InputFile;
@@ -178,6 +179,10 @@ impl Input {
     /// Returns [`None`] if the action doesn't exist.
     pub fn remove_action(&mut self, action_name: &str) -> Option<ActionData> {
         self.actions.remove(action_name)
+    }
+
+    pub fn get_mouse_pos(&self) -> &space::Vector2 {
+        &self.mouse_pos
     }
 }
 

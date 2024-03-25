@@ -10,6 +10,7 @@ use std::ops::Deref;
 use std::ops::Range;
 
 use bevy_ecs::component::Component;
+use bevy_ecs::reflect;
 use bevy_ecs::reflect::ReflectComponent;
 use bevy_ecs::system::Query;
 use bevy_ecs::system::Res;
@@ -28,14 +29,11 @@ use ggez::graphics::GraphicsContext;
 use ggez::graphics::Mesh as DrawMesh;
 use ggez::graphics::MeshData;
 use ggez::graphics::Rect;
+use log::error;
 use log::trace;
 use serde::ser::SerializeStruct;
 use serde::Deserialize;
 use serde::Serialize;
-
-// use engine::space::Vector2 as eVector2;
-// use mint::Vector2 as mVector2;
-// use nalgebra::Vector2 as nVector2;
 
 /// Runs physics updates for collider meshes
 pub fn update(
@@ -59,11 +57,81 @@ pub fn update(
         }
 
         if engine.is_debug_draw() {
-            for vertex in &mut convex_mesh.vertices {
-                vertex.
+            let transform_tuple = match convex_mesh.debug_draw_param.unwrap().transform {
+                graphics::Transform::Values {
+                    dest,
+                    rotation,
+                    scale,
+                    offset,
+                } => (dest, rotation, scale, offset),
+                graphics::Transform::Matrix(_) => todo!(),
+            };
+            if let None = convex_mesh.focused_vertex {
+                for (index, vertex) in &mut convex_mesh.vertices.iter_mut().enumerate().into_iter()
+                {
+                    vertex.y += 0.05;
+                    let get_mouse_pos = input.get_mouse_pos();
+                    let offset =
+                        vertex
+                            .scaled(&transform_tuple.2.into())
+                            .translated(&space::Vector2 {
+                                x: transform_tuple.0.x,
+                                y: -transform_tuple.0.y,
+                            });
+                    let inverse_sum = &get_mouse_pos.inverse_sum(offset);
+                    if inverse_sum.magnitude() < 50.0 {
+                        convex_mesh.focused_vertex = Some(index);
+                        break;
+                    }
+                }
+            }
+
+            if input.get_action("dragvertex").unwrap().is_pressed()
+                && convex_mesh.focused_vertex.is_some()
+            {
+                // error!("Clicked");
+                let index = convex_mesh.focused_vertex.unwrap();
+                let mut set = input
+                    .get_mouse_pos()
+                    .translated(&-(Into::<space::Vector2>::into(transform_tuple.0)));
+                set.x /= transform_tuple.2.x;
+                set.y /= transform_tuple.2.y;
+                (**convex_mesh.vertices.get_mut(index).unwrap()).set(set);
+            } else if let Some(index) = convex_mesh.focused_vertex {
+                let vertex = convex_mesh.vertices.get(index).unwrap();
+                let get_mouse_pos = input.get_mouse_pos();
+                let offset = vertex
+                    .scaled(&transform_tuple.2.into())
+                    .translated(&space::Vector2 {
+                        x: transform_tuple.0.x,
+                        y: -transform_tuple.0.y,
+                    });
+                let inverse_sum = &get_mouse_pos.inverse_sum(offset);
+                if inverse_sum.magnitude() > 50.0 {
+                    convex_mesh.focused_vertex = None;
+                }
             }
 
             convex_mesh.build_indices();
+
+            // update draw vertices
+
+            let vertices = convex_mesh.vertices.to_owned();
+            for (index, vtx) in convex_mesh
+                .debug_vertecies
+                .iter_mut()
+                .enumerate()
+                .into_iter()
+            {
+                let vertex = vertices.get(index).unwrap();
+                vtx.position = [vertex.x, vertex.y];
+                vtx.color = Color::RED.into();
+            }
+
+            if let Some(index) = convex_mesh.focused_vertex {
+                convex_mesh.debug_vertecies.get_mut(index).unwrap().color = Color::GREEN.into();
+            }
+
             convex_mesh.debug_drawable_mesh = Some(DrawMesh::from_data(
                 &engine.get_context().gfx,
                 MeshData {
@@ -102,7 +170,9 @@ pub fn draw(query: Query<&ConvexMesh>, mut engine: ResMut<GgezInterface>, camera
         };
 
         // dont worry about it for now, just take those initial parameters
-        let final_param = initial_param.clone();
+        let mut final_param = initial_param.clone();
+
+        final_param.color(Color::CYAN);
 
         canvas.draw(drawable, final_param);
     }
@@ -124,6 +194,8 @@ pub struct ConvexMesh {
     // The bottom three fields are updated in `update`, then drawn in `draw`
     #[reflect(ignore)]
     pub(crate) debug_vertecies: Vec<graphics::Vertex>,
+    #[reflect(ignore)]
+    pub(crate) focused_vertex: Option<usize>,
     #[reflect(ignore)]
     pub(crate) debug_drawable_mesh: Option<DrawMesh>,
     #[reflect(ignore)]
@@ -161,6 +233,7 @@ impl ConvexMesh {
             debug_draw_param: Some(draw_param),
             position: Position::default(),
             indices: indices.to_owned(),
+            focused_vertex: None,
         }
     }
 
@@ -180,6 +253,7 @@ impl ConvexMesh {
             debug_draw_param: Some(draw_param),
             position: Position::default(),
             indices: Vec::new(),
+            focused_vertex: None,
         };
 
         convex_mesh
@@ -269,16 +343,15 @@ pub fn validate_vertices(vec: &Vec<space::Vertex>) -> Result<(), f32> {
     let mut previous_vertex = vec[1];
     let mut checking_vertex;
 
-    let mut previous_angle = dbg!(origin_vertex.inverse_sum(*previous_vertex)).angle();
-    dbg!(vec);
-    for i in 2..len {
-        trace!("vtx#{}, prev angle: {}", i, previous_angle);
-        checking_vertex = dbg!(vec[i]);
+    let mut previous_angle = origin_vertex.inverse_sum(*previous_vertex).angle();
 
-        let checking_angle =
-            dbg!(dbg!(dbg!(previous_vertex).inverse_sum(*checking_vertex)).angle());
-        let angle_difference = dbg!(checking_angle - previous_angle);
-        assert_eq!(angle_difference, 90.0);
+    for i in 2..len {
+        // trace!("vtx#{}, prev angle: {}", i, previous_angle);
+        checking_vertex = vec[i];
+
+        let checking_angle = previous_vertex.inverse_sum(*checking_vertex).angle();
+        let angle_difference = checking_angle - previous_angle;
+        // assert_eq!(angle_difference, 90.0);
 
         // if angle_difference > 0.0 {
         //     // TODO: make it less than or equal to when not doing box collider
@@ -314,6 +387,7 @@ impl<'md> From<graphics::MeshData<'md>> for ConvexMesh {
             debug_drawable_mesh: None,
             debug_draw_param: None,
             indices: value.indices.to_owned(),
+            focused_vertex: None,
         }
     }
 }

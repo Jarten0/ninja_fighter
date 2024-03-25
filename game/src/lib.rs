@@ -25,13 +25,10 @@ pub fn tick_schedule() -> (Schedule, ScheduleTag) {
     // Configuration block
     sched
         .set_build_settings(TICK_SETTINGS.clone())
-        .set_executor_kind(ExecutorKind::MultiThreaded);
+        .set_executor_kind(ExecutorKind::MultiThreaded)
+        .add_systems((collider::update, protag::update));
 
-    // Systems block
-    sched
-        .add_systems(collider::update)
-        .add_systems(collider::update)
-        .add_systems(protag::update);
+    // let set = ;
 
     (sched, ScheduleTag::Tick)
 }
