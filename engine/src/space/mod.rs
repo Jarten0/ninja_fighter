@@ -553,12 +553,6 @@ impl Reflect for Vector2 {
         <Vector2 as Reflect>::into_reflect(Into::<Box<Vector2>>::into(self))
     }
 
-    fn type_name(&self) -> &str {
-        self.get_represented_type_info()
-            .map(|info| info.type_path())
-            .unwrap_or_else(|| self.reflect_type_path())
-    }
-
     fn reflect_partial_eq(&self, value: &dyn Reflect) -> Option<bool> {
         Some(self.eq(value.downcast_ref()?)) // TODO: make sure that downcast_ref works with traits
     }

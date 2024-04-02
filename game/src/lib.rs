@@ -39,10 +39,12 @@ pub fn frame_schedule() -> (Schedule, ScheduleTag) {
         .set_build_settings(FRAME_SETTINGS.clone())
         .set_executor_kind(ExecutorKind::SingleThreaded);
 
-    draw_sched
-        .add_systems(render::draw)
-        // .add_systems(debug::draw)
-        .add_systems(collider::draw);
+    draw_sched.add_systems((
+        // insert draw systems here
+        render::draw,
+        // collider::draw,
+        // debug::draw,
+    ));
 
     (draw_sched, ScheduleTag::Frame)
 }
@@ -65,16 +67,19 @@ pub(crate) static TICK_SETTINGS: ScheduleBuildSettings = ScheduleBuildSettings {
     hierarchy_detection: LogLevel::Warn,
     use_shortnames: false,
     report_sets: true,
+    auto_insert_apply_deferred: true,
 };
 pub(crate) static FRAME_SETTINGS: ScheduleBuildSettings = ScheduleBuildSettings {
     ambiguity_detection: LogLevel::Warn,
     hierarchy_detection: LogLevel::Warn,
     use_shortnames: false,
     report_sets: true,
+    auto_insert_apply_deferred: true,
 };
 pub(crate) static INIT_SETTINGS: ScheduleBuildSettings = ScheduleBuildSettings {
     ambiguity_detection: LogLevel::Warn,
     hierarchy_detection: LogLevel::Warn,
     use_shortnames: false,
     report_sets: true,
+    auto_insert_apply_deferred: true,
 };

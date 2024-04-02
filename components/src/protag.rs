@@ -3,6 +3,7 @@ use crate::{render::render_type::RenderType, render::Renderer};
 use bevy_ecs::prelude::*;
 use bevy_ecs::reflect::ReflectComponent;
 use bevy_reflect::Reflect;
+use engine::scene::SceneData;
 use engine::space::{Position, Transform, TransformSettings, Vector2, Velocity};
 use engine::GgezInterface;
 use engine::{space, Input};
@@ -136,9 +137,9 @@ impl ProtagBundle {
             space::Position::new(10.0, 0.0),
         );
 
-        let (collider, mut collider_mesh) = BoxCollider::new(space::ONE);
+        let mut bundle = BoxCollider::new(space::ONE);
 
-        collider_mesh.debug_draw_param = Some(DrawParam {
+        bundle.renderer.draw_param = Some(DrawParam {
             src: Rect::default(),
             color: Color::CYAN,
             transform: graphics::Transform::Values {

@@ -3,7 +3,6 @@ pub mod debug;
 
 use bevy_ecs::schedule::{ExecutorKind, LogLevel, ScheduleBuildSettings};
 use bevy_ecs::{prelude::*, world};
-use components::debug as bebug;
 use engine::input::{KeyCode, KeycodeType};
 use engine::schedule::{ScheduleTag, Scheduler};
 use engine::{ActionData, GgezInterface};
@@ -50,6 +49,7 @@ pub(crate) static DEBUG_SETTINGS: ScheduleBuildSettings = ScheduleBuildSettings 
     hierarchy_detection: LogLevel::Warn,
     use_shortnames: false,
     report_sets: true,
+    auto_insert_apply_deferred: true,
 };
 
 pub fn init_editor_schedules(world: &mut World) {

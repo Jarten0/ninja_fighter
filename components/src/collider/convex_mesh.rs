@@ -1,38 +1,33 @@
-<<<<<<< Updated upstream
-//! Functions:
-//!
-//! * update - Runs physics updates for collider meshes
-//!
-//! * draw - Draws collider meshes if is_debug_draw is enabled
-
-#![allow(unused)]
-
-use std::ops::Deref;
-use std::ops::Range;
-
-use bevy_ecs::component::Component;
-use bevy_ecs::reflect;
-use bevy_ecs::reflect::ReflectComponent;
-use bevy_ecs::system::Query;
-use bevy_ecs::system::Res;
-use bevy_ecs::system::ResMut;
-=======
->>>>>>> Stashed changes
+use bevy_ecs::prelude::*;
 use bevy_reflect::Reflect;
 use engine::space;
 use engine::space::Position;
+use engine::Camera;
+use engine::GgezInterface;
 use ggez::graphics;
+use ggez::graphics::Color;
+use ggez::graphics::DrawParam;
+use ggez::graphics::GraphicsContext;
+use ggez::graphics::MeshData;
+use log::*;
+use serde::ser::SerializeStruct;
 use serde::Deserialize;
 use serde::Serialize;
-<<<<<<< Updated upstream
+
+use std::ops::Deref;
+
+use super::mesh_renderer::MeshRenderer;
+use super::traits::CertifiableMesh;
+use super::Collider;
 
 /// Runs physics updates for collider meshes
 pub fn update(
-    mut query: Query<(&mut ConvexMesh, Option<&Position>)>,
+    mut query: Query<(&mut Collider, Option<&Position>)>,
     engine: Res<GgezInterface>,
     input: Res<engine::Input>,
 ) {
-    for (mut convex_mesh, entity_position) in query.iter_mut() {
+    for (mut collider, entity_position) in query.iter_mut() {
+        let convex_mesh = collider.meshes.get_mut(0).unwrap();
         let entity_position = match entity_position {
             Some(pos) => pos,
             None => {
@@ -40,137 +35,30 @@ pub fn update(
                 continue;
             }
         };
-
-        let translation_amount = *convex_mesh.position.deref(); // - entity_position.deref();
-=======
-use std::ops::Deref;
-/// Check if the mesh can create triangle index patterns, and build them if so.
-///
-/// For example, if the mesh must be convex, `verify_vertices` would check if each vertex is in a proper location,
-/// and `build_indices` would build those indices patterns based on the assumption that the set has been verified.
-pub trait CertifiableMesh {
-    /// Check if the object can build a set of triangles based on a set of rules that will be used in [`build_indices`]
-    fn verify_vertices(&self) -> Result<(), String>;
->>>>>>> Stashed changes
-
-        for vertex in &mut convex_mesh.vertices {
-            vertex.translate(&translation_amount);
-        }
-
-        if engine.is_debug_draw() {
-            let transform_tuple = match convex_mesh.debug_draw_param.unwrap().transform {
-                graphics::Transform::Values {
-                    dest,
-                    rotation,
-                    scale,
-                    offset,
-                } => (dest, rotation, scale, offset),
-                graphics::Transform::Matrix(_) => todo!(),
-            };
-            if let None = convex_mesh.focused_vertex {
-                for (index, vertex) in &mut convex_mesh.vertices.iter_mut().enumerate().into_iter()
-                {
-                    vertex.y += 0.05;
-                    let get_mouse_pos = input.get_mouse_pos();
-                    let offset =
-                        vertex
-                            .scaled(&transform_tuple.2.into())
-                            .translated(&space::Vector2 {
-                                x: transform_tuple.0.x,
-                                y: -transform_tuple.0.y,
-                            });
-                    let inverse_sum = &get_mouse_pos.inverse_sum(offset);
-                    if inverse_sum.magnitude() < 50.0 {
-                        convex_mesh.focused_vertex = Some(index);
-                        break;
-                    }
-                }
-            }
-
-            if input.get_action("dragvertex").unwrap().is_pressed()
-                && convex_mesh.focused_vertex.is_some()
-            {
-                // error!("Clicked");
-                let index = convex_mesh.focused_vertex.unwrap();
-                let mut set = input
-                    .get_mouse_pos()
-                    .translated(&-(Into::<space::Vector2>::into(transform_tuple.0)));
-                set.x /= transform_tuple.2.x;
-                set.y /= transform_tuple.2.y;
-                (**convex_mesh.vertices.get_mut(index).unwrap()).set(set);
-            } else if let Some(index) = convex_mesh.focused_vertex {
-                let vertex = convex_mesh.vertices.get(index).unwrap();
-                let get_mouse_pos = input.get_mouse_pos();
-                let offset = vertex
-                    .scaled(&transform_tuple.2.into())
-                    .translated(&space::Vector2 {
-                        x: transform_tuple.0.x,
-                        y: -transform_tuple.0.y,
-                    });
-                let inverse_sum = &get_mouse_pos.inverse_sum(offset);
-                if inverse_sum.magnitude() > 50.0 {
-                    convex_mesh.focused_vertex = None;
-                }
-            }
-
-            convex_mesh.build_indices();
-
-            // update draw vertices
-
-            let vertices = convex_mesh.vertices.to_owned();
-            for (index, vtx) in convex_mesh
-                .debug_vertecies
-                .iter_mut()
-                .enumerate()
-                .into_iter()
-            {
-                let vertex = vertices.get(index).unwrap();
-                vtx.position = [vertex.x, vertex.y];
-                vtx.color = Color::RED.into();
-            }
-
-            if let Some(index) = convex_mesh.focused_vertex {
-                convex_mesh.debug_vertecies.get_mut(index).unwrap().color = Color::GREEN.into();
-            }
-
-            convex_mesh.debug_drawable_mesh = Some(DrawMesh::from_data(
-                &engine.get_context().gfx,
-                MeshData {
-                    vertices: &convex_mesh.debug_vertecies,
-                    indices: &convex_mesh.indices,
-                },
-            ));
-
-            if input.get_action("debuglog").unwrap().is_just_pressed() {
-                dbg!(convex_mesh);
-            }
-        }
     }
 }
 
 /// Draws collider vertecies/edges if debug is enabled
-pub fn draw(query: Query<&ConvexMesh>, mut engine: ResMut<GgezInterface>, camera: Res<Camera>) {
+pub fn draw(
+    query: Query<(&Collider, &MeshRenderer)>,
+    mut engine: ResMut<GgezInterface>,
+    camera: Res<Camera>,
+) {
     if !engine.is_debug_draw() {
         return;
     }
 
-<<<<<<< Updated upstream
-    let canvas = engine
-        .get_canvas_mut()
-        .expect("ColliderMesh should only be called in a draw schedule");
-=======
-    /// Returns the mutable list of vertices in the mesh.
-    fn get_vertices_mut(&mut self) -> &mut Vec<space::Vertex>;
->>>>>>> Stashed changes
-
-    for mesh in query.iter() {
-        let drawable = match &mesh.debug_drawable_mesh {
-            Some(mesh) => mesh,
+    for (collider, renderer) in query.iter() {
+        let drawable = match collider.meshes.get(0).unwrap().into() {
+            Some(mesh) => mesh.into_graphics_mesh(&engine.get_context().gfx),
             None => continue,
         };
+        let canvas = engine
+            .get_canvas_mut()
+            .expect("ColliderMesh should only be called in a draw schedule");
 
         // initial param before applying camera offset, and maybe shaders later
-        let initial_param = match &mesh.debug_draw_param {
+        let initial_param = match &renderer.draw_param {
             Some(param) => param,
             None => continue,
         };
@@ -180,7 +68,7 @@ pub fn draw(query: Query<&ConvexMesh>, mut engine: ResMut<GgezInterface>, camera
 
         final_param.color(Color::CYAN);
 
-        canvas.draw(drawable, final_param);
+        canvas.draw(&drawable, final_param);
     }
 }
 
@@ -189,77 +77,20 @@ pub fn draw(query: Query<&ConvexMesh>, mut engine: ResMut<GgezInterface>, camera
 /// The entire shape must be convex, i.e. each point must have a line of sight from the origin
 ///
 /// [Demo](game\assets\demos\polygonmesh.png)
-#[derive(Debug, Component, Clone, Reflect, Default)]
-#[reflect(Component)]
+#[derive(Debug, Clone, Reflect, Default)]
 pub struct ConvexMesh {
     pub(crate) position: space::Position,
     /// The vertices used to calculate where the mesh's corners are.
     ///
     /// Uses vector vertices, not graphic vertices.
     pub(crate) vertices: Vec<space::Vertex>,
-    // The bottom three fields are updated in `update`, then drawn in `draw`
-    #[reflect(ignore)]
-    pub(crate) debug_vertecies: Vec<graphics::Vertex>,
-    #[reflect(ignore)]
-    pub(crate) focused_vertex: Option<usize>,
-    #[reflect(ignore)]
-    pub(crate) debug_drawable_mesh: Option<DrawMesh>,
-    #[reflect(ignore)]
-    pub(crate) debug_draw_param: Option<DrawParam>,
-    #[reflect(ignore)]
-    pub(crate) indices: Vec<u32>,
 }
 
 impl ConvexMesh {
-    pub fn new_with_drawable(
-        gfx: &GraphicsContext,
-        ggez_vertices: &[graphics::Vertex],
-        indices: &[u32],
-    ) -> Self {
-        let debug_drawable_mesh = Some({
-            let raw = MeshData {
-                vertices: ggez_vertices,
-                indices,
-            };
-
-            DrawMesh::from_data(gfx, raw)
-        });
-
-        let draw_param = DrawParam::new().color(Color::MAGENTA);
-
-        let vertices = ggez_vertices
-            .iter()
-            .map(|value| space::Vertex::from(value))
-            .collect::<Vec<space::Vertex>>();
-
-        Self {
-            vertices,
-            debug_drawable_mesh,
-            debug_vertecies: ggez_vertices.to_owned(),
-            debug_draw_param: Some(draw_param),
-            position: Position::default(),
-            indices: indices.to_owned(),
-            focused_vertex: None,
-        }
-    }
-
     pub fn new(vertices: Vec<space::Vertex>) -> Self {
-        let draw_param = DrawParam::new().color(Color::MAGENTA);
-
-        let debug_vertecies = vertices
-            .clone()
-            .iter()
-            .map(|value| (*value).into())
-            .collect::<Vec<graphics::Vertex>>();
-
         let mut convex_mesh = Self {
-            debug_drawable_mesh: None,
-            debug_vertecies,
             vertices,
-            debug_draw_param: Some(draw_param),
             position: Position::default(),
-            indices: Vec::new(),
-            focused_vertex: None,
         };
 
         convex_mesh
@@ -270,26 +101,18 @@ impl ConvexMesh {
         convex_mesh
     }
 
-    pub fn get_drawable(&self) -> &Option<DrawMesh> {
-        &self.debug_drawable_mesh
-    }
-
     pub fn add_vertex(&mut self, vertex: space::Vertex) {
         self.vertices.push(vertex);
-        self.debug_vertecies.push(space::Vertex::into(vertex));
     }
 
     pub fn add_debug_vertex(&mut self, vertex: graphics::Vertex) {
         self.vertices.push(space::Vertex::from(vertex));
-        self.debug_vertecies.push(vertex);
     }
 
     pub fn pop_vertex(&mut self) {
         self.vertices.pop();
-        self.debug_vertecies.pop();
     }
 
-<<<<<<< Updated upstream
     /// Checks to see if every vertex is convex.
     ///
     /// The idea is that it checks the angle between the origin and every vertex, and if the angle goes backwards, the triangle is invalid.
@@ -302,7 +125,8 @@ impl ConvexMesh {
     /// If there are too few vertecies to make a triangle, returns zero.
     pub fn validate_convex(&self) -> Result<(), f32> {
         validate_vertices(&self.vertices)
-=======
+    }
+
     /// Runs physics updates for collider meshes
     pub fn update(&mut self, position: &Position) {
         let translation_amount = *self.position.deref() - *position.deref();
@@ -341,19 +165,33 @@ impl CertifiableMesh for ConvexMesh {
             previous_vertex = checking_vertex;
         }
         Ok(())
->>>>>>> Stashed changes
     }
 
     /// Builds a vec of indices that correlate to how triangles are connected.
     ///
     /// For more info, check out [demo](game\assets\demos\polygonmesh.png).
-    pub fn build_indices(&mut self) -> Result<(), f32> {
-        self.validate_convex()?;
+    fn build_indices(&self) -> Result<Vec<u32>, String> {
+        self.validate_convex().map_err(|v| v.to_string())?;
 
-        self.indices =
-            build_convex_indices(self.vertices.len() as u32, Vec::new()).map_err(|v| v as f32)?;
+        build_convex_indices(self.vertices.len() as u32, Vec::new()).map_err(|v| v.to_string())
+    }
 
-        Ok(())
+    fn get_vertices_mut(&mut self) -> &mut Vec<space::Vertex> {
+        &mut self.vertices
+    }
+
+    fn into_graphics_mesh(&self, gfx: &GraphicsContext) -> ggez::graphics::Mesh {
+        graphics::Mesh::from_data(
+            gfx,
+            graphics::MeshData {
+                vertices: &self
+                    .vertices
+                    .iter()
+                    .map(|vtx| (*vtx).into())
+                    .collect::<Vec<graphics::Vertex>>(),
+                indices: &self.build_indices().unwrap(),
+            },
+        )
     }
 }
 
@@ -368,14 +206,8 @@ fn build_convex_indices(len: u32, mut vec: Vec<u32>) -> Result<Vec<u32>, u32> {
         vec.extend([0, 1 + i, 2 + i]);
     }
 
-<<<<<<< Updated upstream
     Ok(vec)
 }
-=======
-    fn get_vertices_mut(&mut self) -> &mut Vec<space::Vertex> {
-        &mut self.vertices
-    }
->>>>>>> Stashed changes
 
 /// Checks to see if every vertex is convex.
 ///
@@ -417,12 +249,6 @@ pub fn validate_vertices(vec: &Vec<space::Vertex>) -> Result<(), f32> {
     Ok(())
 }
 
-impl Into<Option<graphics::Mesh>> for ConvexMesh {
-    fn into(self) -> Option<graphics::Mesh> {
-        self.debug_drawable_mesh
-    }
-}
-
 impl<'md> From<graphics::MeshData<'md>> for ConvexMesh {
     fn from(value: graphics::MeshData) -> Self {
         let vec = value
@@ -436,11 +262,6 @@ impl<'md> From<graphics::MeshData<'md>> for ConvexMesh {
         Self {
             position,
             vertices: vec,
-            debug_vertecies: value.vertices.to_vec(),
-            debug_drawable_mesh: None,
-            debug_draw_param: None,
-            indices: value.indices.to_owned(),
-            focused_vertex: None,
         }
     }
 }
@@ -496,8 +317,8 @@ pub struct SerializedDrawMesh {
 }
 
 impl SerializedDrawMesh {
-    fn into_mesh(self, gfx: &GraphicsContext) -> DrawMesh {
-        DrawMesh::from_data(
+    fn into_mesh(self, gfx: &GraphicsContext) -> graphics::Mesh {
+        graphics::Mesh::from_data(
             gfx,
             MeshData {
                 vertices: &self

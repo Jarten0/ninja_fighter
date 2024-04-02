@@ -311,7 +311,7 @@ impl SerializedSceneData {
                     let reflected_component_data =
                         component_data.to_reflect(Some(&component_path), type_registry);
 
-                    reflect_component.apply_or_insert(&mut entity, &component_patch);
+                    reflect_component.apply_or_insert(&mut entity, &component_patch, type_registry);
 
                     continue;
                 }

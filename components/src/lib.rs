@@ -14,7 +14,6 @@ use engine::scene::SceneManager;
 
 // #[allow(unused)]
 pub mod collider;
-pub mod debug;
 pub mod protag;
 pub mod render;
 
@@ -22,10 +21,9 @@ pub fn init_components(world: &mut World) -> () {
     world.resource_scope(|world: &mut World, mut manager: Mut<SceneManager>| {
         let register = &mut manager.type_registry;
         serialize_component::<render::Renderer>(world, register);
-        serialize_component::<collider::ConvexMesh>(world, register);
+        serialize_component::<collider::Collider>(world, register);
         serialize_component::<collider::GravitySettings>(world, register);
         serialize_component::<protag::Protag>(world, register);
         serialize_component::<protag::ProtagController>(world, register);
-        serialize_component::<debug::DebugComponent>(world, register);
     });
 }

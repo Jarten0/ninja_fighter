@@ -1,33 +1,45 @@
+use bevy_reflect::Reflect;
+use serde::Serialize;
 use std::fmt::Debug;
 
-use bevy_reflect::Reflect;
+/// Check if the mesh can create triangle index patterns, and build them if so.
+///
+/// For example, if the mesh must be convex, `verify_vertices` would check if each vertex is in a proper location,
+/// and `build_indices` would build those indices patterns based on the assumption that the set has been verified.
+pub trait CertifiableMesh {
+    /// Check if the object can build a set of triangles based on a set of rules that will be used in [`build_indices`]
+    fn verify_vertices(&self) -> Result<(), String>;
 
-use super::convex_mesh::RenderableMesh;
+    /// Returns the mutable list of vertices in the mesh.
+    fn get_vertices_mut(&mut self) -> &mut Vec<engine::space::Vertex>;
 
-use super::convex_mesh::CertifiableMesh;
+    fn build_indices(&self) -> Result<Vec<u32>, String>;
 
-/// This component can contain mesh data,
-#[bevy_trait_query::queryable]
-pub trait MeshContainer {
-    fn get_mesh(&self, index: u32) -> &Box<dyn SuperMesh>;
+    fn into_graphics_mesh(&self, gfx: &ggez::graphics::GraphicsContext) -> ggez::graphics::Mesh;
 }
 
 pub trait SuperMesh
 where
-    Self: CertifiableMesh + RenderableMesh + Reflect + Debug,
+    Self: CertifiableMesh + Reflect + Debug,
 {
     /// Meshes can implement cloning functionality, but because [`Clone::clone`] returns `Self` as owned, it's size varies depending on the type that implements it.
     /// Therefore, [`Clone`] cannot be a trait bound for a trait object. So [`SuperMesh::clone`] returns a fixed size box, pointing to a trait of whatever size.
     ///
     /// The blanket implementation for this works so long as the type implements clone, so enabling that should be helpful.
     fn clone(&self) -> Box<dyn SuperMesh>;
+
+    fn serializable(&self) -> &dyn Reflect;
 }
 
 impl<T> SuperMesh for T
 where
-    T: CertifiableMesh + RenderableMesh + Reflect + Debug + Clone,
+    T: CertifiableMesh + Reflect + Debug + Clone + Serialize,
 {
     fn clone(&self) -> Box<dyn SuperMesh> {
         Box::new(self.clone())
+    }
+
+    fn serializable(&self) -> &dyn Reflect {
+        self.as_reflect()
     }
 }

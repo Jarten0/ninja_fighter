@@ -1,37 +1,22 @@
-<<<<<<< Updated upstream
-use bevy_ecs::{component::Component, reflect::ReflectComponent};
-use bevy_reflect::Reflect;
-use engine::space::{self, Vector2};
-use ggez::graphics::{self, Color, DrawParam, Rect};
-=======
+use crate::collider::convex_mesh::ConvexMesh;
+use crate::collider::mesh_renderer::MeshRenderer;
+use crate::collider::Collider;
 use bevy_ecs::bundle::Bundle;
 use engine::space;
 use engine::space::Vector2;
 use ggez::graphics;
->>>>>>> Stashed changes
 use log::trace;
 use mint::Point2;
 
-use crate::collider::convex_mesh::ConvexMesh;
-<<<<<<< Updated upstream
-=======
-use crate::collider::mesh_renderer::MeshRenderer;
->>>>>>> Stashed changes
-
-#[derive(Debug, Default, Clone, Component, Reflect)]
-#[reflect(Component)]
-pub struct BoxCollider;
+#[derive(Debug, Bundle)]
+pub struct BoxCollider {
+    pub collider: Collider,
+    pub renderer: MeshRenderer,
+}
 
 impl BoxCollider {
-<<<<<<< Updated upstream
-    pub fn new(scale: Vector2) -> (BoxCollider, ConvexMesh) {
-        // let mut builder = ggez::graphics::MeshBuilder::new();
-
-        let bounds = Rect {
-=======
     pub fn new(scale: Vector2) -> Self {
         let bounds = graphics::Rect {
->>>>>>> Stashed changes
             x: 0.0,
             y: 0.0,
             w: 1.1 * scale.x,
@@ -50,21 +35,13 @@ impl BoxCollider {
                 x: 0.0,
                 y: 1.0 * scale.y,
             }),
-<<<<<<< Updated upstream
         ];
 
-        trace!("Created new BoxCollider");
-
-        let mut mesh = ConvexMesh::new(vertices);
-
-        mesh.debug_draw_param = Some(DrawParam {
-=======
-        ]);
+        let mesh = ConvexMesh::new(vertices);
 
         let collider = Collider::new(vec![Box::new(mesh)]);
 
         let mesh_renderer = MeshRenderer::new_with_param(graphics::DrawParam {
->>>>>>> Stashed changes
             src: bounds,
             color: graphics::Color::YELLOW,
             transform: graphics::Transform::Values {
@@ -76,14 +53,11 @@ impl BoxCollider {
             z: 0,
         });
 
-<<<<<<< Updated upstream
-        mesh.build_indices()
-            .map_err(|err| format!("Invalid indices build: {}", err))
-            .unwrap();
-=======
         trace!("Created new BoxCollider");
->>>>>>> Stashed changes
 
-        (Self, mesh)
+        Self {
+            collider,
+            renderer: mesh_renderer,
+        }
     }
 }

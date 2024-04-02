@@ -1,13 +1,7 @@
-<<<<<<< Updated upstream
-use self::asset_type::AssetType;
-use crate::assets::id::AssetID;
-use bevy_ecs::{system::Resource, world::World};
-=======
 use crate::scene::Counter;
 use crate::scene::IDCounter;
 use bevy_ecs::system::Resource;
 use bevy_reflect::Reflect;
->>>>>>> Stashed changes
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::path::PathBuf;
@@ -16,14 +10,8 @@ mod asset_type;
 mod id;
 
 #[derive(Resource, Debug)]
-<<<<<<< Updated upstream
-pub struct Assets {
-    pub render_stuff: HashMap<AssetID, AssetType>,
-    pub queue: AssetCommandQueue,
-=======
 pub struct AssetManager {
     pub render_stuff: HashMap<AssetID, Asset>,
->>>>>>> Stashed changes
 }
 
 impl AssetManager {
@@ -34,13 +22,8 @@ impl AssetManager {
     }
 
     /// Temporary, until load_asset can be finished
-<<<<<<< Updated upstream
-    pub fn insert_asset(&mut self, asset_id: AssetID, asset_type: AssetType) {
-        self.render_stuff.insert(asset_id, asset_type);
-=======
     pub fn insert_asset(&mut self, asset: Asset) {
         self.render_stuff.insert(asset.id, asset);
->>>>>>> Stashed changes
     }
 
     /// Not done
@@ -52,25 +35,14 @@ impl AssetManager {
         todo!()
     }
 
-<<<<<<< Updated upstream
-    pub fn get_asset(&self, asset_id: &AssetID) -> Result<&AssetType, &'static str> {
-=======
     pub fn get_asset(&self, asset_id: &AssetID) -> Result<&Asset, &'static str> {
->>>>>>> Stashed changes
         match self.render_stuff.get(&asset_id) {
             Some(ok) => Ok(ok),
             None => Err("This asset was either never loaded or it has already been unloaded."),
         }
     }
+}
 
-<<<<<<< Updated upstream
-    pub fn check_for_unloads(&mut self, world: &World) {
-        for asset_id in self.render_stuff.keys() {
-            if let Some(condition) = asset_id.unload_condition {
-                condition(asset_id, &world);
-                self.queue.unload_asset(asset_id.to_owned());
-            }
-=======
 /// A collection of data that can be serialized and written to a file.
 #[derive(Debug)]
 pub struct Asset {
@@ -95,29 +67,10 @@ impl Asset {
                 .iter()
                 .map(|(key, value)| (key.to_owned(), value.clone_value()))
                 .collect::<HashMap<String, Box<dyn Reflect>>>(),
->>>>>>> Stashed changes
         }
     }
 }
 
-<<<<<<< Updated upstream
-#[derive(Debug)]
-pub struct AssetCommandQueue {
-    queue: Vec<AssetCommand>,
-}
-
-impl AssetCommandQueue {
-    fn unload_asset(&mut self, asset_id: AssetID) {
-        self.queue.push(AssetCommand::Unload(asset_id))
-    }
-}
-
-#[allow(unused)]
-#[derive(Debug)]
-enum AssetCommand {
-    Load(AssetID),
-    Unload(AssetID),
-=======
 #[derive(Debug, Default)]
 pub struct AssetBuilder {
     asset_data: HashMap<String, Box<dyn Reflect>>,
@@ -178,5 +131,4 @@ impl IDCounter for AssetID {
 /// Useful when managing assets with scenes, to load and unload assets with ease.
 pub struct AssetBatch {
     pub assets: Vec<AssetID>,
->>>>>>> Stashed changes
 }

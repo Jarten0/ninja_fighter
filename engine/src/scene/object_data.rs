@@ -88,7 +88,3 @@ where
         <Self as Reflect>::as_reflect(self)
     }
 }
-
-pub trait ReflectUsingAssets {
-    
-}

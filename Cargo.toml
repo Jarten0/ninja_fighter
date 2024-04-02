@@ -6,8 +6,9 @@ members = [
     "game",
     "engine",
     "components",
-    "editor"
-, "playground"]
+    "editor", 
+    "playground"
+]
 
 
 [profile]
@@ -15,8 +16,9 @@ dev.debug = "full"
 
 [workspace.dependencies]
 ggez = "0.9.3"
-bevy_ecs = "0.12.1"
-bevy_reflect = "0.12.1"
+bevy_ecs = { version = "0.13.1", features = ["bevy_reflect"] }
+bevy_reflect = "0.13.1"
+bevy-trait-query = "0.5.1"
 serde = { version = "1.0.189", features = ["derive"] }
 erased-serde = "0.4.0"
 serde_json = "1.0.0"
@@ -26,9 +28,6 @@ mint = "0.5.9"
 nalgebra = { version = "0.32.3", features = ["serde-serialize"] }
 keycode = "0.4.0"
 lazy_static = "1.4.0"
-enum-iterator = "1.4.1"
-strum = "0.25.0"
-strum_macros = "0.25.3"
 inquire = "0.6.2"
 clap = { version = "4.4.12", features = ["derive"] }
 syn = { version = "2.0.48", features = ["parsing", "full"] }

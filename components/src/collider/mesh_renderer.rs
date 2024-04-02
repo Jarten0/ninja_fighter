@@ -107,7 +107,7 @@ fn happy_path(
 
     if let Some(index) = *focused_vertex_index {
         if input.get_action("dragvertex").unwrap().is_pressed() {
-            *mesh.get_vertex_mut(index).unwrap() = get_mouse_pos.into();
+            *mesh.get_vertices_mut().get_mut(index).unwrap() = get_mouse_pos.into();
         }
 
         // renderer.get.get_mut(index).unwrap().color = Color::GREEN.into();

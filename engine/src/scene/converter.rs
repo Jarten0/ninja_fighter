@@ -53,7 +53,7 @@ pub fn new_dyn_struct(
 
         let value = field.to_reflect(Some(expected_type), type_registry);
 
-        component_patch.insert_boxed(&name, value);
+        component_patch.insert_boxed(*name, value);
     }
 
     Ok(ReflectOwned::Struct(Box::new(component_patch)))

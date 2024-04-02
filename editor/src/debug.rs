@@ -290,6 +290,7 @@ fn new_entity(root: &mut GameRoot) -> Result<(), String> {
         },
     )
 }
+
 fn list_entities(root: &mut GameRoot) -> Result<(), String> {
     root.world.resource_scope(
         |world: &mut World, mut res: Mut<SceneManager>| -> Result<(), String> {
@@ -305,7 +306,10 @@ fn list_entities(root: &mut GameRoot) -> Result<(), String> {
             for entity in scene.get_entities().clone() {
                 let scene_data = match world.get::<SceneData>(entity) {
                     Some(ok) => ok,
-                    None => continue,
+                    None => {
+                        println!("Unidentified entity");
+                        continue;
+                    }
                 };
 
                 println!("{}", scene_data.object_name);
@@ -464,6 +468,7 @@ fn add_component(root: &mut GameRoot) -> Result<(), String> {
                         ReflectOwned::Enum(e) => e.as_reflect(),
                         ReflectOwned::Value(e) => e.as_reflect(),
                     },
+                    &res.type_registry,
                 );
 
                 Ok(())
