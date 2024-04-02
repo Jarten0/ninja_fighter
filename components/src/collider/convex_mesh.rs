@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 //! Functions:
 //!
 //! * update - Runs physics updates for collider meshes
@@ -15,25 +16,15 @@ use bevy_ecs::reflect::ReflectComponent;
 use bevy_ecs::system::Query;
 use bevy_ecs::system::Res;
 use bevy_ecs::system::ResMut;
+=======
+>>>>>>> Stashed changes
 use bevy_reflect::Reflect;
 use engine::space;
 use engine::space::Position;
-use engine::Camera;
-use engine::GgezInterface;
-use ggez::context::Has;
 use ggez::graphics;
-use ggez::graphics::Color;
-use ggez::graphics::DrawParam;
-use ggez::graphics::FillOptions;
-use ggez::graphics::GraphicsContext;
-use ggez::graphics::Mesh as DrawMesh;
-use ggez::graphics::MeshData;
-use ggez::graphics::Rect;
-use log::error;
-use log::trace;
-use serde::ser::SerializeStruct;
 use serde::Deserialize;
 use serde::Serialize;
+<<<<<<< Updated upstream
 
 /// Runs physics updates for collider meshes
 pub fn update(
@@ -51,6 +42,16 @@ pub fn update(
         };
 
         let translation_amount = *convex_mesh.position.deref(); // - entity_position.deref();
+=======
+use std::ops::Deref;
+/// Check if the mesh can create triangle index patterns, and build them if so.
+///
+/// For example, if the mesh must be convex, `verify_vertices` would check if each vertex is in a proper location,
+/// and `build_indices` would build those indices patterns based on the assumption that the set has been verified.
+pub trait CertifiableMesh {
+    /// Check if the object can build a set of triangles based on a set of rules that will be used in [`build_indices`]
+    fn verify_vertices(&self) -> Result<(), String>;
+>>>>>>> Stashed changes
 
         for vertex in &mut convex_mesh.vertices {
             vertex.translate(&translation_amount);
@@ -153,9 +154,14 @@ pub fn draw(query: Query<&ConvexMesh>, mut engine: ResMut<GgezInterface>, camera
         return;
     }
 
+<<<<<<< Updated upstream
     let canvas = engine
         .get_canvas_mut()
         .expect("ColliderMesh should only be called in a draw schedule");
+=======
+    /// Returns the mutable list of vertices in the mesh.
+    fn get_vertices_mut(&mut self) -> &mut Vec<space::Vertex>;
+>>>>>>> Stashed changes
 
     for mesh in query.iter() {
         let drawable = match &mesh.debug_drawable_mesh {
@@ -283,6 +289,7 @@ impl ConvexMesh {
         self.debug_vertecies.pop();
     }
 
+<<<<<<< Updated upstream
     /// Checks to see if every vertex is convex.
     ///
     /// The idea is that it checks the angle between the origin and every vertex, and if the angle goes backwards, the triangle is invalid.
@@ -295,6 +302,46 @@ impl ConvexMesh {
     /// If there are too few vertecies to make a triangle, returns zero.
     pub fn validate_convex(&self) -> Result<(), f32> {
         validate_vertices(&self.vertices)
+=======
+    /// Runs physics updates for collider meshes
+    pub fn update(&mut self, position: &Position) {
+        let translation_amount = *self.position.deref() - *position.deref();
+
+        for vertex in &mut self.vertices {
+            vertex.translate(&translation_amount);
+        }
+    }
+}
+
+impl CertifiableMesh for ConvexMesh {
+    fn verify_vertices(&self) -> Result<(), String> {
+        let vec = &self.vertices;
+        let len = vec.len();
+        if len < 3 {
+            return Err(0.0.to_string());
+        }
+        let origin_vertex = vec[0];
+        let mut previous_vertex = vec[1];
+        let mut checking_vertex;
+
+        let mut previous_angle = origin_vertex.inverse_sum(*previous_vertex).angle();
+
+        for i in 2..len {
+            checking_vertex = vec[i];
+
+            let checking_angle = previous_vertex.inverse_sum(*checking_vertex).angle();
+            let angle_difference = checking_angle - previous_angle;
+
+            // if angle_difference > 0.0 {
+            //     // TODO: make it less than or equal to when not doing box collider
+            //     return Err(angle_difference);
+            // }
+
+            previous_angle = checking_angle;
+            previous_vertex = checking_vertex;
+        }
+        Ok(())
+>>>>>>> Stashed changes
     }
 
     /// Builds a vec of indices that correlate to how triangles are connected.
@@ -321,8 +368,14 @@ fn build_convex_indices(len: u32, mut vec: Vec<u32>) -> Result<Vec<u32>, u32> {
         vec.extend([0, 1 + i, 2 + i]);
     }
 
+<<<<<<< Updated upstream
     Ok(vec)
 }
+=======
+    fn get_vertices_mut(&mut self) -> &mut Vec<space::Vertex> {
+        &mut self.vertices
+    }
+>>>>>>> Stashed changes
 
 /// Checks to see if every vertex is convex.
 ///

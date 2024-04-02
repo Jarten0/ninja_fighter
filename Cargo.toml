@@ -7,7 +7,7 @@ members = [
     "engine",
     "components",
     "editor"
-]
+, "playground"]
 
 
 [profile]

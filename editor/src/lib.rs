@@ -60,7 +60,7 @@ pub fn wrap_schedules_with_debug() -> Vec<fn() -> (Schedule, ScheduleTag)> {
     let tickf = || {
         let (mut tick_sched, tag) = game::tick_schedule();
         tick_sched
-            .add_systems(components::debug::update)
+            // .add_systems(components::debug::update)
             .add_systems(check_for_debug);
 
         (tick_sched, tag)

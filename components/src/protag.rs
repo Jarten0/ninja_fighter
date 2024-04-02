@@ -14,7 +14,6 @@ pub fn init(mut commands: Commands, engine: Res<GgezInterface>) {
     commands
         .spawn(BoxCollider::new((15.0, 10.0).into()))
         .add(|mut entity: EntityWorldMut| {
-            // entity.insert(Renderer::new(None, Transform::new()));
             entity.insert(Position::new(10.0, 100.0));
         });
 }

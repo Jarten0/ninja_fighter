@@ -1,17 +1,8 @@
-use std::{
-    any::{Any, TypeId},
-    collections::HashMap,
-};
-
 use bevy_ecs::{
-    component::{Component, ComponentId, ComponentStorage},
-    entity::Entity,
-    query::Added,
-    storage::Table,
-    system::Query,
+    component::{Component, ComponentId},
     world::World,
 };
-use bevy_reflect::{reflect_trait, Reflect, TypePath};
+use bevy_reflect::{reflect_trait, Reflect};
 use erased_serde::{Error, Serializer};
 use serde::Serialize;
 
@@ -96,4 +87,8 @@ where
     {
         <Self as Reflect>::as_reflect(self)
     }
+}
+
+pub trait ReflectUsingAssets {
+    
 }

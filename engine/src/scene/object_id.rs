@@ -7,6 +7,26 @@ pub(crate) static ACTION_COUNTER: AtomicUsize = AtomicUsize::new(1);
 pub(crate) static SCENE_COUNTER: AtomicUsize = AtomicUsize::new(1);
 pub(crate) static CLICK_COUNTER: AtomicUsize = AtomicUsize::new(1);
 
+#[derive(Debug)]
+pub struct Counter(AtomicUsize);
+
+impl Counter {
+    pub fn get(&self) -> usize {
+        self.0.fetch_add(1, Ordering::Relaxed)
+    }
+
+    pub const fn new() -> Self {
+        Self(AtomicUsize::new(1))
+    }
+}
+
+pub trait IDCounter
+where
+    Self: Sized,
+{
+    fn get_new() -> Self;
+}
+
 #[derive(Debug, Eq, Clone, Copy, PartialOrd, Reflect)]
 // #[reflect_value]
 pub struct ObjectID {

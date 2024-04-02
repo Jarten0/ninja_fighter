@@ -10,6 +10,7 @@ use std::any::Any;
 use std::path::PathBuf;
 use std::time::Duration;
 
+use crate::assets::AssetManager;
 use crate::input::KeycodeType;
 use crate::logging;
 use crate::scene::SceneError;
@@ -31,8 +32,6 @@ use ggez::event::{self, EventHandler};
 use ggez::graphics::{self, Color};
 use ggez::{Context, GameResult};
 use log::debug;
-
-use super::Assets;
 
 /// A basic container-struct that handles [`ggez`]'s events and interfaces with [`bevy_ecs`]'s ECS to provide full engine functionality.
 /// Use the [`components::context::WorldInfo`] component in a query, then use `WorldInfo.game_info.` to access.
@@ -101,7 +100,7 @@ impl GameRoot {
         let input = Input::load();
         World::insert_resource(&mut world, input);
 
-        let assets = Assets::new();
+        let assets = AssetManager::new();
         World::insert_resource(&mut world, assets);
 
         let scene_manager = SceneManager::default();

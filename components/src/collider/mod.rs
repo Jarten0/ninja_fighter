@@ -1,9 +1,15 @@
 mod box_collider;
 mod convex_mesh;
 mod gravity_settings;
+<<<<<<< Updated upstream
+=======
+mod mesh_renderer;
+mod traits;
+>>>>>>> Stashed changes
 
 pub use box_collider::BoxCollider;
 pub use convex_mesh::ConvexMesh;
+<<<<<<< Updated upstream
 pub use convex_mesh::{draw, update};
 pub use gravity_settings::GravitySettings;
 
@@ -38,5 +44,37 @@ impl ColliderBundle {
             gravity,
             mesh: ConvexMesh::new_with_drawable(&engine.get_context().gfx, vertices, &indices),
         }
+=======
+pub use convex_mesh::RenderableMesh;
+pub use gravity_settings::GravitySettings;
+
+use bevy_ecs::component::Component;
+use bevy_ecs::system::Query;
+use bevy_reflect::Reflect;
+use engine::space::Position;
+use std::fmt::Debug;
+
+use traits::SuperMesh;
+
+#[derive(Debug, Component, Default, Reflect)]
+pub struct Collider {
+    #[reflect(ignore)]
+    pub meshes: Vec<Box<dyn SuperMesh>>,
+}
+
+impl Collider {
+    pub fn new(meshes: Vec<Box<dyn SuperMesh>>) -> Self {
+        Self { meshes }
+    }
+
+    pub fn empty() -> Self {
+        Self { meshes: Vec::new() }
+    }
+}
+
+pub fn update(mut query: Query<(&mut Collider, &Position)>) {
+    for (mut collider, position) in query.iter_mut() {
+        for mesh in &mut collider.meshes {}
+>>>>>>> Stashed changes
     }
 }

@@ -12,6 +12,7 @@ use bevy_ecs::{component::Component, world::Mut};
 use bevy_reflect::{GetTypeRegistration, Reflect};
 use bevy_trait_query::RegisterExt;
 
+use crate::space;
 pub use component::Scene;
 pub use component::{
     add_entity_to_scene, load_scene, new_scene, save_scene, to_serializable_scene_data,
@@ -24,10 +25,9 @@ pub use object_data::SceneData;
 pub use object_data::TestSuperTrait;
 pub use object_id::CounterType;
 pub use object_id::ObjectID;
+pub use object_id::{Counter, IDCounter};
 pub use scene_manager::SceneManager;
 pub use serialized_scene::ToReflect;
-
-use crate::space;
 
 pub fn register_scene_types(world: &mut bevy_ecs::world::World) {
     world.init_resource::<scene_manager::SceneManager>();

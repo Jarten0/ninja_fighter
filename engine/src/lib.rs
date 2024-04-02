@@ -3,20 +3,20 @@
 //!
 //! Several components are stored here as well, built directly into the engine.
 //! The [`Transform`] and [`camera::Camera`] are good examples of that.
+pub mod assets;
 pub mod input;
 pub mod logging;
 pub mod scene;
 pub mod schedule;
 pub mod space;
 
-mod assets;
-mod camera;
-mod engine;
-mod freeze;
-mod render;
-mod root;
+// TODO: Private when finished developing
+pub mod camera;
+pub mod engine;
+pub mod freeze;
+pub mod render;
+pub mod root;
 
-pub use assets::Assets;
 pub use camera::Camera;
 pub use engine::GgezInterface;
 pub use input::input_cli_editor;
