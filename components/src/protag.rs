@@ -13,9 +13,9 @@ use serde::Serialize;
 pub fn init(mut commands: Commands, engine: Res<GgezInterface>) {
     // commands.spawn(ProtagBundle::new(&engine));
     commands
-        .spawn(BoxCollider::new((15.0, 10.0).into()))
+        .spawn(BoxCollider::new((100.0, 100.0).into()))
         .add(|mut entity: EntityWorldMut| {
-            entity.insert(Position::new(10.0, 100.0));
+            entity.insert(Position::new(0.0, 0.0));
         });
 }
 

@@ -1,76 +1,18 @@
-use bevy_ecs::prelude::*;
 use bevy_reflect::Reflect;
+use engine::scene::ObjectID;
 use engine::space;
 use engine::space::Position;
-use engine::Camera;
-use engine::GgezInterface;
 use ggez::graphics;
-use ggez::graphics::Color;
-use ggez::graphics::DrawParam;
 use ggez::graphics::GraphicsContext;
 use ggez::graphics::MeshData;
-use log::*;
 use serde::ser::SerializeStruct;
 use serde::Deserialize;
 use serde::Serialize;
 
 use std::ops::Deref;
 
-use super::mesh_renderer::MeshRenderer;
 use super::traits::CertifiableMesh;
-use super::Collider;
-
-/// Runs physics updates for collider meshes
-pub fn update(
-    mut query: Query<(&mut Collider, Option<&Position>)>,
-    engine: Res<GgezInterface>,
-    input: Res<engine::Input>,
-) {
-    for (mut collider, entity_position) in query.iter_mut() {
-        let convex_mesh = collider.meshes.get_mut(0).unwrap();
-        let entity_position = match entity_position {
-            Some(pos) => pos,
-            None => {
-                log::error!("Position is required for collider_mesh component to update!");
-                continue;
-            }
-        };
-    }
-}
-
-/// Draws collider vertecies/edges if debug is enabled
-pub fn draw(
-    query: Query<(&Collider, &MeshRenderer)>,
-    mut engine: ResMut<GgezInterface>,
-    camera: Res<Camera>,
-) {
-    if !engine.is_debug_draw() {
-        return;
-    }
-
-    for (collider, renderer) in query.iter() {
-        let drawable = match collider.meshes.get(0).unwrap().into() {
-            Some(mesh) => mesh.into_graphics_mesh(&engine.get_context().gfx),
-            None => continue,
-        };
-        let canvas = engine
-            .get_canvas_mut()
-            .expect("ColliderMesh should only be called in a draw schedule");
-
-        // initial param before applying camera offset, and maybe shaders later
-        let initial_param = match &renderer.draw_param {
-            Some(param) => param,
-            None => continue,
-        };
-
-        // dont worry about it for now, just take those initial parameters
-        let mut final_param = initial_param.clone();
-
-        final_param.color(Color::CYAN);
-
-        canvas.draw(&drawable, final_param);
-    }
-}
+use super::traits::Identifiable;
 
 /// A mesh that works for collision.
 ///
@@ -84,17 +26,19 @@ pub struct ConvexMesh {
     ///
     /// Uses vector vertices, not graphic vertices.
     pub(crate) vertices: Vec<space::Vertex>,
+    pub mesh_id: ObjectID,
 }
 
 impl ConvexMesh {
     pub fn new(vertices: Vec<space::Vertex>) -> Self {
-        let mut convex_mesh = Self {
+        let convex_mesh = Self {
             vertices,
             position: Position::default(),
+            mesh_id: ObjectID::new(engine::scene::CounterType::Global),
         };
 
         convex_mesh
-            .build_indices()
+            .validate_convex()
             .map_err(|err| format!("Invalid indices build: {}", err))
             .unwrap();
 
@@ -134,6 +78,12 @@ impl ConvexMesh {
         for vertex in &mut self.vertices {
             vertex.translate(&translation_amount);
         }
+    }
+}
+
+impl Identifiable for ConvexMesh {
+    fn get_id(&self) -> engine::scene::ObjectID {
+        self.mesh_id
     }
 }
 
@@ -192,6 +142,10 @@ impl CertifiableMesh for ConvexMesh {
                 indices: &self.build_indices().unwrap(),
             },
         )
+    }
+
+    fn get_vertices(&self) -> &Vec<engine::space::Vertex> {
+        &self.vertices
     }
 }
 
@@ -262,6 +216,7 @@ impl<'md> From<graphics::MeshData<'md>> for ConvexMesh {
         Self {
             position,
             vertices: vec,
+            mesh_id: ObjectID::new(engine::scene::CounterType::Global),
         }
     }
 }

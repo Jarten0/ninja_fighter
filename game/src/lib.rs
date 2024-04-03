@@ -26,7 +26,11 @@ pub fn tick_schedule() -> (Schedule, ScheduleTag) {
     sched
         .set_build_settings(TICK_SETTINGS.clone())
         .set_executor_kind(ExecutorKind::MultiThreaded)
-        .add_systems((collider::update, protag::update));
+        .add_systems((
+            collider::update,
+            protag::update,
+            components::collider::mesh_editor::update_editor,
+        ));
 
     // let set = ;
 
@@ -42,6 +46,7 @@ pub fn frame_schedule() -> (Schedule, ScheduleTag) {
     draw_sched.add_systems((
         // insert draw systems here
         render::draw,
+        components::collider::mesh_renderer::draw,
         // collider::draw,
         // debug::draw,
     ));

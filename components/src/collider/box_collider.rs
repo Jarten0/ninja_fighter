@@ -45,9 +45,9 @@ impl BoxCollider {
             src: bounds,
             color: graphics::Color::YELLOW,
             transform: graphics::Transform::Values {
-                dest: mint::Point2 { x: 500.0, y: 5.0 },
+                dest: mint::Point2 { x: 0.0, y: 0.0 },
                 rotation: 0.0,
-                scale: mint::Vector2 { x: 10.0, y: 10.0 },
+                scale: mint::Vector2 { x: 1.0, y: 1.0 },
                 offset: Point2 { x: 0.0, y: 0.0 },
             },
             z: 0,

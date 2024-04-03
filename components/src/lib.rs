@@ -9,6 +9,7 @@
 //! It can also be inlined later for removing any unused components if initialization performance is critical.
 
 use bevy_ecs::prelude::*;
+use collider::mesh_editor::MeshEditor;
 use engine::scene::serialize_component;
 use engine::scene::SceneManager;
 
@@ -18,6 +19,10 @@ pub mod protag;
 pub mod render;
 
 pub fn init_components(world: &mut World) -> () {
+    world.insert_resource(MeshEditor {
+        focus: collider::mesh_editor::FocusState::Idle,
+    });
+
     world.resource_scope(|world: &mut World, mut manager: Mut<SceneManager>| {
         let register = &mut manager.type_registry;
         serialize_component::<render::Renderer>(world, register);

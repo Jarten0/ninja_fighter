@@ -1,7 +1,8 @@
-mod box_collider;
+pub mod mesh_editor;
+pub mod box_collider;
 mod convex_mesh;
 mod gravity_settings;
-mod mesh_renderer;
+pub mod mesh_renderer;
 mod traits;
 
 pub use box_collider::BoxCollider;

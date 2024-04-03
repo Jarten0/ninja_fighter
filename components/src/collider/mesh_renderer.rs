@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use bevy_ecs::component::Component;
 use bevy_ecs::entity::Entity;
 use bevy_ecs::system::{Query, Res, ResMut, Resource};
@@ -8,111 +10,6 @@ use ggez::graphics::{self, *};
 use serde::{Deserialize, Serialize};
 
 use super::{Collider, SuperMesh};
-
-#[derive(Debug, Clone, Resource, Reflect)]
-pub struct MeshEditor {
-    focus: FocusState,
-}
-
-#[derive(Debug, Clone, Reflect)]
-pub enum FocusState {
-    Idle,
-    FocusedOnEntity {
-        focused_entity: Entity,
-    },
-    FocusedOnMesh {
-        focused_entity: Entity,
-        focused_mesh_index: usize,
-        focused_vertex_index: Option<usize>,
-    },
-}
-
-pub fn update_editor(
-    mut query: Query<(&mut MeshRenderer, &mut Collider, Entity)>,
-    engine: Res<GgezInterface>,
-    input: Res<engine::Input>,
-    mut editor: ResMut<MeshEditor>,
-) {
-    let get_mouse_pos = input.get_mouse_pos().to_owned();
-    for (mut renderer, mut collider, entity) in query.iter_mut() {
-        match &mut editor.focus {
-            FocusState::Idle => {
-                todo!()
-            }
-            FocusState::FocusedOnEntity { focused_entity } => {
-                if !(entity == *focused_entity) {
-                    renderer
-                        .draw_param
-                        .unwrap()
-                        .color(Color::from_rgb(40, 0, 0));
-                    continue;
-                }
-            }
-            FocusState::FocusedOnMesh {
-                focused_entity,
-                focused_mesh_index,
-                mut focused_vertex_index,
-            } => {
-                if !(entity == *focused_entity) {
-                    renderer
-                        .draw_param
-                        .unwrap()
-                        .color(Color::from_rgb(40, 0, 0));
-                    continue;
-                }
-                for (index, mesh) in collider.meshes.iter_mut().enumerate().into_iter() {
-                    if !(index == *focused_mesh_index) {
-                        renderer
-                            .draw_param
-                            .unwrap()
-                            .color(Color::from_rgb(40, 20, 0));
-
-                        continue;
-                    }
-
-                    happy_path(
-                        renderer,
-                        mesh,
-                        editor,
-                        input,
-                        &mut focused_vertex_index,
-                        get_mouse_pos,
-                    );
-
-                    return;
-                }
-                log::error!("Could not find mesh for mesh renderer! Failsafing editor");
-                editor.focus = FocusState::Idle;
-                return;
-            }
-        }
-    }
-}
-
-fn happy_path(
-    mut renderer: bevy_ecs::world::Mut<'_, MeshRenderer>,
-    mut mesh: &mut Box<dyn SuperMesh>,
-    mut editor: ResMut<MeshEditor>,
-    input: Res<'_, engine::Input>,
-    focused_vertex_index: &mut Option<usize>,
-    get_mouse_pos: space::Vector2,
-) {
-    for (index, vertex) in mesh.get_vertices_mut().iter_mut().enumerate().into_iter() {
-        let inverse_sum = &get_mouse_pos.inverse_sum(**vertex);
-        if inverse_sum.magnitude() < 50.0 {
-            *focused_vertex_index = Some(index);
-            break;
-        }
-    }
-
-    if let Some(index) = *focused_vertex_index {
-        if input.get_action("dragvertex").unwrap().is_pressed() {
-            *mesh.get_vertices_mut().get_mut(index).unwrap() = get_mouse_pos.into();
-        }
-
-        // renderer.get.get_mut(index).unwrap().color = Color::GREEN.into();
-    }
-}
 
 // TODO: Rewrite functionality when meshes are stored in global resources
 // pub fn update(
@@ -164,10 +61,6 @@ pub fn draw(
     mut engine: ResMut<GgezInterface>,
     camera: Res<Camera>,
 ) {
-    let canvas = engine
-        .get_canvas_mut()
-        .expect("ColliderMesh should only be called in a draw schedule");
-
     for (renderer, collider) in query.iter() {
         // initial param before applying camera offset, and maybe shaders later
         let initial_param = match &renderer.draw_param {
@@ -178,8 +71,17 @@ pub fn draw(
         // dont worry about it for now, just take those initial parameters
         let final_param = initial_param.clone();
 
+        let mut drawables: Vec<Mesh> = Vec::new();
+        let context = engine.get_context();
         for mesh in &collider.meshes {
-            // canvas.draw(&mesh, final_param.color(Color::CYAN));
+            let drawable = mesh.drawable(&context.gfx);
+            drawables.push(drawable);
+        }
+        for mesh in drawables {
+            engine
+                .get_canvas_mut()
+                .expect("ColliderMesh should only be called in a draw schedule")
+                .draw(&mesh, final_param);
         }
     }
 }
@@ -198,7 +100,7 @@ pub struct MeshRenderer {
     pub(crate) draw_param: Option<DrawParam>,
 
     #[reflect(ignore)]
-    pub(crate) mesh_overrides: Vec<MeshOverride>,
+    pub(crate) mesh_overrides: HashMap<ObjectID, MeshOverride>,
 }
 
 impl Serialize for MeshRenderer {
@@ -206,7 +108,13 @@ impl Serialize for MeshRenderer {
     where
         S: serde::Serializer,
     {
-        serializer.serialize_struct("MeshRenderer", 2)?;
+        // use serde::ser::SerializeStruct;
+        // let s = serializer.serialize_struct("MeshRenderer", 2)?;
+
+        // let drawparams = s.serialize_field("DrawParam", &self.draw_param)?;
+
+        // drawparams.
+
         todo!()
     }
 }
@@ -217,19 +125,27 @@ impl MeshRenderer {
 
         Self {
             draw_param: Some(draw_param),
-            mesh_overrides: Vec::new(),
+            mesh_overrides: HashMap::new(),
         }
     }
 
     pub fn new_with_param(param: DrawParam) -> MeshRenderer {
         Self {
             draw_param: Some(param),
-            mesh_overrides: Vec::new(),
+            mesh_overrides: HashMap::new(),
         }
     }
 
     pub fn add_override(&mut self, overrider: MeshOverride) {
-        self.mesh_overrides.push(overrider);
+        self.mesh_overrides.insert(overrider.mesh_id, overrider);
+    }
+
+    pub fn get_override(&self, id: ObjectID) -> Option<&MeshOverride> {
+        self.mesh_overrides.get(&id)
+    }
+
+    pub fn get_override_mut(&mut self, id: ObjectID) -> Option<&mut MeshOverride> {
+        self.mesh_overrides.get_mut(&id)
     }
 }
 
@@ -243,6 +159,24 @@ pub struct MeshOverride {
     pub indices: Option<Vec<u32>>,
     #[reflect(ignore)]
     pub draw_param: Option<DrawParam>,
+}
+
+impl From<&dyn SuperMesh> for MeshOverride {
+    fn from(value: &dyn SuperMesh) -> Self {
+        let draw_vertices = value
+            .get_vertices()
+            .iter()
+            .map(|value| (*value).into())
+            .collect::<Vec<graphics::Vertex>>()
+            .into();
+        let mesh_id = value.get_id();
+        Self {
+            mesh_id,
+            draw_vertices,
+            indices: Some(value.build_indices().unwrap()),
+            draw_param: Some(DrawParam::new()),
+        }
+    }
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
