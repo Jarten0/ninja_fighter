@@ -71,17 +71,20 @@ pub fn draw(
         // dont worry about it for now, just take those initial parameters
         let final_param = initial_param.clone();
 
-        let mut drawables: Vec<Mesh> = Vec::new();
-        let context = engine.get_context();
-        for mesh in &collider.meshes {
-            let drawable = mesh.drawable(&context.gfx);
-            drawables.push(drawable);
-        }
-        for mesh in drawables {
-            engine
-                .get_canvas_mut()
-                .expect("ColliderMesh should only be called in a draw schedule")
-                .draw(&mesh, final_param);
+        for (mesh_id, mesh) in &collider.meshes {
+            let drawable = mesh.drawable(&engine.get_context().gfx);
+
+            if let Some(ovrd) = renderer.get_override(*mesh_id) {
+                engine
+                    .get_canvas_mut()
+                    .expect("ColliderMesh should only be called in a draw schedule")
+                    .draw(&drawable, ovrd.draw_param.unwrap());
+            } else {
+                engine
+                    .get_canvas_mut()
+                    .expect("ColliderMesh should only be called in a draw schedule")
+                    .draw(&drawable, final_param);
+            }
         }
     }
 }

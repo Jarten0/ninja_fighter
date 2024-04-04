@@ -1,6 +1,9 @@
+use std::collections::HashMap;
+
 use crate::collider::convex_mesh::ConvexMesh;
 use crate::collider::mesh_renderer::MeshRenderer;
-use crate::collider::Collider;
+use crate::collider::traits::SuperMesh;
+use crate::collider::{self, Collider};
 use bevy_ecs::bundle::Bundle;
 use engine::space;
 use engine::space::Vector2;
@@ -39,7 +42,9 @@ impl BoxCollider {
 
         let mesh = ConvexMesh::new(vertices);
 
-        let collider = Collider::new(vec![Box::new(mesh)]);
+        let mut meshes = HashMap::new();
+        meshes.insert(mesh.mesh_id, Box::new(mesh) as Box<dyn SuperMesh>);
+        let collider = Collider::new(meshes);
 
         let mesh_renderer = MeshRenderer::new_with_param(graphics::DrawParam {
             src: bounds,

@@ -19,9 +19,7 @@ pub mod protag;
 pub mod render;
 
 pub fn init_components(world: &mut World) -> () {
-    world.insert_resource(MeshEditor {
-        focus: collider::mesh_editor::FocusState::Idle,
-    });
+    world.insert_resource(MeshEditor::default());
 
     world.resource_scope(|world: &mut World, mut manager: Mut<SceneManager>| {
         let register = &mut manager.type_registry;

@@ -1,5 +1,6 @@
 #![allow(unused)]
-pub mod debug;
+pub mod console;
+pub mod input_debugger;
 
 use bevy_ecs::schedule::{ExecutorKind, LogLevel, ScheduleBuildSettings};
 use bevy_ecs::{prelude::*, world};
@@ -7,6 +8,7 @@ use engine::input::{KeyCode, KeycodeType};
 use engine::schedule::{ScheduleTag, Scheduler};
 use engine::{ActionData, GgezInterface};
 use engine::{EngineConfig, Input};
+use input_debugger::InputDebugger;
 
 static DEBUG_ACTION_NAME: &str = "debugmode";
 
@@ -15,7 +17,7 @@ pub static EDITOR_ENGINE_CONFIG: EngineConfig = EngineConfig {
     world_init: init_editor_schedules,
     schedule_builder_functions: crate::wrap_schedules_with_debug,
     ticks_per_second: game::ENGINE_CONFIG.ticks_per_second,
-    debug_cli: Some(crate::debug::debug_cli),
+    debug_cli: Some(crate::console::debug_cli),
 };
 
 fn setup_debug(mut input: ResMut<Input>) {
@@ -54,6 +56,7 @@ pub(crate) static DEBUG_SETTINGS: ScheduleBuildSettings = ScheduleBuildSettings 
 
 pub fn init_editor_schedules(world: &mut World) {
     game::init_components_and_resources(world);
+    world.insert_resource(InputDebugger::default());
 }
 
 pub fn wrap_schedules_with_debug() -> Vec<fn() -> (Schedule, ScheduleTag)> {
@@ -68,7 +71,7 @@ pub fn wrap_schedules_with_debug() -> Vec<fn() -> (Schedule, ScheduleTag)> {
 
     let drawf = || {
         let (mut draw_sched, tag) = game::frame_schedule();
-        // draw_sched.add_systems(components::collider::collider_mesh::draw);
+        draw_sched.add_systems((input_debugger::draw_debug_information));
         (draw_sched, tag)
     };
 
@@ -80,10 +83,5 @@ pub fn wrap_schedules_with_debug() -> Vec<fn() -> (Schedule, ScheduleTag)> {
 
     log::trace!("Wrapped schedules with debug versions");
 
-    vec![
-        tickf,
-        game::frame_schedule,
-        game::init_schedule,
-        debug_schedule,
-    ]
+    vec![tickf, drawf, initf, debug_schedule]
 }

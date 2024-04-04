@@ -39,10 +39,15 @@ pub struct Input
 where
     Self: 'static,
 {
+    /// Contains ids that lead to the actions names
     pub(super) action_ids: HashMap<ActionID, String>,
+    /// Contains the data for each action, linked to the actions names
     pub(super) actions: HashMap<String, ActionData>,
+    /// Contains key data for every inputtable key, stored by [`KeycodeType`], which identifies every single key.
     pub(super) key_list: HashMap<KeycodeType, Key>,
+    /// A list of key events to use to update input key data and action data
     pub(super) key_update_queue: KeyUpdateQueue,
+    /// The current position of the mouse, where the origin is the top left corner of the screen.
     pub(super) mouse_pos: space::Vector2,
 }
 
@@ -183,6 +188,10 @@ impl Input {
 
     pub fn get_mouse_pos(&self) -> &space::Vector2 {
         &self.mouse_pos
+    }
+
+    pub fn iter_actions(&self) -> std::collections::hash_map::Iter<'_, String, ActionData> {
+        self.actions.iter()
     }
 }
 

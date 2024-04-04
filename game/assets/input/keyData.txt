@@ -5,5 +5,5 @@ Down/s;down;|
 Left/a;left;|
 Right/d;right;|
 debug_mode/grave;|
-debug_log/f2;|
+debug_log/f3;|
 dragvertex/space;|

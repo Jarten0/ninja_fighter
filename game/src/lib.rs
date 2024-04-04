@@ -47,8 +47,7 @@ pub fn frame_schedule() -> (Schedule, ScheduleTag) {
         // insert draw systems here
         render::draw,
         components::collider::mesh_renderer::draw,
-        // collider::draw,
-        // debug::draw,
+        components::collider::mesh_editor::draw_editor_interface,
     ));
 
     (draw_sched, ScheduleTag::Frame)
