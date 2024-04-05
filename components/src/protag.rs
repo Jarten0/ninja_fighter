@@ -3,14 +3,14 @@ use crate::{render::render_type::RenderType, render::Renderer};
 use bevy_ecs::prelude::*;
 use bevy_ecs::reflect::ReflectComponent;
 use bevy_reflect::Reflect;
-use engine::scene::SceneData;
-use engine::space::{Position, Transform, TransformSettings, Vector2, Velocity};
+
+use engine::space::{Position, Transform, TransformSettings, Velocity};
 use engine::GgezInterface;
 use engine::{space, Input};
 use ggez::graphics::{self, Color, DrawParam, Image, Rect};
 use serde::Serialize;
 
-pub fn init(mut commands: Commands, engine: Res<GgezInterface>) {
+pub fn init(mut commands: Commands, _engine: Res<GgezInterface>) {
     // commands.spawn(ProtagBundle::new(&engine));
     commands
         .spawn(BoxCollider::new((100.0, 100.0).into()))

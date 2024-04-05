@@ -387,7 +387,7 @@ pub fn to_serializable_scene_data<'a>(
         let mut entity_hashmap: EntityHashmap = HashMap::new();
 
         for component in serializable_components_data.iter() {
-            let component_serialized_data: Vec<u8> = Vec::new();
+            let _component_serialized_data: Vec<u8> = Vec::new();
 
             let reflected_component = component.as_reflect();
 

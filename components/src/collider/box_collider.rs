@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::collider::convex_mesh::ConvexMesh;
 use crate::collider::mesh_renderer::MeshRenderer;
 use crate::collider::traits::SuperMesh;
-use crate::collider::{self, Collider};
+use crate::collider::{Collider};
 use bevy_ecs::bundle::Bundle;
 use engine::space;
 use engine::space::Vector2;
