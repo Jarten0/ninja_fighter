@@ -29,10 +29,8 @@ pub use root::GameRoot;
 pub struct EngineConfig {
     pub scene_paths: &'static [&'static str],
     pub world_init: fn(&mut bevy_ecs::prelude::World) -> (),
-    pub schedule_builder_functions:
-        fn() -> Vec<fn() -> (bevy_ecs::schedule::Schedule, schedule::ScheduleTag)>,
+    pub schedule_builder_functions: fn() -> Vec<fn() -> bevy_ecs::schedule::Schedule>,
     pub ticks_per_second: u32,
-    pub debug_cli: Option<fn(&mut GameRoot)>,
 }
 
 pub enum EngineConfigError {

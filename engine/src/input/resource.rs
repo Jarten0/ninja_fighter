@@ -105,6 +105,7 @@ impl Input {
     }
 
     pub(crate) fn process_key_queue(&mut self) {
+        dbg!(&self.key_update_queue);
         for (_, key) in &mut self.key_list {
             key.update(key.status.is_held())
         }
@@ -152,8 +153,9 @@ impl Input {
     ///
     /// [`Action::new`] already lets you create actions, so use that instead.
     pub fn new_action(&mut self, action: ActionData) -> Option<ActionData> {
-        HashMap::insert(&mut self.action_ids, action.id.clone(), action.name.clone());
-        HashMap::insert(&mut self.actions, action.name.clone(), action)
+        self.action_ids
+            .insert(action.id.clone(), action.name.clone());
+        self.actions.insert(action.name.clone(), action)
     }
 
     /// Returns the current status of the given action

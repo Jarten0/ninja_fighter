@@ -1,41 +1,33 @@
-#![allow(unused)]
 pub mod console;
 pub mod input_debugger;
+pub mod inspector;
 
+use bevy_ecs::prelude::*;
 use bevy_ecs::schedule::{ExecutorKind, LogLevel, ScheduleBuildSettings};
-use bevy_ecs::{prelude::*, world};
-use engine::input::{KeyCode, KeycodeType};
-use engine::schedule::{ScheduleTag, Scheduler};
-use engine::{ActionData, GgezInterface};
+use engine::schedule::ScheduleTag;
+use engine::GgezInterface;
 use engine::{EngineConfig, Input};
 use input_debugger::InputDebugger;
+use inspector::Inspector;
 
-static DEBUG_ACTION_NAME: &str = "debugmode";
+static DEBUG_ACTION_NAME: &str = "debugconsole";
 
 pub static EDITOR_ENGINE_CONFIG: EngineConfig = EngineConfig {
     scene_paths: &[game::INITIAL_SCENE],
     world_init: init_editor_schedules,
     schedule_builder_functions: crate::wrap_schedules_with_debug,
     ticks_per_second: game::ENGINE_CONFIG.ticks_per_second,
-    debug_cli: Some(crate::console::debug_cli),
 };
 
-fn setup_debug(mut input: ResMut<Input>) {
-    let key = KeycodeType::Keyboard(KeyCode::Grave);
-    let keys = vec![key];
-    let action = ActionData::new(&mut input, DEBUG_ACTION_NAME.to_owned(), keys);
+// Add new resources here!
+pub fn init_editor_schedules(world: &mut World) {
+    game::init_components_and_resources(world);
+    world.insert_resource(InputDebugger::default());
+    world.insert_resource(Inspector::default());
 }
 
-fn check_for_debug(input: Res<Input>, mut engine: ResMut<GgezInterface>, mut commands: Commands) {
-    if let Some(action) = input.get_action(DEBUG_ACTION_NAME) {
-        if action.status().is_just_pressed() {
-            engine.debug_mode = true;
-        }
-    }
-}
-
-pub(crate) fn debug_schedule() -> (Schedule, ScheduleTag) {
-    let mut sched = Schedule::default();
+pub(crate) fn debug_schedule() -> Schedule {
+    let mut sched = Schedule::new(ScheduleTag::DebugTick);
     // Configuration block
     sched
         .set_build_settings(DEBUG_SETTINGS.clone())
@@ -43,7 +35,23 @@ pub(crate) fn debug_schedule() -> (Schedule, ScheduleTag) {
 
     // Systems block
 
-    (sched, ScheduleTag::Debug)
+    sched
+}
+
+pub(crate) fn debug_frame_schedule() -> Schedule {
+    let mut sched = Schedule::new(ScheduleTag::DebugFrame);
+    // Configuration block
+    sched
+        .set_build_settings(DEBUG_SETTINGS.clone())
+        .set_executor_kind(ExecutorKind::Simple);
+
+    // Systems block
+    sched.add_systems((
+        inspector::draw_inspector,
+        input_debugger::draw_debug_information,
+    ));
+
+    sched
 }
 
 pub(crate) static DEBUG_SETTINGS: ScheduleBuildSettings = ScheduleBuildSettings {
@@ -54,34 +62,8 @@ pub(crate) static DEBUG_SETTINGS: ScheduleBuildSettings = ScheduleBuildSettings 
     auto_insert_apply_deferred: true,
 };
 
-pub fn init_editor_schedules(world: &mut World) {
-    game::init_components_and_resources(world);
-    world.insert_resource(InputDebugger::default());
-}
-
-pub fn wrap_schedules_with_debug() -> Vec<fn() -> (Schedule, ScheduleTag)> {
-    let tickf = || {
-        let (mut tick_sched, tag) = game::tick_schedule();
-        tick_sched
-            // .add_systems(components::debug::update)
-            .add_systems(check_for_debug);
-
-        (tick_sched, tag)
-    };
-
-    let drawf = || {
-        let (mut draw_sched, tag) = game::frame_schedule();
-        draw_sched.add_systems((input_debugger::draw_debug_information));
-        (draw_sched, tag)
-    };
-
-    let initf = || {
-        let (mut init_sched, tag) = game::init_schedule();
-        // init_sched.add_systems(components::debug::init);
-        (init_sched, tag)
-    };
-
-    log::trace!("Wrapped schedules with debug versions");
-
-    vec![tickf, drawf, initf, debug_schedule]
+pub fn wrap_schedules_with_debug() -> Vec<fn() -> Schedule> {
+    let mut vec = vec![debug_schedule, debug_frame_schedule];
+    vec.append(&mut game::schedule_builders());
+    vec
 }

@@ -9,19 +9,18 @@ pub static ENGINE_CONFIG: EngineConfig = EngineConfig {
     world_init: crate::init_components_and_resources,
     schedule_builder_functions: crate::schedule_builders,
     ticks_per_second: 60,
-    debug_cli: None,
 };
 
 pub fn init_components_and_resources(world: &mut bevy_ecs::world::World) {
     components::init_components(world);
 }
 
-pub fn schedule_builders() -> Vec<fn() -> (Schedule, ScheduleTag)> {
+pub fn schedule_builders() -> Vec<fn() -> Schedule> {
     vec![tick_schedule, frame_schedule, init_schedule]
 }
 
-pub fn tick_schedule() -> (Schedule, ScheduleTag) {
-    let mut sched = Schedule::default();
+pub fn tick_schedule() -> Schedule {
+    let mut sched = Schedule::new(ScheduleTag::Tick);
     // Configuration block
     sched
         .set_build_settings(TICK_SETTINGS.clone())
@@ -32,13 +31,11 @@ pub fn tick_schedule() -> (Schedule, ScheduleTag) {
             components::collider::mesh_editor::update_editor,
         ));
 
-    // let set = ;
-
-    (sched, ScheduleTag::Tick)
+    sched
 }
 
-pub fn frame_schedule() -> (Schedule, ScheduleTag) {
-    let mut draw_sched = Schedule::default();
+pub fn frame_schedule() -> Schedule {
+    let mut draw_sched = Schedule::new(ScheduleTag::Frame);
     draw_sched
         .set_build_settings(FRAME_SETTINGS.clone())
         .set_executor_kind(ExecutorKind::SingleThreaded);
@@ -50,11 +47,12 @@ pub fn frame_schedule() -> (Schedule, ScheduleTag) {
         components::collider::mesh_editor::draw_editor_interface,
     ));
 
-    (draw_sched, ScheduleTag::Frame)
+    draw_sched
 }
 
-pub fn init_schedule() -> (Schedule, ScheduleTag) {
-    let mut init_sched = Schedule::default();
+pub fn init_schedule() -> Schedule {
+    let mut init_sched = Schedule::new(ScheduleTag::Init);
+
     init_sched
         .set_build_settings(INIT_SETTINGS.clone())
         .set_executor_kind(ExecutorKind::MultiThreaded);
@@ -63,7 +61,7 @@ pub fn init_schedule() -> (Schedule, ScheduleTag) {
         // .add_systems(debug::init)
         .add_systems(protag::init);
 
-    (init_sched, ScheduleTag::Init)
+    init_sched
 }
 
 pub(crate) static TICK_SETTINGS: ScheduleBuildSettings = ScheduleBuildSettings {

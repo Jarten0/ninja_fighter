@@ -1,6 +1,5 @@
 use bevy_ecs::prelude::*;
 use ggez::graphics::{self, Color, DrawParam, Rect, TextFragment, Transform};
-use log::trace;
 
 use crate::{GgezInterface, Input};
 

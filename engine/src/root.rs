@@ -6,17 +6,11 @@
 
 // Hi! If your reading this, welcome to my fun little project. Some shenanigans are afoot!
 
-use std::any::Any;
-use std::path::PathBuf;
-use std::time::Duration;
-
 use crate::assets::AssetManager;
 use crate::input::KeycodeType;
 use crate::logging;
-use crate::scene::SceneError;
 use crate::scene::SceneManager;
 use crate::schedule::ScheduleTag;
-use crate::schedule::Scheduler;
 use crate::space::Vector2;
 use crate::Camera;
 use crate::EngineConfig;
@@ -24,14 +18,14 @@ use crate::EngineConfigError;
 use crate::GgezInterface;
 use crate::Input;
 use crate::SomeError;
-use bevy_reflect::TypeData;
-use log::*;
-
 use bevy_ecs::world::*;
 use ggez::event::{self, EventHandler};
 use ggez::graphics::{self, Color};
 use ggez::{Context, GameResult};
 use log::debug;
+use log::*;
+use std::path::PathBuf;
+use std::time::Duration;
 
 /// A basic container-struct that handles [`ggez`]'s events and interfaces with [`bevy_ecs`]'s ECS to provide full engine functionality.
 /// Use the [`components::context::WorldInfo`] component in a query, then use `WorldInfo.game_info.` to access.
@@ -87,14 +81,10 @@ impl GameRoot {
         log::set_max_level(LevelFilter::Trace);
 
         info!("Begin log");
-        if config.debug_cli.is_some() {
-            info!("Debugging using debug CLI [editor/src/debug.rs]");
-        }
 
-        let scheduler = Scheduler::new((config.schedule_builder_functions)());
-        World::insert_resource(&mut world, scheduler);
+        crate::schedule::add_schedules(&mut world, (config.schedule_builder_functions)());
 
-        let game_info = GgezInterface::new(context, config.debug_cli);
+        let game_info = GgezInterface::new(context);
         World::insert_resource(&mut world, game_info);
 
         let input = Input::load();
@@ -124,23 +114,6 @@ impl GameRoot {
         trace!("Initialized world and created game root");
 
         root.world
-            .resource_scope(|world, mut scheduler: Mut<Scheduler>| {
-                scheduler
-                    .get_schedule_mut(ScheduleTag::Tick)
-                    .expect("a schedule that has a Tick tag")
-                    .add_systems(crate::space::transform::update);
-
-                trace!("Added Transform to tick schedule");
-
-                scheduler
-                    .get_schedule_mut(ScheduleTag::Init)
-                    .expect("a schedule that has the Init tag")
-                    .run(world);
-
-                trace!("Ran Init schedule")
-            });
-
-        root.world
             .resource_scope(
                 |world,
                  mut res: Mut<SceneManager>|
@@ -160,6 +133,10 @@ impl GameRoot {
 
         trace!("Loaded default scene from EngineConfig");
 
+        root.world.run_schedule(ScheduleTag::Init);
+
+        trace!("Ran init schedule!");
+
         Ok(root)
     }
 }
@@ -171,54 +148,37 @@ impl EventHandler for GameRoot {
         if !ctx.time.check_update_time(self.ticks_per_second) {
             return GameResult::Ok(());
         }
-        if ctx.time.remaining_update_time() > Duration::from_millis(80) {
-            debug!("Lag spike of 5+ frames")
-        }
-        while ctx.time.remaining_update_time() > Duration::from_millis(80) {
-            ctx.time.check_update_time(self.ticks_per_second);
-        }
+        let remaining_update_time = ctx.time.remaining_update_time();
+        if remaining_update_time > Duration::from_millis(80) {
+            debug!("Lag spike of 5+ frames [{:?}]", remaining_update_time);
 
-        // Debug console: if `debug_mode` is enabled, it will open the console and pause ticks until it is closed
-        if self.engine().debug_mode {
-            // Debug schedule is optional
-            debug!("Entered debug mode");
-
-            match self.world.resource::<GgezInterface>().debug_cli {
-                Some(e) => e(self),
-                None => debug!("No debug CLI function found!"),
+            while ctx.time.remaining_update_time() > Duration::from_millis(16) {
+                ctx.time.check_update_time(self.ticks_per_second);
             }
+        }
 
-            self.world
-                .resource_scope(|world, mut a: Mut<Scheduler>| -> Option<()> {
-                    Some(a.get_schedule_mut(ScheduleTag::Debug)?.run(world))
-                });
-
-            trace!("Ran debug schedule");
-
-            self.engine_mut().debug_mode = false;
-            ctx.time.tick();
-
-            debug!("Exited Debug mode");
-
-            return Ok(());
+        if let Some(action) = self.world.resource::<Input>().get_action("debugconsole") {
+            if action.status().is_just_pressed() {
+                let mut engine = self.world.resource_mut::<GgezInterface>();
+                engine.debug_mode = !engine.debug_mode;
+            }
         }
 
         self.update_context(ctx);
 
         self.world.resource_mut::<Input>().process_key_queue();
 
+        let debug_mode = self.engine().debug_mode;
+
         // Runs the tick schedule
-        self.world
-            .resource_scope(|world, mut schedules: Mut<Scheduler>| {
-                schedules
-                    .get_schedule_mut(ScheduleTag::Tick)
-                    .expect("there should be a schedule with the Tick ScheduleTag")
-                    .run(world);
-            });
 
-        ctx.time.tick();
+        self.world.run_schedule(ScheduleTag::Tick);
 
-        // trace!("Ran tick updates");
+        // Debug console: if `debug_mode` is enabled, it will open the console and pause ticks until it is closed
+        if debug_mode {
+            // Debug schedule is optional
+            self.world.run_schedule(ScheduleTag::DebugTick)
+        }
 
         Ok(())
     }
@@ -237,11 +197,13 @@ impl EventHandler for GameRoot {
 
         self.update_context(ctx);
 
-        self.world.resource_scope(|world, mut a: Mut<Scheduler>| {
-            a.get_schedule_mut(ScheduleTag::Frame)
-                .expect("there should be a schedule with the Frame ScheduleTag")
-                .run(world);
-        });
+        let debug_mode = self.engine().debug_mode;
+
+        self.world.run_schedule(ScheduleTag::Frame);
+
+        if debug_mode {
+            self.world.run_schedule(ScheduleTag::DebugFrame);
+        }
 
         self.engine_mut()
         .take_canvas()

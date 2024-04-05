@@ -327,7 +327,7 @@ impl SerializedSceneData {
 
         // We have to wait until after the scene entity is spawned before we can start adding entities to the scene component
         for entity in entities {
-            let _ = add_entity_to_scene(world, scene_entity, entity);
+            let _ = add_entity_to_scene(world, scene_entity, entity, None);
         }
         Ok(scene_entity)
     }
