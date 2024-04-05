@@ -3,8 +3,6 @@
 use bevy_ecs::system::Resource;
 use ggez::graphics::Canvas;
 
-use crate::GameRoot;
-
 /// A basic resource designed for holding information and sharing access to [`ggez`] through [`bevy_ecs`]'s resource system.
 ///
 /// # Fields
@@ -25,8 +23,6 @@ where
 
     /// Whether debug functionality should be enabled or not.
     pub debug_mode: bool,
-
-    pub debug_cli: Option<fn(&mut GameRoot)>,
 }
 
 unsafe impl Send for GgezInterface {}
@@ -34,15 +30,11 @@ unsafe impl Sync for GgezInterface {}
 
 #[allow(dead_code)]
 impl GgezInterface {
-    pub(crate) fn new(
-        context_ptr: &mut ggez::Context,
-        debug_cli: Option<fn(&mut GameRoot)>,
-    ) -> Self {
+    pub(crate) fn new(context_ptr: &mut ggez::Context) -> Self {
         Self {
             current_canvas: None,
             context_ptr,
-            debug_mode: debug_cli.is_some(),
-            debug_cli,
+            debug_mode: false,
         }
     }
     /// Returns a reference to the current canvas [`ggez`] will operate on.

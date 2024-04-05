@@ -1,31 +1,20 @@
-use std::any::{Any, TypeId};
-use std::process::exit;
-use std::{collections::HashMap, path::PathBuf, sync::OnceLock};
-
+#![allow(unused)]
 use bevy_ecs::entity::Entity;
-use bevy_ecs::system::Res;
-use bevy_ecs::world;
-use engine::input::key::keycode_converter::keycode_to_str;
-
-use engine::{
-    scene::{self, *},
-    LogData,
-};
-
-use engine::GameRoot;
-
+use bevy_ecs::system::{Res, ResMut};
 use bevy_ecs::{
     reflect::ReflectComponent,
     world::{Mut, World},
 };
-
-use bevy_reflect::{
-    DynamicStruct, DynamicTupleStruct, Reflect, ReflectOwned, StructInfo, TypeData, TypeInfo,
-    UnnamedField,
+use bevy_reflect::{DynamicStruct, DynamicTupleStruct, ReflectOwned, TypeInfo};
+use engine::{
+    scene::{self, *},
+    LogData,
 };
-use engine::scene::ToReflect;
-use inquire::{validator::Validation, Confirm, CustomType, InquireError, Select, Text};
+use engine::{GameRoot, Input};
+use inquire::{validator::Validation, Confirm, InquireError, Select, Text};
 use log::error;
+use std::process::exit;
+use std::{collections::HashMap, path::PathBuf, sync::OnceLock};
 
 fn commands() -> &'static Vec<DebugCommand> {
     static COMMANDS: OnceLock<Vec<DebugCommand>> = OnceLock::new();
@@ -46,6 +35,8 @@ fn commands() -> &'static Vec<DebugCommand> {
                 "Saves the target scene to the file specified. Will prompt for a file path if the target scene doesn't have one set.",
             ),
             DebugCommand::new("loadscene", load_scene, "Loads the scene from the given path. Will prompt for a file path."),
+            DebugCommand::new("unloadscene", unload_scene, "Unloads the current target scene. Does not save, any unsaved data will be lost."),
+            DebugCommand::new("reloadscene", reload_scene, "Reloads the current target scene, pulling in data from the save file. Does not save, any unsaved data will be lost."),
             DebugCommand::new("changescene", change_target_scene, "Sets the target scene to the one specified. Will prompt for a scene name."),
             DebugCommand::new("newentity", new_entity, "Creates a new, empty entity that you can add components to. Will prompt for a name //later"), //TODO: Give entity name
             DebugCommand::new("listentities", list_entities, "Lists the entites that are in the target scene."),
@@ -55,6 +46,14 @@ fn commands() -> &'static Vec<DebugCommand> {
             DebugCommand::new("crash", crash, "Exits the program instantly, without saving.")
             ]
     })
+}
+
+pub fn check_for_debug(input: Res<Input>, mut engine: ResMut<engine::GgezInterface>) {
+    if let Some(action) = input.get_action(crate::DEBUG_ACTION_NAME) {
+        if action.status().is_just_pressed() {
+            engine.debug_mode = !engine.debug_mode;
+        }
+    }
 }
 
 struct DebugCommand {
@@ -77,11 +76,17 @@ impl DebugCommand {
     }
 }
 
-fn int_prompt_type() -> CustomType<'static, i32> {
-    CustomType::new("Whaaa").with_default(0)
-}
-
 pub fn debug_cli(root: &mut GameRoot) {
+    if !root
+        .world
+        .resource::<Input>()
+        .get_action("debugconsole")
+        .unwrap()
+        .is_just_pressed()
+    {
+        return;
+    }
+
     let char_limit = |input: &str| match input.chars().count() <= 100 {
         true => Ok(Validation::Valid),
         false => Ok(Validation::Invalid(
@@ -100,7 +105,7 @@ pub fn debug_cli(root: &mut GameRoot) {
         let mut user_input = match Text::new("Debug >").with_validator(char_limit).prompt() {
             Ok(input) => input,
             Err(err) => {
-                match err {
+                let _ = match err {
                     InquireError::OperationCanceled => break,
                     InquireError::OperationInterrupted => crash(root),
                     _ => {
@@ -141,8 +146,9 @@ fn help(_: &mut GameRoot) -> Result<(), String> {
     Ok(())
 }
 
-fn crash(root: &mut GameRoot) -> Result<(), String> {
+fn crash(_root: &mut GameRoot) -> Result<(), String> {
     exit(1);
+    #[allow(unreachable_code)]
     Err("failed to crash??".to_owned()) // lie to the compiler >:)))
                                         //but if this returns err that means something seriously went wrong
 }
@@ -153,7 +159,7 @@ fn save_scene(root: &mut GameRoot) -> Result<(), String> {
     match Confirm::new("Are you sure? This will overwrite any previous saved data >").prompt() {
         Ok(_response_yes) if _response_yes => root
             .world
-            .resource_scope(|world, mut scene_manager: Mut<SceneManager>| {
+            .resource_scope(|world, scene_manager: Mut<SceneManager>| {
                 scene_manager.save_scene(world)
             })
             .map_err(|err| "SceneError: ".to_owned() + &err.to_string()),
@@ -165,7 +171,7 @@ fn save_scene(root: &mut GameRoot) -> Result<(), String> {
 fn load_scene(root: &mut GameRoot) -> Result<(), String> {
     let path = match Text::new("Path of scene >").prompt() {
         Ok(ok) => PathBuf::from(ok),
-        Err(err) => return Err("Aborted loading scene".to_owned()),
+        Err(err) => return Err(format!("Aborted loading scene [{}]", err.to_string())),
     };
 
     root.world.resource_scope(
@@ -197,7 +203,7 @@ fn reload_scene(root: &mut GameRoot) -> Result<(), String> {
     let path = root
         .world
         .resource_scope(
-            |world, mut scene_manager: Mut<SceneManager>| -> Option<PathBuf> {
+            |world, scene_manager: Mut<SceneManager>| -> Option<PathBuf> {
                 world
                     .get::<Scene>(scene_manager.target_scene?)?
                     .save_data_path()
@@ -234,16 +240,15 @@ fn new_scene(root: &mut GameRoot) -> Result<(), String> {
     root.world
         .resource_scope(|world: &mut World, mut resource: Mut<SceneManager>| {
             resource.new_scene(world, name)
-        });
-
-    Ok(())
+        })
+        .map_err(|err| err.to_string())
 }
 
 fn change_target_scene(root: &mut GameRoot) -> Result<(), String> {
     let op = |err: InquireError| -> String { err.to_string() };
 
     root.world.resource_scope(
-        |world: &mut World, mut resource: Mut<SceneManager>| -> Result<(), String> {
+        |_world: &mut World, mut resource: Mut<SceneManager>| -> Result<(), String> {
             let target = Select::new("message", resource.current_scenes.keys().collect())
                 .prompt()
                 .map_err(op)?;
@@ -257,7 +262,7 @@ fn change_target_scene(root: &mut GameRoot) -> Result<(), String> {
 
 fn list_scenes(root: &mut GameRoot) -> Result<(), String> {
     root.world.resource_scope(
-        |world: &mut World, mut res: Mut<SceneManager>| -> Result<(), String> {
+        |_world: &mut World, res: Mut<SceneManager>| -> Result<(), String> {
             let scenestrings = res.current_scenes.keys().collect::<Vec<&String>>();
             if scenestrings.len() == 0 {
                 println!("No scenes found!");
@@ -277,23 +282,34 @@ fn list_scenes(root: &mut GameRoot) -> Result<(), String> {
 
 fn new_entity(root: &mut GameRoot) -> Result<(), String> {
     root.world.resource_scope(
-        |world: &mut World, mut res: Mut<SceneManager>| -> Result<(), String> {
-            let scene = world
+        |world: &mut World, res: Mut<SceneManager>| -> Result<(), String> {
+            let name = inquire::Text::new("Name of the entity >")
+                .prompt()
+                .map_err(|err| err.to_string())?;
+
+            let name = {
+                if name == "" {
+                    None
+                } else {
+                    Some(name)
+                }
+            };
+
+            world
                 .get::<Scene>(res.target_scene.ok_or("No target scene found!")?)
                 .ok_or("No scene component found for the current target scene!")?;
 
             let entity = world.spawn_empty().id();
 
-            engine::scene::add_entity_to_scene(world, res.target_scene.unwrap(), entity);
-
-            Ok(())
+            engine::scene::add_entity_to_scene(world, res.target_scene.unwrap(), entity, name)
+                .map_err(|err| err.to_string())
         },
     )
 }
 
 fn list_entities(root: &mut GameRoot) -> Result<(), String> {
     root.world.resource_scope(
-        |world: &mut World, mut res: Mut<SceneManager>| -> Result<(), String> {
+        |world: &mut World, res: Mut<SceneManager>| -> Result<(), String> {
             let scene = world
                 .get::<Scene>(res.target_scene.ok_or("No target scene found!")?)
                 .ok_or("No scene component found for the current target scene!")?;
@@ -334,8 +350,6 @@ fn scoop_entities(root: &mut GameRoot) -> Result<(), String> {
 
                 target_scene = res.target_scene;
 
-                let mut entities_to_push: Vec<Entity> = Vec::new();
-
                 for mut entity_mut in world.iter_entities_mut() {
                     if let Some(mut data) = entity_mut.get_mut::<SceneData>() {
                         if let None = data.scene_id {
@@ -350,10 +364,11 @@ fn scoop_entities(root: &mut GameRoot) -> Result<(), String> {
                 Ok(())
             },
         )
-        .map_err(|err| err.to_string());
+        .map_err(|err| err.to_string())?;
 
     for entity in entities_to_scoop {
-        add_entity_to_scene(&mut root.world, target_scene.unwrap(), entity);
+        add_entity_to_scene(&mut root.world, target_scene.unwrap(), entity, None)
+            .map_err(|err| format!("Failed to scoop entity [{}]", err.to_string()))?;
     }
 
     Ok(())
@@ -364,7 +379,7 @@ fn scoop_entities(root: &mut GameRoot) -> Result<(), String> {
 fn add_component(root: &mut GameRoot) -> Result<(), String> {
     root.world
         .resource_scope(
-            |world: &mut World, mut res: Mut<SceneManager>| -> Result<(), SceneError> {
+            |world: &mut World, res: Mut<SceneManager>| -> Result<(), SceneError> {
                 let scene = world
                     .get::<Scene>(res.target_scene.ok_or(SceneError::NoTargetScene)?)
                     .ok_or(SceneError::NoSceneComponent)?;

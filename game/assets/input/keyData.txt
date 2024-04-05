@@ -4,6 +4,8 @@ Up/w;up;|
 Down/s;down;|
 Left/a;left;|
 Right/d;right;|
-debug_mode/grave;|
+enabledebugmode/grave;|
+debugconsole/f1;|
+enableinspector/f2;|
 debug_log/f3;|
 dragvertex/space;|
