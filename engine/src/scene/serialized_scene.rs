@@ -303,19 +303,19 @@ impl SerializedSceneData {
 
                 let type_info = component_registration.type_info();
 
-                if let TypeInfo::Struct(_s_info) = type_info {
+                if let TypeInfo::Struct(s_info) = type_info {
                     let mut component_patch = DynamicStruct::default();
 
                     component_patch.set_represented_type(Some(type_info));
 
-                    let _reflected_component_data =
+                    let reflected_component_data =
                         component_data.to_reflect(Some(&component_path), type_registry);
 
                     reflect_component.apply_or_insert(&mut entity, &component_patch, type_registry);
 
                     continue;
                 }
-                if let TypeInfo::TupleStruct(_ts_info) = type_info {
+                if let TypeInfo::TupleStruct(ts_info) = type_info {
                     todo!()
                 } //TODO: Implement more structure types
                 todo!() //You used an unimplemented structure type

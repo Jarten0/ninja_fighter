@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 
 use bevy_ecs::component::Component;
-
-use bevy_ecs::system::{Query, Res, ResMut};
+use bevy_ecs::entity::Entity;
+use bevy_ecs::system::{Query, Res, ResMut, Resource};
 use bevy_reflect::Reflect;
 use engine::scene::ObjectID;
-use engine::{Camera, GgezInterface};
+use engine::{space, Camera, GgezInterface};
 use ggez::graphics::{self, *};
 use serde::{Deserialize, Serialize};
 
@@ -59,7 +59,7 @@ use super::{Collider, SuperMesh};
 pub fn draw(
     query: Query<(&MeshRenderer, &Collider)>,
     mut engine: ResMut<GgezInterface>,
-    _camera: Res<Camera>,
+    camera: Res<Camera>,
 ) {
     for (renderer, collider) in query.iter() {
         // initial param before applying camera offset, and maybe shaders later
@@ -107,7 +107,7 @@ pub struct MeshRenderer {
 }
 
 impl Serialize for MeshRenderer {
-    fn serialize<S>(&self, _serializer: S) -> Result<S::Ok, S::Error>
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
     {

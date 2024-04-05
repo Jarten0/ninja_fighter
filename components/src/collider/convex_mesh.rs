@@ -104,7 +104,7 @@ impl CertifiableMesh for ConvexMesh {
             checking_vertex = vec[i];
 
             let checking_angle = previous_vertex.inverse_sum(*checking_vertex).angle();
-            let _angle_difference = checking_angle - previous_angle;
+            let angle_difference = checking_angle - previous_angle;
 
             // if angle_difference > 0.0 {
             //     // TODO: make it less than or equal to when not doing box collider
@@ -189,7 +189,7 @@ pub fn validate_vertices(vec: &Vec<space::Vertex>) -> Result<(), f32> {
         checking_vertex = vec[i];
 
         let checking_angle = previous_vertex.inverse_sum(*checking_vertex).angle();
-        let _angle_difference = checking_angle - previous_angle;
+        let angle_difference = checking_angle - previous_angle;
         // assert_eq!(angle_difference, 90.0);
 
         // if angle_difference > 0.0 {
@@ -257,7 +257,7 @@ impl<'de> serde::de::Visitor<'de> for ConvexMeshVisitor {
         write!(formatter, "Was expecting a collider mesh struct")
     }
 
-    fn visit_str<E>(self, _v: &str) -> Result<Self::Value, E>
+    fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
     where
         E: serde::de::Error,
     {

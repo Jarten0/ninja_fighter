@@ -30,7 +30,7 @@ impl Serialize for Collider {
     where
         S: serde::Serializer,
     {
-        let _s = serializer.serialize_struct("Collider", 1)?;
+        let s = serializer.serialize_struct("Collider", 1)?;
         todo!()
     }
 }
@@ -56,7 +56,7 @@ impl Collider {
 }
 
 pub fn update(mut query: Query<(&mut Collider, &Position)>) {
-    for (mut collider, _position) in query.iter_mut() {
-        for _mesh in &mut collider.meshes {}
+    for (mut collider, position) in query.iter_mut() {
+        for mesh in &mut collider.meshes {}
     }
 }
