@@ -26,8 +26,8 @@ pub use vel::Velocity;
 pub use vtx::Vertex;
 
 use bevy_reflect::{
-    DynamicStruct, DynamicTypePath, FieldIter, FromReflect, GetTypeRegistration, NamedField,
-    Reflect, ReflectRef, StructInfo, TypeInfo, TypePath, Typed,
+    DynamicStruct, FieldIter, FromReflect, GetTypeRegistration, NamedField, Reflect, ReflectRef,
+    StructInfo, TypeInfo, TypePath, Typed,
 };
 use core::fmt;
 use once_cell::sync::Lazy;
