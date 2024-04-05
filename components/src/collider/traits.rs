@@ -1,6 +1,6 @@
 use bevy_reflect::Reflect;
 use engine::scene::ObjectID;
-use ggez::graphics::{Drawable, GraphicsContext, Mesh};
+use ggez::graphics::{GraphicsContext, Mesh};
 use serde::Serialize;
 use std::fmt::Debug;
 

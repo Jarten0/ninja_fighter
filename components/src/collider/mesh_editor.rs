@@ -4,7 +4,7 @@ use bevy_ecs::entity::Entity;
 use bevy_ecs::system::{Query, Res, ResMut, Resource};
 use bevy_reflect::Reflect;
 use engine::scene::ObjectID;
-use engine::{space, GgezInterface};
+use engine::{GgezInterface};
 use ggez::graphics::{self, DrawParam, StrokeOptions};
 use ggez::graphics::{Color, Rect, Transform};
 use log::trace;
@@ -58,7 +58,7 @@ pub fn update_editor(
         // trace!("Found new renderer + collider");
         let focus_state = editor.focus.clone();
         if let FocusState::Idle = focus_state {
-            for (id, mesh) in &collider.meshes {
+            for (_id, mesh) in &collider.meshes {
                 for (index, vertex) in mesh.get_vertices().iter().enumerate().into_iter() {
                     let magnitude = get_mouse_pos.inverse_sum(**vertex).magnitude();
                     if magnitude < 15.0 {
