@@ -31,6 +31,8 @@ pub struct EngineConfig {
     pub world_init: fn(&mut bevy_ecs::prelude::World) -> (),
     pub schedule_builder_functions: fn() -> Vec<fn() -> bevy_ecs::schedule::Schedule>,
     pub ticks_per_second: u32,
+    pub freeze_on_unfocus: bool,
+    pub freeze_on_minimize: bool,
 }
 
 pub enum EngineConfigError {

@@ -9,6 +9,7 @@ use engine::GgezInterface;
 use engine::{EngineConfig, Input};
 use input_debugger::InputDebugger;
 use inspector::Inspector;
+use log::trace;
 
 static DEBUG_ACTION_NAME: &str = "debugconsole";
 
@@ -17,6 +18,8 @@ pub static EDITOR_ENGINE_CONFIG: EngineConfig = EngineConfig {
     world_init: init_editor_schedules,
     schedule_builder_functions: crate::wrap_schedules_with_debug,
     ticks_per_second: game::ENGINE_CONFIG.ticks_per_second,
+    freeze_on_unfocus: false,
+    freeze_on_minimize: false,
 };
 
 // Add new resources here!
@@ -24,6 +27,7 @@ pub fn init_editor_schedules(world: &mut World) {
     game::init_components_and_resources(world);
     world.insert_resource(InputDebugger::default());
     world.insert_resource(Inspector::default());
+    trace!("Created editor resources");
 }
 
 pub(crate) fn debug_schedule() -> Schedule {
@@ -66,5 +70,6 @@ pub(crate) static DEBUG_SETTINGS: ScheduleBuildSettings = ScheduleBuildSettings 
 pub fn wrap_schedules_with_debug() -> Vec<fn() -> Schedule> {
     let mut vec = vec![debug_schedule, debug_frame_schedule];
     vec.append(&mut game::schedule_builders());
+    trace!("Created editor schedules");
     vec
 }

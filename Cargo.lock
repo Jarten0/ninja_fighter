@@ -1289,6 +1289,7 @@ dependencies = [
  "components",
  "engine",
  "ggez",
+ "log",
 ]
 
 [[package]]

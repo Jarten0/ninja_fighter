@@ -1,4 +1,5 @@
 use super::Inspector;
+use super::InspectorDrawInfo;
 use super::InspectorElement;
 use super::InspectorView;
 use bevy_ecs::component::Component;
@@ -81,7 +82,7 @@ impl InspectorElement for InspectorButton {
         InspectorView::Entities
     }
 
-    fn draw(&self, canvas: &mut graphics::Canvas, inspector: &mut ResMut<Inspector>) {
+    fn draw(&self, canvas: &mut graphics::Canvas, inspector_draw_info: &mut InspectorDrawInfo) {
         let param = DrawParam::new()
             .color(Color {
                 r: 0.9,
@@ -92,7 +93,7 @@ impl InspectorElement for InspectorButton {
             .clone()
             .dest(Point2 {
                 x: 1320.0,
-                y: inspector.next_y_position,
+                y: inspector_draw_info.next_y_position,
             });
 
         if let ButtonType::Click(state) = self.state.clone() {
@@ -125,7 +126,7 @@ impl InspectorElement for InspectorButton {
                 self.message.as_ref().unwrap(),
                 DrawParam::new().color(Color::WHITE).clone().dest(Point2 {
                     x: 1340.0,
-                    y: inspector.next_y_position,
+                    y: inspector_draw_info.next_y_position,
                 }),
             );
         }

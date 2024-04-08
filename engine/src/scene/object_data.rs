@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use bevy_ecs::{
     component::{Component, ComponentId},
     world::World,
@@ -6,13 +8,13 @@ use bevy_reflect::{reflect_trait, Reflect};
 use erased_serde::{Error, Serializer};
 use serde::Serialize;
 
-use super::ObjectID;
+use super::{object_id::ComponentInstanceID, ObjectID};
 
 /// Holds data for the assigned [`Scene`] to operate upon.
 /// An entity cannot be serialized by the [`Scene`] if it does not have this component.
 ///
 // TODO: finish [`SceneData`] docs
-#[derive(Component, Reflect)]
+#[derive(Component, Reflect, Debug)]
 pub struct SceneData {
     /// Describes the name of the entity that this component belongs to.
     ///
@@ -20,6 +22,9 @@ pub struct SceneData {
     pub object_name: String,
     /// The ID of the current scene that the component holder belongs to.
     pub scene_id: Option<ObjectID>,
+    /// Contains the component path of every component that is reflectable.
+    pub component_paths: HashMap<ComponentInstanceID, String>,
+    pub component_ids: HashMap<String, ComponentInstanceID>,
 }
 
 impl Serialize for SceneData {

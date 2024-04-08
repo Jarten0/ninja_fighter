@@ -6,15 +6,20 @@ use crate::scene::serialized_scene::SerializedSceneData;
 
 use super::error;
 use super::object_data;
+use super::object_id::ComponentInstanceID;
 use super::serialized_scene;
 use super::serialized_scene::DataHashmap;
 use super::serialized_scene::EntityHashmap;
 use super::CounterType;
+use super::IDCounter;
 use super::ObjectID;
 use super::SceneError;
+use super::SceneManager;
+use super::TestSuperTrait;
 
 use bevy_ecs::component::Component;
 use bevy_ecs::entity::Entity;
+use bevy_ecs::system::Query;
 use bevy_ecs::world::World;
 
 use bevy_reflect::TypeRegistry;
@@ -296,11 +301,25 @@ pub fn add_entity_to_scene<'a>(
             .ok_or(SceneError::NoSceneComponent)?
             .scene_id;
 
+        let mut component_paths = HashMap::new();
+        let mut component_ids = HashMap::new();
+
+        let mut query = world.query::<&dyn TestSuperTrait>();
+
+        for component in query.get(world, entity_to_add).unwrap().iter() {
+            let id = ComponentInstanceID::get_new();
+            let path = component.as_reflect().reflect_type_path().to_string();
+            component_paths.insert(id, path.clone());
+            component_ids.insert(path, id);
+        }
+
         world
             .entity_mut(entity_to_add)
             .insert(object_data::SceneData {
                 object_name,
                 scene_id: Some(scene_id),
+                component_paths,
+                component_ids,
             });
     }
 

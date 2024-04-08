@@ -1,6 +1,7 @@
 use bevy_ecs::schedule::*;
 use components::*;
 use engine::{schedule::ScheduleTag, EngineConfig};
+use log::*;
 
 pub static INITIAL_SCENE: &str = "game/assets/scenes/test_scene.json";
 
@@ -9,17 +10,36 @@ pub static ENGINE_CONFIG: EngineConfig = EngineConfig {
     world_init: crate::init_components_and_resources,
     schedule_builder_functions: crate::schedule_builders,
     ticks_per_second: 60,
+    freeze_on_unfocus: false,
+    freeze_on_minimize: false,
 };
 
 pub fn init_components_and_resources(world: &mut bevy_ecs::world::World) {
     components::init_components(world);
+    trace!("Registered component types");
 }
 
 pub fn schedule_builders() -> Vec<fn() -> Schedule> {
+    trace!("Created game schedules");
     vec![tick_schedule, frame_schedule, init_schedule]
 }
 
 pub fn tick_schedule() -> Schedule {
+    let mut sched = Schedule::new(ScheduleTag::Tick);
+    // Configuration block
+    sched
+        .set_build_settings(TICK_SETTINGS.clone())
+        .set_executor_kind(ExecutorKind::MultiThreaded)
+        .add_systems((
+            collider::update,
+            protag::update,
+            components::collider::mesh_editor::update_editor,
+        ));
+
+    sched
+}
+
+pub fn freeze_tick_schedule() -> Schedule {
     let mut sched = Schedule::new(ScheduleTag::Tick);
     // Configuration block
     sched

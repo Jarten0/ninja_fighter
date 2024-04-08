@@ -10,7 +10,7 @@
 
 use ggez::conf::WindowMode;
 
-// / The start of the program. The crux of the functionality however happens in [`engine::GameRoot`].
+/// The start of the program. The crux of the functionality however happens in [`engine::GameRoot`].
 fn main() -> ! {
     let (mut context, event_loop) = ggez::ContextBuilder::new("Ninja Fighter", "Jarten0")
         .window_mode(WindowMode {

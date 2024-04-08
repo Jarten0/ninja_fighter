@@ -84,7 +84,7 @@ impl GameRoot {
 
         crate::schedule::add_schedules(&mut world, (config.schedule_builder_functions)());
 
-        let game_info = GgezInterface::new(context);
+        let game_info = GgezInterface::new(context, config.clone());
         World::insert_resource(&mut world, game_info);
 
         let input = Input::load();
@@ -99,7 +99,7 @@ impl GameRoot {
         let camera = Camera::default();
         World::insert_resource(&mut world, camera);
 
-        trace!("Created resources");
+        trace!("Created main resources");
 
         crate::scene::register_scene_types(&mut world);
 
@@ -172,9 +172,12 @@ impl EventHandler for GameRoot {
 
         // Runs the tick schedule
 
-        self.world.run_schedule(ScheduleTag::Tick);
+        if self.world.resource::<GgezInterface>().is_freeze_frame() {
+        } else {
+            self.world.run_schedule(ScheduleTag::Tick);
+        }
 
-        println!("Ran tick schedule once");
+        // println!("Ran tick schedule once");
 
         // Debug console: if `debug_mode` is enabled, it will open the console and pause ticks until it is closed
         if debug_mode {

@@ -16,3 +16,4 @@ ggez.workspace = true
 bevy_ecs.workspace = true
 engine = {version = "0.1.0", path = "../engine"}
 components = { version = "0.1.0", path = "../components" }
+log = "0.4.21"

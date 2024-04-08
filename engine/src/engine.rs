@@ -3,6 +3,8 @@
 use bevy_ecs::system::Resource;
 use ggez::graphics::Canvas;
 
+use crate::{freeze::FreezeType, EngineConfig};
+
 /// A basic resource designed for holding information and sharing access to [`ggez`] through [`bevy_ecs`]'s resource system.
 ///
 /// # Fields
@@ -23,6 +25,10 @@ where
 
     /// Whether debug functionality should be enabled or not.
     pub debug_mode: bool,
+
+    pub freeze_mode: FreezeType,
+
+    engine_config: EngineConfig,
 }
 
 unsafe impl Send for GgezInterface {}
@@ -30,11 +36,13 @@ unsafe impl Sync for GgezInterface {}
 
 #[allow(dead_code)]
 impl GgezInterface {
-    pub(crate) fn new(context_ptr: &mut ggez::Context) -> Self {
+    pub(crate) fn new(context_ptr: &mut ggez::Context, engine_config: EngineConfig) -> Self {
         Self {
             current_canvas: None,
             context_ptr,
             debug_mode: false,
+            freeze_mode: FreezeType::NONE,
+            engine_config,
         }
     }
     /// Returns a reference to the current canvas [`ggez`] will operate on.
@@ -57,6 +65,21 @@ impl GgezInterface {
 
     pub fn is_debug_mode(&self) -> bool {
         false
+    }
+
+    /// Returns true if game logic should be paused for this tick.
+    ///
+    /// If it returns `true`, the tick schedule will not be run, but delta will still be updated accordingly.
+    pub fn is_freeze_frame(&self) -> bool {
+        match self.freeze_mode {
+            FreezeType::NONE => false,
+            FreezeType::UNFOCUSED => self.engine_config.freeze_on_unfocus,
+            FreezeType::MINIMIZED => self.engine_config.freeze_on_minimize,
+            FreezeType::PAUSED => true,
+            FreezeType::LOADING => true,
+            FreezeType::IMPACT(_) => true,
+            FreezeType::DEBUG(_) => true,
+        }
     }
 
     /// Returns a reference to the value that `self.context_ptr` points to.

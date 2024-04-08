@@ -2,7 +2,7 @@ mod button;
 use bevy_ecs::{prelude::*, query};
 use bevy_reflect::{Reflect, TypeInfo, TypeRegistration, TypeRegistry};
 use engine::{
-    scene::{self, ObjectID, SceneData},
+    scene::{self, ObjectID, SceneData, SceneManager},
     GgezInterface, Input,
 };
 use ggez::{
@@ -10,14 +10,13 @@ use ggez::{
     mint::Point2,
 };
 use log::*;
-use std::{collections::HashMap, default, fmt::Debug};
+use std::{collections::HashMap, fmt::Debug};
 
 #[derive(Debug, Resource)]
 pub struct Inspector {
     enabled: bool,
     width: f32,
     view: InspectorView,
-    pub next_y_position: f32,
     elements: InspectorElementContainer,
 }
 
@@ -25,7 +24,24 @@ pub struct Inspector {
 #[derive(Debug, Default)]
 pub struct InspectorElementContainer {
     entities: Vec<String>,
-    components_list: HashMap<ObjectID, Box<dyn InspectorElement>>,
+    components_list: HashMap<Entity, HashMap<String, Box<dyn InspectorElement>>>,
+}
+
+#[derive(Debug, Resource)]
+pub struct InspectorDrawInfo {
+    pub next_y_position: f32,
+    pub width: f32,
+    pub enabled: bool,
+}
+
+impl Default for InspectorDrawInfo {
+    fn default() -> Self {
+        Self {
+            next_y_position: Default::default(),
+            width: 600.0,
+            enabled: Default::default(),
+        }
+    }
 }
 
 impl Default for Inspector {
@@ -35,7 +51,6 @@ impl Default for Inspector {
             width: 600.0,
             view: InspectorView::default(),
             elements: InspectorElementContainer::default(),
-            next_y_position: 0.0,
         }
     }
 }
@@ -96,7 +111,7 @@ where
     /// You can still manage the state in your own draw functions. This will be called after those functions are called.
     ///
     /// Make use of the inspector to
-    fn draw(&self, canvas: &mut Canvas, inspector: &mut ResMut<Inspector>);
+    fn draw(&self, canvas: &mut Canvas, inspector_draw_info: &mut InspectorDrawInfo);
 }
 
 pub fn update_inspector(
@@ -104,28 +119,58 @@ pub fn update_inspector(
     entities_without_data: Query<(Entity, &SceneData), Without<InspectorData>>,
     mut commands: Commands,
     mut inspector: ResMut<Inspector>,
+    scene: Res<SceneManager>,
     input: Res<Input>,
 ) {
+    // trace!("Updating inspector");
     if input
         .get_action("nextInspectorTab")
         .unwrap()
         .is_just_pressed()
     {
         inspector.view.next_tab();
+        trace!("Now inspecting tab {:?}", &inspector.view);
     } else if input
-        .get_action("nextInspectorTab")
+        .get_action("previousInspectorTab")
         .unwrap()
         .is_just_pressed()
     {
         inspector.view.previous_tab();
+        trace!("Now inspecting tab {:?}", &inspector.view);
     }
 
     for (entity, scene_data) in entities_without_data.iter() {
+        info!("Found new entity: {}", scene_data.object_name);
+        trace!("Debug info: {:?}", scene_data);
         commands.entity(entity).insert(InspectorData {});
         inspector
             .elements
             .entities
             .push(scene_data.object_name.clone());
+
+        for (_, component_path) in &scene_data.component_paths {
+            let mut component_data = HashMap::new();
+
+            let type_info = scene
+                .type_registry
+                .get_with_type_path(&component_path)
+                .unwrap()
+                .type_info();
+
+            component_data.insert(
+                component_path.to_string(),
+                Box::new(ComponentInspectorElement::new(
+                    entity,
+                    type_info.to_owned(),
+                    component_path.to_string(),
+                )) as Box<dyn InspectorElement>,
+            );
+            inspector
+                .elements
+                .components_list
+                .insert(entity, component_data);
+            trace!("Inserted {}", component_path);
+        }
     }
 
     for (entity, scene_data) in query.iter() {}
@@ -136,6 +181,8 @@ pub fn draw_inspector(
     mut engine: ResMut<GgezInterface>,
     input: Res<Input>,
 ) {
+    // trace!("Drawing inspector");
+
     if input
         .get_action("enableinspector")
         .unwrap()
@@ -179,37 +226,52 @@ pub fn draw_inspector(
     }
 }
 
+#[inline]
 fn inspector_draw_components(
     mut inspector: ResMut<Inspector>,
     mut engine: ResMut<GgezInterface>,
     input: Res<Input>,
 ) {
-    let mut y = 0.0;
-    for id in &inspector.elements.entities {
-        let text = graphics::Text::new(TextFragment::new(id));
+    let mut inspector_draw_info = InspectorDrawInfo::default();
+
+    for (_entity, element_list) in &inspector.elements.components_list {
+        let text = graphics::Text::new(TextFragment::new("Inspecting components of entity"));
 
         text.draw(
             engine.get_canvas_mut().unwrap(),
-            DrawParam::new().dest(Point2 { x: 1320.0, y }),
+            DrawParam::new().dest(Point2 {
+                x: 1320.0,
+                y: inspector_draw_info.next_y_position,
+            }),
         );
-        y += 20.0;
+        inspector_draw_info.next_y_position += 20.0;
+
+        for (path, element) in element_list {
+            element.draw(engine.get_canvas_mut().unwrap(), &mut inspector_draw_info);
+
+            inspector_draw_info.next_y_position += 20.0;
+        }
     }
 }
 
+#[inline]
 fn inspector_draw_entities(
     mut inspector: ResMut<Inspector>,
     mut engine: ResMut<GgezInterface>,
     input: Res<Input>,
 ) {
-    let mut y = 0.0;
+    let mut inspector_draw_info = InspectorDrawInfo::default();
     for id in &inspector.elements.entities {
         let text = graphics::Text::new(TextFragment::new(id));
 
         text.draw(
             engine.get_canvas_mut().unwrap(),
-            DrawParam::new().dest(Point2 { x: 1320.0, y }),
+            DrawParam::new().dest(Point2 {
+                x: 1320.0,
+                y: inspector_draw_info.next_y_position,
+            }),
         );
-        y += 20.0;
+        inspector_draw_info.next_y_position += 20.0;
     }
 }
 
@@ -217,28 +279,27 @@ fn inspector_draw_entities(
 pub struct ComponentInspectorElement {
     pub entity: Entity,
     type_info: TypeInfo,
+    component_path: String,
 }
 
 impl ComponentInspectorElement {
-    pub fn new(entity: Entity, component: &dyn Reflect, registry: &TypeRegistry) -> Self {
-        let type_info = registry
-            .get(component.type_id())
-            .expect("Expected a type registration of the given component")
-            .type_info()
-            .clone();
-
-        Self { entity, type_info }
+    pub fn new(entity: Entity, type_info: TypeInfo, path: String) -> Self {
+        Self {
+            entity,
+            type_info,
+            component_path: path,
+        }
     }
 }
 
 impl InspectorElement for ComponentInspectorElement {
     fn get_height(&self) -> f32 {
-        let mut height = 30;
+        let mut height = 30.0;
         match &self.type_info {
             TypeInfo::Struct(s) => {
                 for field in s.iter() {
                     if field.is::<&dyn InspectorValue>() {
-                        height += (field. as &dyn InspectorValue).height();
+                        height += 20.0;
                     }
                 }
             }
@@ -254,8 +315,24 @@ impl InspectorElement for ComponentInspectorElement {
         InspectorView::Components
     }
 
-    fn draw(&self, canvas: &mut Canvas, inspector: &mut ResMut<Inspector>) {
-        todo!()
+    fn draw(&self, canvas: &mut Canvas, inspector: &mut InspectorDrawInfo) {
+        trace!("Drawing {:?}", self.component_path);
+        match &self.type_info {
+            TypeInfo::Struct(s) => {
+                for field in s.field_names() {
+                    let text = (*field).to_owned() + ":" + "  todo!()";
+                    let fragment = TextFragment::new(text);
+
+                    let drawable = graphics::Text::new(fragment);
+
+                    canvas.draw(&drawable, DrawParam::new())
+                }
+            }
+            TypeInfo::TupleStruct(_) => todo!(),
+            TypeInfo::Tuple(_) => todo!(),
+            TypeInfo::Enum(_) => todo!(),
+            _ => panic!("The given type info is not a type you can implement `Component` onto!"),
+        }
     }
 }
 

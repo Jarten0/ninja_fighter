@@ -1,3 +1,6 @@
+use crate::scene::object_id::ComponentInstanceID;
+use crate::scene::IDCounter;
+
 use super::add_entity_to_scene;
 use super::component;
 use super::object_data::SceneData;
@@ -268,17 +271,29 @@ impl SerializedSceneData {
         world: &mut World,
         type_registry: &TypeRegistry,
     ) -> Result<Entity, SceneError> {
-        trace!("Initializing new scene...");
+        debug!("Initializing new scene ({})...", self.name);
 
         let scene = component::Scene::new(self.name.to_owned());
 
         let mut entities: Vec<Entity> = Vec::new();
-        for (entity_name, entity_hashmap) in self.entity_data {
-            trace!("Initializing {}", &entity_name);
+        for (entity_name, component_data_hashmap) in self.entity_data {
+            debug!("Initializing new entity ({})", &entity_name);
+            trace!("Component list: {:?}", component_data_hashmap);
+
+            let mut component_paths = HashMap::new();
+            let mut component_ids = HashMap::new();
+            let _ = component_data_hashmap.keys().inspect(|path| {
+                trace!("Inserted new component path");
+                let k = ComponentInstanceID::get_new();
+                component_paths.insert(k, (*path).to_owned());
+                component_ids.insert((*path).to_owned(), k);
+            });
 
             let bundle = SceneData {
                 object_name: entity_name,
                 scene_id: Some(scene.scene_id),
+                component_paths,
+                component_ids,
             };
 
             let entity_name_debug = bundle.object_name.clone();
@@ -287,7 +302,7 @@ impl SerializedSceneData {
 
             trace!("Spawned {} with SceneData component", entity_name_debug);
 
-            for (component_path, component_data) in entity_hashmap {
+            for (component_path, component_data) in component_data_hashmap {
                 trace!("Initializing component {}", component_path);
 
                 let component_registration: &bevy_reflect::TypeRegistration = type_registry

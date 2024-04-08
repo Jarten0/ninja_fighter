@@ -35,17 +35,6 @@
 // 		"description": "Creates a new minimum bean for writing scripts with"
 // 	},
 
-	"Template bean": {
-		"scope": "rust",
-		"prefix": "component",
-		"body": [
-"#[derive(bevy_ecs::component::Component)]",
-"pub struct ${1: Component} {",
-"	pub ${2:field}: $3,",
-"}",
-		],
-		"description": "Creates a new template component for writing scripts with"
-	},
 
 	"StaticOnceCell": {
 		"scope": "rust",

@@ -4,7 +4,7 @@
 ///
 /// Game logic should be disabled if
 #[derive(Debug, Default, PartialEq, Clone)]
-pub(crate) enum FreezeType {
+pub enum FreezeType {
     /// The game is in focus, and there isn't anything that should be preventing game logic and rendering from updating.
     #[default]
     NONE,
@@ -21,6 +21,8 @@ pub(crate) enum FreezeType {
     /// The game is paused due to debug state. Keep rendering, but stop ALL game logic.
     ///
     /// Contains the previous state to return to when exiting debug state.
+    ///
+    /// Even FreezeSchedule will not run during this.
     DEBUG(Box<FreezeType>),
 }
 
@@ -36,34 +38,5 @@ impl FreezeType {
             FreezeType::IMPACT(_) => todo!(),
             FreezeType::DEBUG(_) => todo!(),
         }
-    }
-}
-
-#[derive(Debug, Default)]
-pub struct FreezeManager {
-    current_freeze_state: FreezeType,
-}
-
-impl FreezeManager {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    pub fn update(
-        &mut self,
-        unfocused: bool,
-        minimized: bool,
-        paused: bool,
-        loading: bool,
-        impact: bool,
-        debug: bool,
-    ) {
-        if debug {
-            return;
-        } else if let FreezeType::DEBUG(previous_state) = &self.current_freeze_state {
-            self.current_freeze_state = *previous_state.to_owned();
-        }
-
-        if unfocused {}
     }
 }

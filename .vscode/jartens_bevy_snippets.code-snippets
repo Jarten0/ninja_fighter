@@ -3,8 +3,9 @@
         "body": [
             "",
             "${0:use crate::scene::IDCounter;",
-            "use crate::scene::Counter;}",
-            "#[derive(Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]",
+            "use crate::scene::Counter;",
+            "use bevy_reflect::Reflect;}",
+            "#[derive(Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Reflect)]",
             "pub struct ${1:NewID}(usize);",
             "",
             "impl IDCounter for ${1:NewID} {",

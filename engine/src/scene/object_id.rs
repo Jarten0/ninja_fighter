@@ -27,6 +27,21 @@ where
     fn get_new() -> Self;
 }
 
+#[derive(Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Reflect)]
+/// A unique identifier to an instance of a component.
+///
+/// This is added to [`super::SceneData`] whenever an entity is registered into a scene,
+/// and only if that component implements [`super::TestSuperTrait`], which allows it to
+/// be picked up by an iterator.
+pub struct ComponentInstanceID(usize);
+
+impl IDCounter for ComponentInstanceID {
+    fn get_new() -> ComponentInstanceID {
+        pub static STATIC_ID_COUNTER: Counter = Counter::new();
+        ComponentInstanceID(STATIC_ID_COUNTER.get())
+    }
+}
+
 #[derive(Debug, Eq, Clone, Copy, PartialOrd, Reflect)]
 // #[reflect_value]
 pub struct ObjectID {

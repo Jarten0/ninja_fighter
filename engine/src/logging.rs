@@ -27,27 +27,27 @@ impl log::Log for Logger {
         }
         match record.level() {
             log::Level::Error => println!(
-                "Error: [{}]: {}",
+                "! Error: [{}]: {}",
                 record.file().unwrap().to_owned() + ":" + &record.line().unwrap().to_string(),
                 record.args()
             ),
             log::Level::Warn => println!(
-                "Warn: [{}]: {}",
+                "~ Warn : [{}]: {}",
                 record.file().unwrap().to_owned() + ":" + &record.line().unwrap().to_string(),
                 record.args()
             ),
             log::Level::Info => println!(
-                "Info: [{}]: {}",
+                "- Info : [{}]: {}",
                 record.file().unwrap().to_owned() + ":" + &record.line().unwrap().to_string(),
                 record.args()
             ),
             log::Level::Debug => println!(
-                "Debug: [{}]: {}",
+                "? Debug: [{}]: {}",
                 record.file().unwrap().to_owned() + ":" + &record.line().unwrap().to_string(),
                 record.args()
             ),
             log::Level::Trace => println!(
-                "Trace: [{}]: {}",
+                "  Trace: [{}]: {}",
                 record.file().unwrap().to_owned() + ":" + &record.line().unwrap().to_string(),
                 record.args()
             ),
