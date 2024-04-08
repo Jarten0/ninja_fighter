@@ -1,4 +1,3 @@
-
 use crate::space;
 
 use super::action::{ActionData, ActionID, KeyStatus};
@@ -105,7 +104,6 @@ impl Input {
     }
 
     pub(crate) fn process_key_queue(&mut self) {
-        dbg!(&self.key_update_queue);
         for (_, key) in &mut self.key_list {
             key.update(key.status.is_held())
         }

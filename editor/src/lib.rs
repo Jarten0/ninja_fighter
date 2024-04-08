@@ -31,7 +31,8 @@ pub(crate) fn debug_schedule() -> Schedule {
     // Configuration block
     sched
         .set_build_settings(DEBUG_SETTINGS.clone())
-        .set_executor_kind(ExecutorKind::Simple);
+        .set_executor_kind(ExecutorKind::Simple)
+        .add_systems((inspector::update_inspector));
 
     // Systems block
 

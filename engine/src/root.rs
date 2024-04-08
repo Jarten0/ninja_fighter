@@ -173,6 +173,7 @@ impl EventHandler for GameRoot {
         // Runs the tick schedule
 
         self.world.run_schedule(ScheduleTag::Tick);
+
         println!("Ran tick schedule once");
 
         // Debug console: if `debug_mode` is enabled, it will open the console and pause ticks until it is closed

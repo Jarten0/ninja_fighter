@@ -1,11 +1,13 @@
 Click/mouse1;k|
 RightClick/mouse2;o|
-Up/w;up;|
-Down/s;down;|
-Left/a;left;|
-Right/d;right;|
+Up/w;|
+Down/s;|
+Left/a;|
+Right/d;|
 enabledebugmode/grave;|
 debugconsole/f1;|
 enableinspector/f2;|
 debug_log/f3;|
 dragvertex/space;|
+nextInspectorTab/right;|
+previousInspectorTab/left;|

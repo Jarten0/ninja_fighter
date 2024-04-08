@@ -1,27 +1,27 @@
-use bevy_reflect::{Struct, TypePath};
-use serde::*;
+use bevy_ecs::schedule::Schedule;
+use bevy_ecs::schedule::ScheduleLabel;
+use bevy_ecs::world::World;
+
+#[derive(Debug, Hash, PartialEq, Eq, Clone, ScheduleLabel)]
+enum Label {
+    Test,
+}
 
 fn main() {
-    println!("{}", ReflectableVertex::type_path());
-    dbg!(ReflectableVertex::field_at(
-        &ReflectableVertex::default(),
-        2
-    ));
-}
+    let mut world = World::new();
 
-#[derive(Debug, Default, Serialize, Deserialize)]
-#[serde(remote = "ggez::graphics::Vertex")]
-pub struct ReflectableVertex {
-    pub position: [f32; 2],
-    pub uv: [f32; 2],
-    pub color: [f32; 4],
-}
+    let mut schedule = Schedule::new(Label::Test);
 
-bevy_reflect::impl_reflect!(
-    #[type_path = "ggez::graphics::Vertex"]
-    pub struct ReflectableVertex {
-        pub position: [f32; 2],
-        pub uv: [f32; 2],
-        pub color: [f32; 4],
+    schedule.add_systems(test_system);
+
+    world.add_schedule(schedule);
+
+    for _ in 0..100 {
+        println!("Calling run_schedule");
+        world.run_schedule(Label::Test);
     }
-);
+}
+
+fn test_system() {
+    println!("Ran schedule once")
+}
