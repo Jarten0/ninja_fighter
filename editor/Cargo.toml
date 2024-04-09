@@ -6,6 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+bevy-trait-query.workspace = true
 bevy_ecs.workspace = true
 bevy_reflect.workspace = true
 components = { version = "0.1.0", path = "../components" }

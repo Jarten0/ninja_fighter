@@ -282,12 +282,15 @@ impl SerializedSceneData {
 
             let mut component_paths = HashMap::new();
             let mut component_ids = HashMap::new();
-            let _ = component_data_hashmap.keys().inspect(|path| {
-                trace!("Inserted new component path");
-                let k = ComponentInstanceID::get_new();
-                component_paths.insert(k, (*path).to_owned());
-                component_ids.insert((*path).to_owned(), k);
-            });
+            component_data_hashmap
+                .keys()
+                .inspect(|path| {
+                    trace!("Inserted new component path");
+                    let k = ComponentInstanceID::get_new();
+                    component_paths.insert(k, (*path).to_owned());
+                    component_ids.insert((*path).to_owned(), k);
+                })
+                .last();
 
             let bundle = SceneData {
                 object_name: entity_name,

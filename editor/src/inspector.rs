@@ -1,8 +1,8 @@
 mod button;
 use bevy_ecs::{prelude::*, query};
-use bevy_reflect::{Reflect, TypeInfo, TypeRegistration, TypeRegistry};
+use bevy_reflect::{Reflect, TypeData, TypeInfo, TypeRegistration, TypeRegistry};
 use engine::{
-    scene::{self, ObjectID, SceneData, SceneManager},
+    scene::{self, ObjectID, Scene, SceneData, SceneManager},
     GgezInterface, Input,
 };
 use ggez::{
@@ -12,12 +12,15 @@ use ggez::{
 use log::*;
 use std::{collections::HashMap, fmt::Debug};
 
+use self::button::{ClickState, InspectorClickButton};
+
 #[derive(Debug, Resource)]
 pub struct Inspector {
     enabled: bool,
     width: f32,
     view: InspectorView,
     elements: InspectorElementContainer,
+    focused_entity: Option<Entity>,
 }
 
 /// The container for all of the various inspector tabs
@@ -25,21 +28,24 @@ pub struct Inspector {
 pub struct InspectorElementContainer {
     entities: Vec<String>,
     components_list: HashMap<Entity, HashMap<String, Box<dyn InspectorElement>>>,
+    add_component_button: AddComponentElement,
 }
 
 #[derive(Debug, Resource)]
 pub struct InspectorDrawInfo {
-    pub next_y_position: f32,
+    pub next_dest: Point2<f32>,
     pub width: f32,
     pub enabled: bool,
+    pub text_draw_param: DrawParam,
 }
 
 impl Default for InspectorDrawInfo {
     fn default() -> Self {
         Self {
-            next_y_position: Default::default(),
+            next_dest: Point2::from_slice(&[1320.0, 0.0]),
             width: 600.0,
             enabled: Default::default(),
+            text_draw_param: DrawParam::new().color(Color::from_rgb(240, 220, 220)),
         }
     }
 }
@@ -51,7 +57,20 @@ impl Default for Inspector {
             width: 600.0,
             view: InspectorView::default(),
             elements: InspectorElementContainer::default(),
+            focused_entity: None,
         }
+    }
+}
+
+impl InspectorDrawInfo {
+    /// Sets the next [`DrawParam`] destination to the current spot, plus the given y amount.
+    ///
+    /// This makes the inspector a lot simpler, by simply allocating each element a certain amount of space based on it's height, no width checking necessary.
+    ///
+    /// Use this to set the next destination to draw at.
+    // TODO: These docs can be done better.
+    pub fn increment_next_dest(&mut self, y: f32) {
+        self.next_dest.y += y;
     }
 }
 
@@ -117,12 +136,24 @@ where
 pub fn update_inspector(
     query: Query<(Entity, &InspectorData)>,
     entities_without_data: Query<(Entity, &SceneData), Without<InspectorData>>,
+    scene_query: Query<&Scene>,
     mut commands: Commands,
     mut inspector: ResMut<Inspector>,
     scene: Res<SceneManager>,
     input: Res<Input>,
 ) {
     // trace!("Updating inspector");
+    if inspector.focused_entity.is_none() {
+        if let Some(target_scene) = scene.target_scene {
+            inspector.focused_entity = scene_query
+                .get(target_scene)
+                .unwrap()
+                .get_entities()
+                .get(0)
+                .copied();
+        }
+    }
+
     if input
         .get_action("nextInspectorTab")
         .unwrap()
@@ -232,26 +263,43 @@ fn inspector_draw_components(
     mut engine: ResMut<GgezInterface>,
     input: Res<Input>,
 ) {
-    let mut inspector_draw_info = InspectorDrawInfo::default();
-
-    for (_entity, element_list) in &inspector.elements.components_list {
-        let text = graphics::Text::new(TextFragment::new("Inspecting components of entity"));
-
-        text.draw(
+    if let None = inspector.focused_entity {
+        graphics::Text::new(TextFragment::new("No entity currently being inspected")).draw(
             engine.get_canvas_mut().unwrap(),
-            DrawParam::new().dest(Point2 {
-                x: 1320.0,
-                y: inspector_draw_info.next_y_position,
-            }),
+            DrawParam::new().dest(Point2 { x: 1320.0, y: 0.0 }),
         );
-        inspector_draw_info.next_y_position += 20.0;
-
-        for (path, element) in element_list {
-            element.draw(engine.get_canvas_mut().unwrap(), &mut inspector_draw_info);
-
-            inspector_draw_info.next_y_position += 20.0;
-        }
     }
+
+    let component_list = inspector
+        .elements
+        .components_list
+        .get(&inspector.focused_entity.unwrap());
+
+    if let None = component_list {
+        graphics::Text::new(TextFragment::new("No component_list was found for this entity! This is an inspector bug, not a component bug.")).draw(
+            engine.get_canvas_mut().unwrap(),
+            DrawParam::new().dest(Point2 { x: 1320.0, y: 0.0 }),
+        );
+    }
+
+    let mut inspector_draw_info = InspectorDrawInfo::default();
+    let canvas = engine.get_canvas_mut().unwrap();
+
+    for (component_path, element) in component_list.unwrap() {
+        graphics::Text::new(TextFragment::new(component_path))
+            .draw(canvas, DrawParam::new().dest(inspector_draw_info.next_dest));
+
+        inspector_draw_info.increment_next_dest(20.0);
+
+        element.draw(canvas, &mut inspector_draw_info);
+
+        inspector_draw_info.increment_next_dest(20.0);
+    }
+
+    inspector
+        .elements
+        .add_component_button
+        .draw(canvas, &mut inspector_draw_info);
 }
 
 #[inline]
@@ -266,12 +314,9 @@ fn inspector_draw_entities(
 
         text.draw(
             engine.get_canvas_mut().unwrap(),
-            DrawParam::new().dest(Point2 {
-                x: 1320.0,
-                y: inspector_draw_info.next_y_position,
-            }),
+            DrawParam::new().dest(inspector_draw_info.next_dest),
         );
-        inspector_draw_info.next_y_position += 20.0;
+        inspector_draw_info.increment_next_dest(20.0);
     }
 }
 
@@ -316,16 +361,23 @@ impl InspectorElement for ComponentInspectorElement {
     }
 
     fn draw(&self, canvas: &mut Canvas, inspector: &mut InspectorDrawInfo) {
-        trace!("Drawing {:?}", self.component_path);
+        // trace!("Drawing {:?}", self.component_path);
         match &self.type_info {
             TypeInfo::Struct(s) => {
+                canvas.draw(
+                    &graphics::Text::new(TextFragment::new(s.type_path())),
+                    inspector.text_draw_param.dest(inspector.next_dest),
+                );
                 for field in s.field_names() {
                     let text = (*field).to_owned() + ":" + "  todo!()";
                     let fragment = TextFragment::new(text);
 
                     let drawable = graphics::Text::new(fragment);
 
-                    canvas.draw(&drawable, DrawParam::new())
+                    canvas.draw(
+                        &drawable,
+                        inspector.text_draw_param.dest(inspector.next_dest),
+                    )
                 }
             }
             TypeInfo::TupleStruct(_) => todo!(),
@@ -369,3 +421,43 @@ impl InspectorValue for f64 {}
 impl InspectorValue for bool {}
 impl InspectorValue for String {}
 impl InspectorValue for &str {}
+
+#[derive(Debug)]
+pub struct AddComponentElement {
+    text: graphics::Text,
+    click_state: ClickState,
+    dimensions: graphics::Rect,
+}
+
+impl Default for AddComponentElement {
+    fn default() -> Self {
+        Self {
+            text: graphics::Text::new(TextFragment::new("Add component")),
+            click_state: ClickState::default(),
+            dimensions: graphics::Rect {
+                x: 20.0,
+                y: 0.0,
+                w: 120.0,
+                h: 20.0,
+            },
+        }
+    }
+}
+
+impl InspectorClickButton for AddComponentElement {
+    fn state(&self) -> &button::ClickState {
+        &self.click_state
+    }
+
+    fn message(&self) -> Option<&graphics::Text> {
+        Some(&self.text)
+    }
+
+    fn view(&self) -> InspectorView {
+        InspectorView::Components
+    }
+
+    fn button_dimensions(&self) -> ggez::graphics::Rect {
+        self.dimensions
+    }
+}

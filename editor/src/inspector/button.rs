@@ -1,33 +1,31 @@
-use super::Inspector;
+use std::fmt::Debug;
+
 use super::InspectorDrawInfo;
 use super::InspectorElement;
 use super::InspectorView;
-use bevy_ecs::component::Component;
 use bevy_ecs::system::Query;
 use bevy_ecs::system::Res;
-use bevy_ecs::system::ResMut;
 use engine::Input;
 use ggez::graphics;
 use ggez::graphics::Color;
 use ggez::graphics::DrawParam;
-use ggez::graphics::Text;
 use ggez::mint::Point2;
 
-pub(crate) fn update(mut query: Query<&mut InspectorButton>, input: Res<Input>) {
-    for ui_button in query.iter() {
-        ui_button;
+pub(crate) fn update(mut query: Query<&mut dyn InspectorClickButton>, input: Res<Input>) {
+    for ui_buttons in query.iter() {
+        todo!()
     }
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ButtonType {
-    Click(ClickButtonState),
-    Toggle(ToggleButtonState),
+    Click,
+    Toggle,
 }
 
 impl ButtonType {
     pub fn new() -> Self {
-        Self::Click(ClickButtonState::Idle)
+        Self::Click
     }
 }
 
@@ -38,7 +36,7 @@ impl Default for ButtonType {
 }
 
 #[derive(Debug, Default, Clone, PartialEq)]
-pub enum ClickButtonState {
+pub enum ClickState {
     #[default]
     Idle,
     Hovering,
@@ -47,42 +45,50 @@ pub enum ClickButtonState {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ToggleButtonState {
-    ToggledOff(ClickButtonState),
-    ToggledOn(ClickButtonState),
+    ToggledOff(ClickState),
+    ToggledOn(ClickState),
 }
 
-#[derive(Debug, Clone, Component)]
-pub struct InspectorButton {
-    pub(crate) state: ButtonType,
-    pub(crate) message: Option<graphics::Text>,
-    pub(crate) button: graphics::Quad,
-}
+#[bevy_trait_query::queryable]
+pub trait InspectorClickButton {
+    fn state(&self) -> &crate::inspector::button::ClickState;
 
-impl InspectorButton {
-    pub(crate) fn new(message: Option<String>) -> InspectorButton {
-        let mut text: Option<Text> = None;
-        if let Some(message) = message {
-            text = Some(graphics::Text::new(graphics::TextFragment::new(message)));
-        };
-
-        Self {
-            message: text,
-            button: graphics::Quad,
-            state: ButtonType::new(),
-        }
-    }
-}
-
-impl InspectorElement for InspectorButton {
-    fn get_height(&self) -> f32 {
-        20.0
+    fn message(&self) -> Option<&ggez::graphics::Text> {
+        None
     }
 
     fn view(&self) -> InspectorView {
         InspectorView::Entities
     }
 
+    fn button_dimensions(&self) -> ggez::graphics::Rect {
+        graphics::Rect {
+            x: 0.0,
+            y: 0.0,
+            w: 20.0,
+            h: 20.0,
+        }
+    }
+}
+
+impl<T> InspectorElement for T
+where
+    T: InspectorClickButton + Debug + Sync + Send,
+{
+    fn get_height(&self) -> f32 {
+        self.button_dimensions().y
+    }
+
+    fn view(&self) -> InspectorView {
+        self.view()
+    }
+
     fn draw(&self, canvas: &mut graphics::Canvas, inspector_draw_info: &mut InspectorDrawInfo) {
+        let button_dimensions = self.button_dimensions();
+        let button_dest = Point2::from_slice(&[
+            inspector_draw_info.next_dest.x + button_dimensions.x,
+            inspector_draw_info.next_dest.y + button_dimensions.y,
+        ]);
         let param = DrawParam::new()
             .color(Color {
                 r: 0.9,
@@ -91,43 +97,39 @@ impl InspectorElement for InspectorButton {
                 a: 1.0,
             })
             .clone()
-            .dest(Point2 {
-                x: 1320.0,
-                y: inspector_draw_info.next_y_position,
-            });
+            .dest_rect(button_dimensions)
+            .dest(button_dest);
 
-        if let ButtonType::Click(state) = self.state.clone() {
-            match state {
-                ClickButtonState::Idle => param.color(Color {
-                    r: 0.9,
-                    g: 0.0,
-                    b: 0.0,
-                    a: 1.0,
-                }),
-                ClickButtonState::Hovering => param.color(Color {
-                    r: 1.0,
-                    g: 0.0,
-                    b: 0.0,
-                    a: 1.0,
-                }),
-                ClickButtonState::Held => param.color(Color {
-                    r: 0.7,
-                    g: 0.0,
-                    b: 0.0,
-                    a: 1.0,
-                }),
-            };
-        }
+        match self.state() {
+            ClickState::Idle => param.color(Color {
+                r: 0.9,
+                g: 0.0,
+                b: 0.0,
+                a: 1.0,
+            }),
+            ClickState::Hovering => param.color(Color {
+                r: 1.0,
+                g: 0.0,
+                b: 0.0,
+                a: 1.0,
+            }),
+            ClickState::Held => param.color(Color {
+                r: 0.7,
+                g: 0.0,
+                b: 0.0,
+                a: 1.0,
+            }),
+        };
 
-        canvas.draw(&self.button, param);
+        canvas.draw(&graphics::Quad, param);
 
-        if self.message.is_some() {
+        if self.message().is_some() {
             canvas.draw(
-                self.message.as_ref().unwrap(),
-                DrawParam::new().color(Color::WHITE).clone().dest(Point2 {
-                    x: 1340.0,
-                    y: inspector_draw_info.next_y_position,
-                }),
+                self.message().unwrap(),
+                DrawParam::new()
+                    .color(Color::WHITE)
+                    .clone()
+                    .dest(button_dest),
             );
         }
     }
