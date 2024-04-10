@@ -62,7 +62,8 @@ pub(crate) fn debug_init_schedule() -> Schedule {
     sched
         .set_build_settings(DEBUG_SETTINGS.clone())
         .set_executor_kind(ExecutorKind::Simple)
-        .add_systems(inspector::init_editor_gui);
+        // .add_systems(())
+        ;
 
     // Systems block
 

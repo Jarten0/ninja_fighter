@@ -25,7 +25,7 @@ pub use object_data::SceneData;
 pub use object_data::TestSuperTrait;
 pub use object_id::CounterType;
 pub use object_id::ObjectID;
-pub use object_id::{Counter, IDCounter};
+pub use object_id::{ComponentInstanceID, Counter, IDCounter};
 pub use scene_manager::SceneManager;
 pub use serialized_scene::ToReflect;
 
