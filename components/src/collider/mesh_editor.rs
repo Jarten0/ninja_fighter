@@ -4,7 +4,7 @@ use bevy_ecs::entity::Entity;
 use bevy_ecs::system::{Query, Res, ResMut, Resource};
 use bevy_reflect::Reflect;
 use engine::scene::ObjectID;
-use engine::{GgezInterface};
+use engine::GgezInterface;
 use ggez::graphics::{self, DrawParam, StrokeOptions};
 use ggez::graphics::{Color, Rect, Transform};
 use log::trace;
@@ -101,11 +101,11 @@ pub fn update_editor(
             mut focused_vertex_index,
         } = focus_state
         {
-            trace!(
-                "id: {:?}, index: {:?}",
-                focused_mesh_id,
-                focused_vertex_index
-            );
+            // trace!(
+            //     "id: {:?}, index: {:?}",
+            //     focused_mesh_id,
+            //     focused_vertex_index
+            // );
             if !(entity == focused_entity) {
                 renderer
                     .draw_param

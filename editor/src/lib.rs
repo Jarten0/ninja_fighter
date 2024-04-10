@@ -8,35 +8,75 @@ use engine::schedule::ScheduleTag;
 use engine::GgezInterface;
 use engine::{EngineConfig, Input};
 use input_debugger::InputDebugger;
-use inspector::Inspector;
 use log::trace;
+
+use crate::inspector::EditorInterface;
 
 static DEBUG_ACTION_NAME: &str = "debugconsole";
 
 pub static EDITOR_ENGINE_CONFIG: EngineConfig = EngineConfig {
     scene_paths: &[game::INITIAL_SCENE],
     world_init: init_editor_schedules,
-    schedule_builder_functions: crate::wrap_schedules_with_debug,
     ticks_per_second: game::ENGINE_CONFIG.ticks_per_second,
     freeze_on_unfocus: false,
     freeze_on_minimize: false,
+    run_debug_schedules: true,
 };
 
 // Add new resources here!
 pub fn init_editor_schedules(world: &mut World) {
+    // The editor essentially acts as a wrapper for the game itself, injecting it's own code into the game.
+    // Thus, we run all of the usual functions for the game, then we run our own stuff on top of it.
     game::init_components_and_resources(world);
+
     world.insert_resource(InputDebugger::default());
-    world.insert_resource(Inspector::default());
-    trace!("Created editor resources");
+
+    let editor_interface =
+        EditorInterface::new(world.resource_mut::<GgezInterface>().get_context_mut());
+    world.insert_resource(editor_interface);
+
+    world.add_schedule(debug_tick_schedule());
+    world.add_schedule(debug_frame_schedule());
+    world.add_schedule(debug_init_schedule());
+    world.add_schedule(debug_gui_schedule());
+
+    trace!("Created editor resources and initialized editor schedules");
 }
 
-pub(crate) fn debug_schedule() -> Schedule {
+pub(crate) fn debug_gui_schedule() -> Schedule {
+    let mut sched = Schedule::new(ScheduleTag::DebugGUI);
+    // Configuration block
+    sched
+        .set_build_settings(DEBUG_SETTINGS.clone())
+        .set_executor_kind(ExecutorKind::Simple)
+        .add_systems(inspector::update_inspector);
+
+    // Systems block
+
+    sched
+}
+
+pub(crate) fn debug_init_schedule() -> Schedule {
+    let mut sched = Schedule::new(ScheduleTag::DebugInit);
+    // Configuration block
+    sched
+        .set_build_settings(DEBUG_SETTINGS.clone())
+        .set_executor_kind(ExecutorKind::Simple)
+        .add_systems(inspector::init_editor_gui);
+
+    // Systems block
+
+    sched
+}
+
+pub(crate) fn debug_tick_schedule() -> Schedule {
     let mut sched = Schedule::new(ScheduleTag::DebugTick);
     // Configuration block
     sched
         .set_build_settings(DEBUG_SETTINGS.clone())
         .set_executor_kind(ExecutorKind::Simple)
-        .add_systems((inspector::update_inspector));
+        // .add_systems((inspector::update_inspector).chain())
+        ;
 
     // Systems block
 
@@ -51,10 +91,13 @@ pub(crate) fn debug_frame_schedule() -> Schedule {
         .set_executor_kind(ExecutorKind::Simple);
 
     // Systems block
-    sched.add_systems((
-        inspector::draw_inspector,
-        input_debugger::draw_debug_information,
-    ));
+    sched.add_systems(
+        (
+            input_debugger::draw_debug_information,
+            inspector::draw_editor_gui,
+        )
+            .chain(),
+    );
 
     sched
 }
@@ -66,10 +109,3 @@ pub(crate) static DEBUG_SETTINGS: ScheduleBuildSettings = ScheduleBuildSettings 
     report_sets: true,
     auto_insert_apply_deferred: true,
 };
-
-pub fn wrap_schedules_with_debug() -> Vec<fn() -> Schedule> {
-    let mut vec = vec![debug_schedule, debug_frame_schedule];
-    vec.append(&mut game::schedule_builders());
-    trace!("Created editor schedules");
-    vec
-}

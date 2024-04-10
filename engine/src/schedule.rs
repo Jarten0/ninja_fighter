@@ -21,8 +21,10 @@ pub enum ScheduleTag {
     /// The game has just been started, and is initializing state.
     /// This schedule is run only once, after resources and schedules have been created and inserted.
     Init,
-    /// Runs during debug
     DebugTick,
     DebugFrame,
+    /// Is run every time a draw call will be made, regardless of whether the tick should be updating or not.
+    /// Also runs regardless of freeze frames, since, well, I'd best hope you have access to your GUI when your game is deadlocked in a freeze loop.
+    DebugGUI,
     DebugInit,
 }

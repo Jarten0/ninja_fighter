@@ -82,7 +82,7 @@ impl GameRoot {
 
         info!("Begin log");
 
-        crate::schedule::add_schedules(&mut world, (config.schedule_builder_functions)());
+        // crate::schedule::add_schedules(&mut world, (config.schedule_builder_functions)());
 
         let game_info = GgezInterface::new(context, config.clone());
         World::insert_resource(&mut world, game_info);
@@ -135,6 +135,10 @@ impl GameRoot {
 
         root.world.run_schedule(ScheduleTag::Init);
 
+        if config.run_debug_schedules {
+            root.world.run_schedule(ScheduleTag::DebugInit);
+        }
+
         trace!("Ran init schedule!");
 
         Ok(root)
@@ -144,6 +148,12 @@ impl GameRoot {
 impl EventHandler for GameRoot {
     /// Passes guard clauses depending on the TPS, checks for debug logic, updates resources then runs [`ScheduleTag::Tick`]
     fn update(&mut self, ctx: &mut Context) -> GameResult {
+        // trace!("Called update");
+
+        if self.engine().debug_mode {
+            self.world.run_schedule(ScheduleTag::DebugGUI)
+        }
+
         // FPS limiter: read `check_update_time` docs for more details
         if !ctx.time.check_update_time(self.ticks_per_second) {
             return GameResult::Ok(());
@@ -157,6 +167,13 @@ impl EventHandler for GameRoot {
             }
         }
 
+        // trace!("Actually passed into update");
+
+        self.update_context(ctx);
+
+        self.world.resource_mut::<Input>().process_key_queue();
+
+        // while ctx.time.check_update_time(self.ticks_per_second) {
         if let Some(action) = self.world.resource::<Input>().get_action("debugconsole") {
             if action.status().is_just_pressed() {
                 let mut engine = self.world.resource_mut::<GgezInterface>();
@@ -164,32 +181,30 @@ impl EventHandler for GameRoot {
             }
         }
 
-        self.update_context(ctx);
-
-        self.world.resource_mut::<Input>().process_key_queue();
-
-        let debug_mode = self.engine().debug_mode;
-
         // Runs the tick schedule
 
-        if self.world.resource::<GgezInterface>().is_freeze_frame() {
+        if self.engine().is_freeze_frame() {
+            self.world.run_schedule(ScheduleTag::FreezeTick)
         } else {
-            self.world.run_schedule(ScheduleTag::Tick);
+            self.world.run_schedule(ScheduleTag::Tick)
         }
 
         // println!("Ran tick schedule once");
 
         // Debug console: if `debug_mode` is enabled, it will open the console and pause ticks until it is closed
-        if debug_mode {
+        if self.engine().debug_mode {
             // Debug schedule is optional
             self.world.run_schedule(ScheduleTag::DebugTick)
         }
+        // }
 
         Ok(())
     }
 
     /// Creates a new [`Canvas`](graphics::Canvas) and calls the [`ScheduleTag::Frame`] schedule as often as possible
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
+        // trace!("Called draw");
+
         self.engine_mut().set_canvas(graphics::Canvas::from_frame(
             ctx,
             Color {

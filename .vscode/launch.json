@@ -38,7 +38,7 @@
                 "args": [
                     "run",
                     "--bin",
-                    "game"
+                    "editor"
                 ],
 
             },
