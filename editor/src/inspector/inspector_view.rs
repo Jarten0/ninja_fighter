@@ -1,6 +1,10 @@
 use super::InspectorWindow;
 use super::Response;
+use bevy_ecs::world::Mut;
+use bevy_ecs::world::World;
 use egui::Ui;
+use engine::scene::ReflectTestSuperTrait;
+use engine::scene::SceneManager;
 
 #[derive(Debug, Default)]
 pub struct InspectorViewState {
@@ -8,6 +12,7 @@ pub struct InspectorViewState {
 }
 
 pub fn draw_inspector(
+    state: &mut InspectorWindow,
     ui: &mut egui::Ui,
     tab: &mut <InspectorWindow as egui_dock::TabViewer>::Tab,
 ) -> Option<Response> {
@@ -25,8 +30,26 @@ pub fn draw_inspector(
         ui.add(egui::widgets::Button::new(component));
     }
     if ui.button("Add component").clicked() {
-        state.inspector.adding_component = !state.inspector.adding_component;
+        state.inspector.adding_component = true;
     }
-    if state.inspector.adding_component {}
+    if state.inspector.adding_component {
+        state
+            .world_mut()
+            .unwrap()
+            .resource_scope(|world: &mut World, res: Mut<SceneManager>| {
+                let types = res
+                    .type_registry
+                    .iter()
+                    .filter(|i| i.data::<ReflectTestSuperTrait>().is_some());
+
+                for type_ in types {
+                    if ui.button(type_.type_info().type_path()).clicked() {
+                        println!("Clicked!")
+                    }
+                }
+            });
+
+        // state.world().
+    }
     None
 }

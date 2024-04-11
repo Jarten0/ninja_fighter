@@ -8,18 +8,22 @@ enum Label {
 }
 
 fn main() {
-    let mut world = World::new();
+    let min = 5;
+    let max = 0;
+    println!("{}", !(max > min) || !(max < min))
 
-    let mut schedule = Schedule::new(Label::Test);
+    // let mut world = World::new();
 
-    schedule.add_systems(test_system);
+    // let mut schedule = Schedule::new(Label::Test);
 
-    world.add_schedule(schedule);
+    // schedule.add_systems(test_system);
 
-    for _ in 0..100 {
-        println!("Calling run_schedule");
-        world.run_schedule(Label::Test);
-    }
+    // world.add_schedule(schedule);
+
+    // for _ in 0..100 {
+    //     println!("Calling run_schedule");
+    //     world.run_schedule(Label::Test);
+    // }
 }
 
 fn test_system() {

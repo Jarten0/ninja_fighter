@@ -1084,6 +1084,7 @@ dependencies = [
  "bevy-trait-query",
  "bevy_ecs",
  "bevy_reflect",
+ "bevy_utils",
  "components",
  "egui",
  "egui_dock",

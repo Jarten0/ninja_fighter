@@ -32,7 +32,9 @@ pub fn init_editor_schedules(world: &mut World) {
     world.insert_resource(InputDebugger::default());
 
     let editor_interface =
-        EditorInterface::new(world.resource_mut::<GgezInterface>().get_context_mut());
+        world.resource_scope(|world: &mut World, mut engine: Mut<GgezInterface>| {
+            EditorInterface::new(engine.get_context_mut(), world)
+        });
     world.insert_resource(editor_interface);
 
     world.add_schedule(debug_tick_schedule());

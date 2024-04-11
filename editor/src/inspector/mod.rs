@@ -2,6 +2,7 @@ use self::entity_view::EntityViewState;
 use self::field_view::FieldViewState;
 use self::inspector_view::InspectorViewState;
 use bevy_ecs::prelude::*;
+use bevy_utils::synccell::SyncCell;
 use egui::Ui;
 use egui_dock::{DockArea, DockState, Style, SurfaceIndex};
 use engine::scene::{ComponentInstanceID, SceneData};
@@ -39,16 +40,20 @@ enum TabResponse {
 }
 
 #[derive(Resource)]
-pub struct EditorInterface {
+pub struct EditorInterface
+where
+    Self: 'static,
+{
     gui: ggegui::Gui,
     dock_state: egui_dock::DockState<EditorTabTypes>,
     focused_entity: Option<(Entity, String)>,
     current_response: Option<Response>,
     focused_component: Option<String>,
+    window: InspectorWindow<'static>,
 }
 
 impl EditorInterface {
-    pub fn new(ctx: &mut ggez::Context) -> Self {
+    pub fn new(ctx: &mut ggez::Context, world: &mut World) -> Self {
         let tabs = vec![
             EditorTabTypes::Entities,
             EditorTabTypes::Inspector {
@@ -59,22 +64,25 @@ impl EditorInterface {
 
         let dock_state = DockState::new(tabs);
 
+        let mut inspector_window = InspectorWindow::new(world);
         Self {
             gui: ggegui::Gui::new(ctx),
             dock_state,
             focused_entity: None,
             focused_component: None,
             current_response: None,
+            window: inspector_window,
         }
     }
 
-    fn inspector_dock_ui(&mut self, ui: &mut Ui, world: &mut World) {
-        let mut inspector_window = InspectorWindow::new(world, self.focused_entity.clone());
+    fn inspector_dock_ui(&mut self, ui: &mut Ui, world: &'static mut World) {
+        self.window.world = Some(world);
+
         DockArea::new(&mut self.dock_state)
             .style(Style::from_egui(ui.style().as_ref()))
-            .show_inside(ui, &mut inspector_window);
-        self.focused_entity = inspector_window.focused_entity;
-        self.focused_component = inspector_window.focused_component;
+            .show_inside(ui, &mut self.window);
+        self.focused_entity = self.window.focused_entity.clone();
+        self.focused_component = self.window.focused_component.clone();
 
         if let Some(response) = &self.current_response {
             match response {
@@ -98,12 +106,16 @@ impl EditorInterface {
             }
         }
 
-        self.current_response = inspector_window.current_response;
+        self.current_response = self.window.current_response.take();
     }
 }
 
 #[derive(Default)]
-struct InspectorWindow {
+struct InspectorWindow<'a>
+where
+    Self: Sync,
+    Self: Send,
+{
     pub entity_state: EntityViewState,
     pub inspector: InspectorViewState,
     pub field_state: FieldViewState,
@@ -111,13 +123,37 @@ struct InspectorWindow {
     entities: HashMap<String, Entity>,
     components: HashMap<Entity, HashMap<ComponentInstanceID, String>>,
     current_response: Option<Response>,
+
+    /// A raw mutable pointer to the current world.
+    ///
+    /// This is intended for single threaded code only, and shouldn't be accessed directly.
+    /// Use `world` or `world_mut` instead
+    world: Option<&'a mut World>,
+
     /// `String` = scene name
     pub focused_entity: Option<(Entity, String)>,
     pub focused_component: Option<String>,
 }
 
-impl InspectorWindow {
-    pub fn new(world: &mut World, focused_entity: Option<(Entity, String)>) -> Self {
+impl InspectorWindow<'_> {
+    /// Returns a reference to the world.
+    ///
+    /// Does not work if
+    pub fn world(&self) -> Option<&World> {
+        match &self.world {
+            Some(some) => Some(&**some),
+            None => None,
+        }
+    }
+
+    pub fn world_mut(&mut self) -> Option<&mut World> {
+        match &mut self.world {
+            Some(some) => Some(*some),
+            None => None,
+        }
+    }
+
+    pub fn new(world: &mut World) -> Self {
         let mut components = HashMap::new();
         let mut entities = HashMap::new();
 
@@ -135,13 +171,14 @@ impl InspectorWindow {
             components,
             current_response: None,
 
-            focused_entity,
+            focused_entity: None,
             focused_component: None,
+            world: None,
         }
     }
 }
 
-impl egui_dock::TabViewer for InspectorWindow {
+impl egui_dock::TabViewer for InspectorWindow<'_> {
     type Tab = EditorTabTypes;
 
     fn title(&mut self, tab: &mut Self::Tab) -> egui::WidgetText {
@@ -150,9 +187,9 @@ impl egui_dock::TabViewer for InspectorWindow {
 
     fn ui(&mut self, ui: &mut egui::Ui, tab: &mut Self::Tab) {
         self.current_response = match tab {
-            EditorTabTypes::Entities => entity_view::draw_entities(ui, tab),
-            EditorTabTypes::Inspector { .. } => inspector_view::draw_inspector(ui, tab),
-            EditorTabTypes::Field => field_view::draw_field(ui, tab),
+            EditorTabTypes::Entities => entity_view::draw_entities(self, ui, tab),
+            EditorTabTypes::Inspector { .. } => inspector_view::draw_inspector(self, ui, tab),
+            EditorTabTypes::Field => field_view::draw_field(self, ui, tab),
         };
     }
 

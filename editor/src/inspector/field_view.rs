@@ -6,6 +6,7 @@ use egui::Ui;
 pub struct FieldViewState {}
 
 pub fn draw_field(
+    state: &mut InspectorWindow,
     ui: &mut egui::Ui,
     tab: &mut <InspectorWindow as egui_dock::TabViewer>::Tab,
 ) -> Option<Response> {
