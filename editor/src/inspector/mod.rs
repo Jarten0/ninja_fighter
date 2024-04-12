@@ -39,17 +39,20 @@ enum TabResponse {
     SwitchToTab(EditorTabTypes),
 }
 
+///
 #[derive(Resource)]
 pub struct EditorInterface
 where
     Self: 'static,
+    Self: Send,
+    Self: Sync,
 {
     gui: ggegui::Gui,
     dock_state: egui_dock::DockState<EditorTabTypes>,
     focused_entity: Option<(Entity, String)>,
     current_response: Option<Response>,
     focused_component: Option<String>,
-    window: InspectorWindow<'static>,
+    window: InspectorWindow,
 }
 
 impl EditorInterface {
@@ -64,20 +67,17 @@ impl EditorInterface {
 
         let dock_state = DockState::new(tabs);
 
-        let mut inspector_window = InspectorWindow::new(world);
         Self {
             gui: ggegui::Gui::new(ctx),
             dock_state,
             focused_entity: None,
             focused_component: None,
             current_response: None,
-            window: inspector_window,
+            window: InspectorWindow::new(world),
         }
     }
 
-    fn inspector_dock_ui(&mut self, ui: &mut Ui, world: &'static mut World) {
-        self.window.world = Some(world);
-
+    fn inspector_dock_ui<'a>(&mut self, ui: &mut Ui, world: &'a mut World) {
         DockArea::new(&mut self.dock_state)
             .style(Style::from_egui(ui.style().as_ref()))
             .show_inside(ui, &mut self.window);
@@ -105,13 +105,11 @@ impl EditorInterface {
                 _ => unimplemented!(),
             }
         }
-
         self.current_response = self.window.current_response.take();
     }
 }
 
-#[derive(Default)]
-struct InspectorWindow<'a>
+struct InspectorWindow
 where
     Self: Sync,
     Self: Send,
@@ -119,40 +117,18 @@ where
     pub entity_state: EntityViewState,
     pub inspector: InspectorViewState,
     pub field_state: FieldViewState,
+
     // "global" state (available in all inspector views)
     entities: HashMap<String, Entity>,
     components: HashMap<Entity, HashMap<ComponentInstanceID, String>>,
     current_response: Option<Response>,
-
-    /// A raw mutable pointer to the current world.
-    ///
-    /// This is intended for single threaded code only, and shouldn't be accessed directly.
-    /// Use `world` or `world_mut` instead
-    world: Option<&'a mut World>,
 
     /// `String` = scene name
     pub focused_entity: Option<(Entity, String)>,
     pub focused_component: Option<String>,
 }
 
-impl InspectorWindow<'_> {
-    /// Returns a reference to the world.
-    ///
-    /// Does not work if
-    pub fn world(&self) -> Option<&World> {
-        match &self.world {
-            Some(some) => Some(&**some),
-            None => None,
-        }
-    }
-
-    pub fn world_mut(&mut self) -> Option<&mut World> {
-        match &mut self.world {
-            Some(some) => Some(*some),
-            None => None,
-        }
-    }
-
+impl InspectorWindow {
     pub fn new(world: &mut World) -> Self {
         let mut components = HashMap::new();
         let mut entities = HashMap::new();
@@ -173,12 +149,11 @@ impl InspectorWindow<'_> {
 
             focused_entity: None,
             focused_component: None,
-            world: None,
         }
     }
 }
 
-impl egui_dock::TabViewer for InspectorWindow<'_> {
+impl egui_dock::TabViewer for InspectorWindow {
     type Tab = EditorTabTypes;
 
     fn title(&mut self, tab: &mut Self::Tab) -> egui::WidgetText {
@@ -209,12 +184,13 @@ pub fn update_inspector(world: &mut World) {
         let _show = egui::Window::new("Inspector")
             .constrain(true)
             .show(&gui_ctx, |ui| {
-                editor.inspector_dock_ui(ui, world);
-            });
+                EditorInterface::inspector_dock_ui(&mut editor, ui, world);
 
-        editor
-            .gui
-            .update(world.resource_mut::<GgezInterface>().get_context_mut());
+                ggegui::Gui::update(
+                    &mut editor.gui,
+                    world.resource_mut::<GgezInterface>().get_context_mut(),
+                );
+            });
     });
 }
 

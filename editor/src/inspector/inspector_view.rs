@@ -33,23 +33,19 @@ pub fn draw_inspector(
         state.inspector.adding_component = true;
     }
     if state.inspector.adding_component {
-        state
-            .world_mut()
-            .unwrap()
-            .resource_scope(|world: &mut World, res: Mut<SceneManager>| {
-                let types = res
-                    .type_registry
-                    .iter()
-                    .filter(|i| i.data::<ReflectTestSuperTrait>().is_some());
+        // state
+        //     .resource_scope(|world: &mut World, res: Mut<SceneManager>| {
+        //         let types = res
+        //             .type_registry
+        //             .iter()
+        //             .filter(|i| i.data::<ReflectTestSuperTrait>().is_some());
 
-                for type_ in types {
-                    if ui.button(type_.type_info().type_path()).clicked() {
-                        println!("Clicked!")
-                    }
-                }
-            });
-
-        // state.world().
+        //         for type_ in types {
+        //             if ui.button(type_.type_info().type_path()).clicked() {
+        //                 println!("Clicked!")
+        //             }
+        //         }
+        //     });
     }
     None
 }

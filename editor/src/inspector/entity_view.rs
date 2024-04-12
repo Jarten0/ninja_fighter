@@ -1,5 +1,9 @@
+use std::collections::HashMap;
+
 use super::EditorTabTypes;
 
+use bevy_ecs::entity::Entity;
+use engine::scene::SceneData;
 use log::*;
 
 use super::Response;
@@ -24,6 +28,18 @@ pub fn draw_entities(
             return Some(Response::SwitchToTab(EditorTabTypes::Inspector {
                 adding_component: false,
             }));
+        }
+    }
+    if ui.button("Refresh").clicked() {
+        state.entities = {
+            let mut vec = HashMap::new();
+            // for (entity, scene_data) in state
+            //     .query::<(Entity, &SceneData)>()
+            //     .iter()
+            {
+                // vec.insert(scene_data.object_name.clone(), entity);
+            }
+            vec
         }
     }
     None
