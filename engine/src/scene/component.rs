@@ -320,6 +320,7 @@ pub fn add_entity_to_scene<'a>(
                 scene_id: Some(scene_id),
                 component_paths,
                 component_ids,
+                hide_in_inspector: true,
             });
     }
 

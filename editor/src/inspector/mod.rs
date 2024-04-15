@@ -1,18 +1,21 @@
 use self::entity_view::EntityViewState;
-use self::field_view::FieldViewState;
+use self::field_view::{FieldViewState, InspectableAsField, InspectorComponentField};
 use self::inspector_view::InspectorViewState;
+use self::modname::InspectorData;
 use bevy_ecs::prelude::*;
-use bevy_utils::synccell::SyncCell;
-use egui::Ui;
+use bevy_reflect::{reflect_trait, Reflect, TypeRegistry};
+use egui::{Pos2, Ui};
 use egui_dock::{DockArea, DockState, Style, SurfaceIndex};
-use engine::scene::{ComponentInstanceID, SceneData};
+use engine::scene::{SceneData, SceneManager, TestSuperTrait};
 use engine::GgezInterface;
 use ggez::graphics::DrawParam;
+use std::any::{Any, TypeId};
 use std::collections::HashMap;
+use std::fmt::Debug;
 
-mod entity_view;
-mod field_view;
-mod inspector_view;
+pub mod entity_view;
+pub mod field_view;
+pub mod inspector_view;
 
 type Response = TabResponse;
 
@@ -101,7 +104,7 @@ impl EditorInterface {
                 }
                 #[allow(unreachable_patterns)]
                 // so that if there is a new tab response, I don't have to deal with this right away. Let it fail I say.
-                // TODO: Remove if this project gains significance
+                // TODO: Remove if this project gains significance lol
                 _ => unimplemented!(),
             }
         }
@@ -111,6 +114,7 @@ impl EditorInterface {
 
 struct InspectorWindow
 where
+    Self: 'static,
     Self: Sync,
     Self: Send,
 {
@@ -120,7 +124,7 @@ where
 
     // "global" state (available in all inspector views)
     entities: HashMap<String, Entity>,
-    components: HashMap<Entity, HashMap<ComponentInstanceID, String>>,
+    components: HashMap<Entity, Vec<String>>,
     current_response: Option<Response>,
 
     /// `String` = scene name
@@ -129,13 +133,40 @@ where
 }
 
 impl InspectorWindow {
+    /// Requires access to InspectorWindow to get world access.
+    ///
+    /// Only works under specific circumstances.
+    // TODO: Describe those circumstances here. Essentially, don't call outside of `draw_inspector()`
+    pub(crate) fn world(&mut self) -> &mut World {
+        unsafe { &mut *(WORLD_REF.unwrap()) } // You called `world` when the reference wasn't available
+    }
+
     pub fn new(world: &mut World) -> Self {
-        let mut components = HashMap::new();
         let mut entities = HashMap::new();
+        let mut components = HashMap::new();
 
         for (entity, scene_data) in world.query::<(Entity, &SceneData)>().iter(&world) {
-            components.insert(entity, scene_data.component_paths.clone());
+            if scene_data.hide_in_inspector {
+                continue;
+            }
+
             entities.insert(scene_data.object_name.clone(), entity);
+        }
+
+        for (entity, dyn_components) in world.query::<(Entity, &dyn TestSuperTrait)>().iter(&world)
+        {
+            components.insert(
+                entity,
+                dyn_components
+                    .iter()
+                    .map(|component| component.as_reflect().reflect_type_path().to_string())
+                    .collect::<Vec<String>>(),
+            );
+        }
+
+        for entity in entities.values() {
+            let bundle = InspectorData::new(world, *entity);
+            world.entity_mut(*entity).insert(bundle);
         }
 
         Self {
@@ -161,6 +192,23 @@ impl egui_dock::TabViewer for InspectorWindow {
     }
 
     fn ui(&mut self, ui: &mut egui::Ui, tab: &mut Self::Tab) {
+        if let Some(focused_entity) = self.focused_entity.clone() {
+            for (entity, read) in self
+                .world()
+                .query::<(Entity, &dyn TestSuperTrait)>()
+                .iter(self.world())
+            {
+                if !(entity == focused_entity.0) {
+                    continue;
+                }
+
+                for component in read.iter() {
+                    // self.components.insert(k, v)
+                    // TODO: Continue writing component update functionality, refactor component type if you must
+                }
+            }
+            for component in self.components.get(&focused_entity.0) {}
+        }
         self.current_response = match tab {
             EditorTabTypes::Entities => entity_view::draw_entities(self, ui, tab),
             EditorTabTypes::Inspector { .. } => inspector_view::draw_inspector(self, ui, tab),
@@ -177,21 +225,112 @@ impl egui_dock::TabViewer for InspectorWindow {
     }
 }
 
-pub fn update_inspector(world: &mut World) {
-    world.resource_scope(|world: &mut World, mut editor: Mut<EditorInterface>| {
-        let gui_ctx = editor.gui.ctx();
+mod modname {
+    use std::any::Any;
+    use std::any::TypeId;
 
-        let _show = egui::Window::new("Inspector")
-            .constrain(true)
-            .show(&gui_ctx, |ui| {
-                EditorInterface::inspector_dock_ui(&mut editor, ui, world);
+    use bevy_ecs::prelude::*;
+    use engine::scene::TestSuperTrait;
 
-                ggegui::Gui::update(
-                    &mut editor.gui,
-                    world.resource_mut::<GgezInterface>().get_context_mut(),
-                );
+    use engine::scene::SceneManager;
+
+    use std::collections::HashMap;
+
+    use super::field_view::InspectableAsField;
+    use super::field_view::InspectorComponentField;
+
+    /// A component containing data for the inspector to use, stored with each entity and updated whenever that entity is in focus.
+    ///
+    /// Note that this is one of few components that shouldn't show up in the inspector.
+    #[derive(Debug, Component)]
+    pub struct InspectorData {
+        /// Contains each component, stored via its path, and each field, stored via its name.
+        pub component_data: HashMap<String, HashMap<String, InspectorComponentField>>,
+    }
+
+    impl InspectorData {
+        pub fn new(world: &mut World, entity: Entity) -> InspectorData {
+            let mut component_data = HashMap::new();
+
+            world.resource_scope(|world: &mut World, res: Mut<SceneManager>| {
+                let mut query = world.query::<&dyn TestSuperTrait>();
+
+                for component in query.get(world, entity).unwrap() {
+                    if !component.show_in_inspector() {
+                        continue;
+                    }
+
+                    let path = component.as_reflect().reflect_type_path().to_owned();
+
+                    let mut component_fields = HashMap::new();
+
+                    let type_info = res
+                        .type_registry
+                        .get_type_info(component.as_reflect().type_id()) // btw as_reflect() is the stupidest workaround ever but it works! goddamn this issue is stupid
+                        .expect(&format!("Expected type info on component {}", path));
+
+                    match type_info {
+                        bevy_reflect::TypeInfo::Struct(s) => {
+                            for field_name in s.field_names() {
+                                let inspect_data: &InspectableAsField = match res
+                                    .type_registry
+                                    .get_type_data(TypeId::of::<InspectableAsField>())
+                                {
+                                    Some(field_data) => field_data,
+                                    None => {
+                                        continue;
+                                    }
+                                };
+
+                                let field_widget = inspect_data.create_widget();
+
+                                let inspectable_field = InspectorComponentField {
+                                    field_widget,
+                                    field_name: field_name.to_string(),
+                                };
+
+                                component_fields.insert(field_name.to_string(), inspectable_field);
+                            }
+                        }
+                        bevy_reflect::TypeInfo::TupleStruct(ts) => todo!(),
+                        bevy_reflect::TypeInfo::Tuple(t) => todo!(),
+                        bevy_reflect::TypeInfo::Enum(e) => todo!(),
+                        _ => unreachable!(), // you implemented reflect on your component incorrectly, will not be implementing functionality for that.
+                    }
+
+                    component_data.insert(path, component_fields);
+                }
             });
-    });
+
+            Self { component_data }
+        }
+    }
+}
+
+static mut WORLD_REF: Option<*mut World> = None;
+
+pub fn update_inspector<'a>(world: &mut World) {
+    world.resource_scope(
+        |world_scoped: &mut World, mut editor: Mut<EditorInterface>| {
+            unsafe { WORLD_REF = Some(std::ptr::from_mut(world_scoped)) }
+
+            egui::Window::new("Inspector")
+                .id("InspectorWindow".into())
+                .constrain(true)
+                .show(&editor.gui.ctx(), |ui| {
+                    EditorInterface::inspector_dock_ui(&mut editor, ui, world_scoped);
+
+                    ggegui::Gui::update(
+                        &mut editor.gui,
+                        world_scoped
+                            .resource_mut::<GgezInterface>()
+                            .get_context_mut(),
+                    );
+                });
+
+            unsafe { WORLD_REF = None }
+        },
+    );
 }
 
 pub fn draw_editor_gui(editor: Res<EditorInterface>, mut engine: ResMut<GgezInterface>) {

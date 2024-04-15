@@ -25,6 +25,8 @@ pub struct SceneData {
     /// Contains the component path of every component that is reflectable.
     pub component_paths: HashMap<ComponentInstanceID, String>,
     pub component_ids: HashMap<String, ComponentInstanceID>,
+    /// Can be enabled to prevent the entity from being shown in the inspector.
+    pub hide_in_inspector: bool,
 }
 
 impl Serialize for SceneData {
@@ -32,7 +34,7 @@ impl Serialize for SceneData {
     where
         S: serde::Serializer,
     {
-        serializer.serialize_str("Placeholdre for scenedata")
+        serializer.serialize_str("Placeholder for scenedata")
     }
 }
 
@@ -58,11 +60,18 @@ where
         Self: Sized + Component;
 
     fn as_reflect(&self) -> &dyn Reflect;
+
+    /// Return a bool determining if the component should be visible in the inspector or not.
+    ///
+    /// Defaults to `true`.
+    fn show_in_inspector(&self) -> bool {
+        true
+    }
 }
 
 impl<T> TestSuperTrait for T
 where
-    T: erased_serde::Serialize + Component + Reflect + serde::Serialize,
+    T: erased_serde::Serialize + Component + Reflect + serde::Serialize + Default,
 {
     fn erased_serialize(&self, serializer: &mut dyn Serializer) -> Result<(), erased_serde::Error> {
         <T as erased_serde::Serialize>::erased_serialize(self, serializer)

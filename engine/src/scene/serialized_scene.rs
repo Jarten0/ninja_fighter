@@ -297,6 +297,7 @@ impl SerializedSceneData {
                 scene_id: Some(scene.scene_id),
                 component_paths,
                 component_ids,
+                hide_in_inspector: true,
             };
 
             let entity_name_debug = bundle.object_name.clone();

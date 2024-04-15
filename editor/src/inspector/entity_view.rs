@@ -30,14 +30,16 @@ pub fn draw_entities(
             }));
         }
     }
+    ui.separator();
     if ui.button("Refresh").clicked() {
         state.entities = {
             let mut vec = HashMap::new();
-            // for (entity, scene_data) in state
-            //     .query::<(Entity, &SceneData)>()
-            //     .iter()
+            for (entity, scene_data) in state
+                .world()
+                .query::<(Entity, &SceneData)>()
+                .iter(&state.world())
             {
-                // vec.insert(scene_data.object_name.clone(), entity);
+                vec.insert(scene_data.object_name.clone(), entity);
             }
             vec
         }

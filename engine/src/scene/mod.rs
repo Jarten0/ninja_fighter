@@ -37,7 +37,7 @@ pub fn register_scene_types(world: &mut bevy_ecs::world::World) {
         register::<space::Scale>(world, &mut res);
         register::<space::TransformSettings>(world, &mut res);
         register::<space::Velocity>(world, &mut res);
-        register::<space::Vector2>(world, &mut res);
+        // register::<space::Vector2>(world, &mut res);
     });
 }
 
@@ -48,7 +48,9 @@ where
         + GetTypeRegistration
         + bevy_reflect::TypePath
         + bevy_reflect::TypePath
-        + serde::Serialize,
+        + serde::Serialize
+        + Default
+        + TestSuperTrait,
 {
     world.init_component::<T>();
     res.type_registry.register::<T>();
@@ -63,7 +65,9 @@ pub fn serialize_component<
         + bevy_reflect::GetTypeRegistration
         + bevy_reflect::Reflect
         + serde::Serialize
-        + bevy_reflect::TypePath,
+        + bevy_reflect::TypePath
+        + Default
+        + TestSuperTrait,
 >(
     world: &mut bevy_ecs::prelude::World,
     register: &mut bevy_reflect::TypeRegistry,
