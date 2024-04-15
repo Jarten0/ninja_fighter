@@ -8,6 +8,8 @@ mod serialized_scene;
 #[cfg(test)]
 mod test;
 
+use bevy_ecs::reflect::ReflectFromWorld;
+use bevy_ecs::world::FromWorld;
 use bevy_ecs::{component::Component, world::Mut};
 use bevy_reflect::{GetTypeRegistration, Reflect};
 use bevy_trait_query::RegisterExt;
@@ -50,24 +52,29 @@ where
         + bevy_reflect::TypePath
         + serde::Serialize
         + Default
-        + TestSuperTrait,
+        + TestSuperTrait
+        + FromWorld,
 {
     world.init_component::<T>();
     res.type_registry.register::<T>();
     res.type_registry
         .register_type_data::<T, ReflectTestSuperTrait>();
+    res.type_registry
+        .register_type_data::<T, ReflectFromWorld>();
     world.register_component_as::<dyn TestSuperTrait, T>();
 }
 
 /// Enables the component to be serialized
 pub fn serialize_component<
     T: bevy_ecs::component::Component
-        + bevy_reflect::GetTypeRegistration
         + bevy_reflect::Reflect
+        + bevy_reflect::GetTypeRegistration
+        + bevy_reflect::FromReflect
         + serde::Serialize
         + bevy_reflect::TypePath
         + Default
-        + TestSuperTrait,
+        + TestSuperTrait
+        + FromWorld,
 >(
     world: &mut bevy_ecs::prelude::World,
     register: &mut bevy_reflect::TypeRegistry,
@@ -75,5 +82,6 @@ pub fn serialize_component<
     world.init_component::<T>();
     bevy_trait_query::RegisterExt::register_component_as::<dyn TestSuperTrait, T>(world);
     register.register::<T>();
-    register.register_type_data::<T, ReflectTestSuperTrait>()
+    register.register_type_data::<T, ReflectTestSuperTrait>();
+    register.register_type_data::<T, ReflectFromWorld>();
 }

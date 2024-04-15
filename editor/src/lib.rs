@@ -4,12 +4,14 @@ pub mod inspector;
 
 use bevy_ecs::prelude::*;
 use bevy_ecs::schedule::{ExecutorKind, LogLevel, ScheduleBuildSettings};
+use engine::scene::SceneManager;
 use engine::schedule::ScheduleTag;
 use engine::GgezInterface;
 use engine::{EngineConfig, Input};
 use input_debugger::InputDebugger;
 use log::trace;
 
+use crate::inspector::field_view::InspectableAsField;
 use crate::inspector::EditorInterface;
 
 static DEBUG_ACTION_NAME: &str = "debugconsole";
@@ -30,6 +32,11 @@ pub fn init_editor_schedules(world: &mut World) {
     game::init_components_and_resources(world);
 
     world.insert_resource(InputDebugger::default());
+
+    world.resource_scope(|world, mut res: Mut<SceneManager>| {
+        res.type_registry
+            .register_type_data::<f32, InspectableAsField>();
+    });
 
     let editor_interface =
         world.resource_scope(|world: &mut World, mut engine: Mut<GgezInterface>| {

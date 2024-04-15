@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use bevy_ecs::{
     component::{Component, ComponentId},
-    world::World,
+    world::{FromWorld, World},
 };
 use bevy_reflect::{reflect_trait, Reflect};
 use erased_serde::{Error, Serializer};
@@ -71,7 +71,7 @@ where
 
 impl<T> TestSuperTrait for T
 where
-    T: erased_serde::Serialize + Component + Reflect + serde::Serialize + Default,
+    T: erased_serde::Serialize + Component + Reflect + serde::Serialize + Default + FromWorld,
 {
     fn erased_serialize(&self, serializer: &mut dyn Serializer) -> Result<(), erased_serde::Error> {
         <T as erased_serde::Serialize>::erased_serialize(self, serializer)

@@ -193,6 +193,7 @@ impl egui_dock::TabViewer for InspectorWindow {
 
     fn ui(&mut self, ui: &mut egui::Ui, tab: &mut Self::Tab) {
         if let Some(focused_entity) = self.focused_entity.clone() {
+            let mut v: Vec<String> = Vec::new();
             for (entity, read) in self
                 .world()
                 .query::<(Entity, &dyn TestSuperTrait)>()
@@ -202,12 +203,15 @@ impl egui_dock::TabViewer for InspectorWindow {
                     continue;
                 }
 
-                for component in read.iter() {
-                    // self.components.insert(k, v)
-                    // TODO: Continue writing component update functionality, refactor component type if you must
-                }
+                // TODO: Continue writing component update functionality, refactor component type if you must
+                v = read
+                    .iter()
+                    .map(|component| component.as_reflect().reflect_type_path().to_string())
+                    .collect();
             }
-            for component in self.components.get(&focused_entity.0) {}
+            self.components.insert(focused_entity.0, v);
+
+            // for component in self.components.get(&focused_entity.0) {}
         }
         self.current_response = match tab {
             EditorTabTypes::Entities => entity_view::draw_entities(self, ui, tab),

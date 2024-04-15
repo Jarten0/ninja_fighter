@@ -1,6 +1,7 @@
 use super::Vector2;
 use bevy_ecs::component::Component;
 use bevy_ecs::reflect::ReflectComponent;
+use bevy_reflect::FromReflect;
 use bevy_reflect::Reflect;
 use serde::Deserialize;
 use serde::Serialize;

@@ -35,6 +35,7 @@ pub struct ProtagBundle {
 
 #[derive(Default, Debug, Component, Reflect, Serialize)]
 #[reflect(Component)]
+#[reflect(FromWorld)]
 pub struct ProtagController {
     pub acc: f32,
     pub decel: f32,

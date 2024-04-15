@@ -7,6 +7,7 @@ use bevy_reflect::FromType;
 use bevy_reflect::NamedField;
 use bevy_reflect::Reflect;
 use egui::Ui;
+use egui::Widget;
 
 #[derive(Debug, Default)]
 pub struct FieldViewState {}
@@ -66,11 +67,16 @@ impl egui::Widget for CustomWidget {
     }
 }
 
-impl<T> FieldWidget for T where T: Sync + Send + egui::Widget {}
-
 /// A simple supertrait for `egui::Widget` that requires the type to implement `Sync` and `Send` (also `Debug`)
 #[bevy_reflect::reflect_trait]
 pub trait FieldWidget: egui::Widget + Send + Sync {}
+impl<T> FieldWidget for T where T: Sync + Send + egui::Widget {}
+
+impl egui::Widget for Box<dyn FieldWidget> {
+    fn ui(self, ui: &mut Ui) -> egui::Response {
+        ui.add(self)
+    }
+}
 
 /// Insert into the type registry.
 ///
@@ -82,6 +88,18 @@ pub trait FieldWidget: egui::Widget + Send + Sync {}
 #[derive(Debug, Clone)]
 pub struct InspectableAsField {
     custom_widget_fn: fn() -> Box<dyn FieldWidget>,
+}
+
+pub trait Inspectable {
+    fn widget() -> Box<dyn FieldWidget>
+    where
+        Self: Sized;
+}
+
+impl<T> FromType<T> for InspectableAsField {
+    fn from_type() -> Self {
+        Self::default()
+    }
 }
 
 impl Default for InspectableAsField {
