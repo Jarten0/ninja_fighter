@@ -38,6 +38,12 @@ pub fn init_editor_schedules(world: &mut World) {
     world.resource_scope(|world, mut res: Mut<SceneManager>| {
         res.type_registry
             .register_type_data::<f32, InspectableAsField>();
+        // res.type_registry
+        //     .register_type_data::<f64, InspectableAsField>();
+        res.type_registry
+            .register_type_data::<bool, InspectableAsField>();
+        // res.type_registry
+        //     .register_type_data::<f32, InspectableAsField>();
     });
 
     let editor_interface =

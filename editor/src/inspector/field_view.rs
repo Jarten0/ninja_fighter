@@ -1,11 +1,14 @@
 use std::any::Any;
 use std::fmt::Debug;
+use std::ops::RangeInclusive;
 
 use super::InspectorWindow;
 use super::Response;
 use bevy_reflect::FromType;
 use bevy_reflect::NamedField;
 use bevy_reflect::Reflect;
+use bevy_reflect::Struct;
+use egui::Ui;
 use egui::Widget;
 use log::trace;
 
@@ -67,14 +70,30 @@ impl egui::Widget for CustomWidget {
 }
 
 /// A simple supertrait for `egui::Widget` that requires the type to implement `Sync` and `Send` (also `Debug`)
-#[bevy_reflect::reflect_trait]
-pub trait FieldWidget: egui::Widget + Send + Sync {
-    fn ui(&self, ui: &mut egui::Ui) -> egui::Response {
-        // ui.add(widget)
-        todo!()
+// #[bevy_reflect::reflect_trait]
+pub trait FieldWidget: Send + Sync + Sized {
+    fn ui(value: &mut dyn Reflect, ui: &mut Ui) -> egui::Response {
+        ui.label("Default implementation of widget for ".to_owned() + value.reflect_type_path())
     }
 }
-impl<T> FieldWidget for T where T: Sync + Send + egui::Widget {}
+
+impl FieldWidget for f32 {
+    fn ui(value: &mut dyn Reflect, ui: &mut Ui) -> egui::Response {
+        let value = value.downcast_mut::<f32>().unwrap();
+
+        ui.add(egui::Slider::new(value, 0.0..=100.0))
+    }
+}
+
+impl FieldWidget for bool {
+    fn ui(value: &mut dyn Reflect, ui: &mut Ui) -> egui::Response {
+        let value = value.downcast_mut::<bool>().unwrap();
+
+        ui.add(egui::Checkbox::new(value, "test bool"))
+    }
+}
+
+// impl<T> FieldWidget for T where T: Sync + Send {}
 
 /// Insert into the type registry.
 ///
@@ -85,31 +104,31 @@ impl<T> FieldWidget for T where T: Sync + Send + egui::Widget {}
 /// You must give it information required to serialize, display and edit it via [`egui`]
 #[derive(Debug, Clone)]
 pub struct InspectableAsField {
-    custom_widget_fn: fn() -> Box<dyn FieldWidget>,
+    ui_display_fn: fn(&mut dyn Reflect, &mut Ui) -> egui::Response,
 }
 
-impl<T> FromType<T> for InspectableAsField {
+impl<T: FieldWidget> FromType<T> for InspectableAsField {
     fn from_type() -> Self {
-        Self::default()
+        Self::new(<T as FieldWidget>::ui)
     }
 }
 
-impl Default for InspectableAsField {
-    fn default() -> Self {
-        Self {
-            custom_widget_fn: || {
-                Box::new(egui::Label::new("DefaultFieldWidget")) as Box<dyn FieldWidget>
-            },
-        }
-    }
-}
+// impl Default for InspectableAsField {
+//     fn default() -> Self {
+//         Self {
+//             ui_display_fn: |field_data, ui| {
+//                 ui.add(egui::Label::new("DefaultFieldWidget"));
+//             },
+//         }
+//     }
+// }
 
 impl InspectableAsField {
-    pub fn new(custom_widget_fn: fn() -> Box<dyn FieldWidget>) -> Self {
-        Self { custom_widget_fn }
+    pub fn new(ui_display_fn: fn(&mut dyn Reflect, &mut Ui) -> egui::Response) -> Self {
+        Self { ui_display_fn }
     }
 
-    pub fn create_widget(&self) -> Box<dyn FieldWidget> {
-        (self.custom_widget_fn)()
+    pub fn show(&self, ui: &mut egui::Ui, field: &mut dyn Reflect) -> egui::Response {
+        (self.ui_display_fn)(field, ui)
     }
 }

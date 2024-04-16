@@ -48,6 +48,7 @@ pub struct ProtagController {
 pub fn update(
     mut query: Query<(&mut Position, &mut Velocity, &ProtagController)>,
     input: Res<Input>,
+
     ggez: Res<GgezInterface>,
 ) {
     let screen_height = ggez.get_context().gfx.drawable_size().1;

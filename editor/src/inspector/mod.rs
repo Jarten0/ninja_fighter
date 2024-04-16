@@ -301,8 +301,6 @@ mod modname {
                                     }
                                 };
 
-                                let field_widget = inspect_data.create_widget();
-
                                 let inspectable_field = InspectorComponentField {
                                     field_inspection_data: inspect_data.to_owned(),
                                     field_name: field_name.to_string(),

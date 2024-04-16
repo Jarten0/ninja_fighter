@@ -13,6 +13,8 @@ use bevy_reflect::Struct;
 use bevy_reflect::TypeInfo;
 use bevy_reflect::TypeRegistry;
 use bevy_utils::Duration;
+use egui::ComboBox;
+use egui::Label;
 use engine::scene::ReflectTestSuperTrait;
 use engine::scene::SceneManager;
 use log::*;
@@ -45,49 +47,65 @@ pub(super) fn draw_inspector(
                 .world()
                 .resource_scope(|world, res: Mut<SceneManager>| {
                     for component in some {
-                        let component_struct = world
-                            .components()
-                            .get_info(component)
-                            .ok_or_else({
-                                error!("Could not find component  on {}", entity.1);
-                                return;
-                                || {}
-                            })
-                            .unwrap();
+                        let Some(component_info) = world.components().get_info(component) else {
+                            error!("Could not find component {:?} on {}", component, entity.1);
+                            return;
+                        };
+
+                        let component_type_id = component_info.clone().type_id().unwrap();
 
                         let type_registration = res
                             .type_registry
-                            .get(
-                                component_struct
-                                    .type_id()
-                                    .expect("dynamic components not implemented"), // theres no unwrap with message.
-                            )
+                            .get(component_type_id)
                             .expect("expected a type registration for component");
 
-                        let ptr = world
-                            .get_entity_mut(entity.0)
-                            .unwrap()
-                            .get_mut_by_id(component)
-                            .expect("component not found on entity")
-                            .as_mut();
+                        let Some(mut get_entity_mut) = world.get_entity_mut(entity.0) else {
+                            error!("Could not find entity in world");
+                            return;
+                        };
+
+                        let Some(mut ptr) = get_entity_mut.get_mut_by_id(component) else {
+                            error!("Could not find");
+                            return;
+                        };
 
                         let reflected = unsafe {
+                            let val = ptr.as_mut();
+
                             type_registration
                                 .data::<bevy_reflect::ReflectFromPtr>()
                                 .unwrap()
-                                .as_reflect_mut(ptr)
+                                .as_reflect_mut(val)
                         };
 
-                        assert_eq!(reflected.type_id(), component_struct.type_id().unwrap());
+                        assert_eq!(reflected.as_reflect().type_id(), component_type_id);
                         // SAFETY: ptr is of type type_id as required in safety contract, type_id was checked above
                         // also, I'm totally taking "inspiration" from `bevy-inspector-egui`. Go check it out, it's awesome :D
 
-                        match reflected.reflect_mut() {
-                            bevy_reflect::ReflectMut::Struct(s) => draw_struct_in_inspector(s, ui),
-                            bevy_reflect::ReflectMut::TupleStruct(ts) => todo!(),
-                            bevy_reflect::ReflectMut::Enum(e) => todo!(),
-                            _ => unimplemented!(),
-                        }
+                        let type_path = reflected.reflect_type_path().to_owned();
+
+                        if let bevy_reflect::ReflectMut::Struct(s) = reflected.reflect_mut() {
+                            if s.field_len() == 0 {
+                                ui.label(type_path.clone());
+                            } else {
+                                ui.collapsing(type_path.clone(), |ui| {
+                                    draw_struct_in_inspector(s, ui, &res.type_registry);
+                                });
+                            }
+                        };
+                        if let bevy_reflect::ReflectMut::TupleStruct(ts) = reflected.reflect_mut() {
+                            ui.collapsing(type_path.clone(), |ui| {
+                                ui.add(Label::new("TupleStruct not implemented"));
+                            });
+                        };
+                        if let bevy_reflect::ReflectMut::Enum(e) = reflected.reflect_mut() {
+                            // ui.add(ComboBox::new("Enum", "Not supported"));
+                            // ui.label("Enums not yet supported");
+                        };
+
+                        //     bevy_reflect::ReflectMut::TupleStruct(ts) => todo!(),
+                        //     bevy_reflect::ReflectMut::Enum(e) => todo!(),
+                        // }
                         // ui.collapsing(ui: &mut egui::Ui| {});
                     }
                 });
@@ -201,11 +219,53 @@ fn draw_struct_in_inspector(
     ui: &mut egui::Ui,
     type_registry: &TypeRegistry,
 ) {
-    for field in structure.iter_fields() {
-        let type_data = type_registry
-            .get_type_data::<InspectableAsField>(field.type_id())
-            .unwrap();
+    let Some(some) = structure.get_represented_type_info().cloned() else {
+        error!(
+            "Could not get type info for {}",
+            structure.reflect_type_path()
+        );
+        return;
+    };
+    let TypeInfo::Struct(struct_info) = some else {
+        error!(
+            "Invalid type info for {}, this is not a struct",
+            structure.reflect_type_path()
+        );
+        return;
+    };
 
-        type_data.ui;
+    for field_name in struct_info.field_names() {
+        let name = field_name.to_owned();
+
+        let field_mut = Struct::field_mut(structure, name);
+
+        let Some(field) = field_mut else {
+            error!("Invalid field data: Field {} exists in type data, but not in the reflected struct.", field_name);
+            continue;
+        };
+
+        let Some(type_data) =
+            type_registry.get_type_data::<InspectableAsField>(field.as_reflect().type_id())
+        else {
+            error!(
+                "Could not find inspector data for type [{}] for field [{}]",
+                field.reflect_type_path(),
+                name
+            );
+            continue;
+        };
+
+        match field.reflect_mut() {
+            bevy_reflect::ReflectMut::Struct(s) => todo!(),
+            bevy_reflect::ReflectMut::TupleStruct(ts) => todo!(),
+            bevy_reflect::ReflectMut::Tuple(t) => todo!(),
+            bevy_reflect::ReflectMut::List(l) => todo!(),
+            bevy_reflect::ReflectMut::Array(a) => todo!(),
+            bevy_reflect::ReflectMut::Map(m) => todo!(),
+            bevy_reflect::ReflectMut::Enum(e) => todo!(),
+            bevy_reflect::ReflectMut::Value(v) => {
+                type_data.show(ui, v);
+            }
+        }
     }
 }
