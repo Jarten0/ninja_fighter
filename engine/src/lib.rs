@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 //! The main module for having game logic through components interact with [`bevy_ecs`] and [`ggez`]
 //! If you need to access the main engine, this is how you do it.
 //!

@@ -1,56 +1,40 @@
 #![allow(unused)]
 
-use bevy_ecs::schedule::Schedule;
-use bevy_ecs::schedule::ScheduleLabel;
-use bevy_ecs::world::World;
-
-#[derive(Debug, Hash, PartialEq, Eq, Clone, ScheduleLabel)]
-enum Label {
-    Test,
+trait Trait {
+    fn foo(&self) {
+        println!("Foo'd")
+    }
 }
 
-pub struct TestingStaticBound<'a>
-where
-    Self: 'static,
-{
-    inner_struct: Inner<'a>,
+struct Bar;
+
+impl Trait for Bar {
+    fn foo(&self) {
+        println!("Original Implementation")
+    }
 }
 
-pub struct Inner<'a>
-where
-    Self: 'static,
-{
-    non_static_lifetime: Option<&'a i32>,
+fn wrap_original_implementation(bar: &Box<impl Trait + ?Sized>) {
+    bar.foo()
+}
+
+impl Trait for Box<dyn Trait> {
+    fn foo(&self) {
+        println!("Custom implementation");
+        wrap_original_implementation(self);
+    }
 }
 
 fn main() {
-    let mut test = TestingStaticBound {
-        inner_struct: Inner {
-            non_static_lifetime: None,
-        },
-    };
-    {
-        let i = 20;
+    let bar = Bar;
 
-        test.inner_struct.non_static_lifetime = Some(&i);
-
-        println!("{}", test.inner_struct.non_static_lifetime.unwrap())
-    }
-
-    // let mut world = World::new();
-
-    // let mut schedule = Schedule::new(Label::Test);
-
-    // schedule.add_systems(test_system);
-
-    // world.add_schedule(schedule);
-
-    // for _ in 0..100 {
-    //     println!("Calling run_schedule");
-    //     world.run_schedule(Label::Test);
-    // }
+    test(Box::new(bar))
 }
 
-fn test_system() {
-    println!("Ran schedule once")
+fn test(trait_object: Box<dyn Trait>) {
+    test2(trait_object)
+}
+
+fn test2(trait_object: impl Trait) {
+    trait_object.foo()
 }

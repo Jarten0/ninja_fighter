@@ -13,17 +13,17 @@ use super::InspectorWindow;
 #[derive(Debug, Default)]
 pub struct EntityViewState {}
 
-pub fn draw_entities(
+pub(super) fn draw_entities(
     state: &mut InspectorWindow,
     ui: &mut egui::Ui,
     tab: &mut <InspectorWindow as egui_dock::TabViewer>::Tab,
 ) -> Option<Response> {
     if state.entities.len() == 0 {
-        ui.label("No entities found!");
+        ui.label("There are no entities currently (Try refreshing!)");
     }
     for (name, entity) in &state.entities {
         if ui.small_button(name).clicked() {
-            trace!("Clicked entity");
+            trace!("Clicked on entity [{}]", name);
             state.focused_entity = Some((entity.clone(), name.clone()));
             return Some(Response::SwitchToTab(EditorTabTypes::Inspector {
                 adding_component: false,
@@ -32,6 +32,7 @@ pub fn draw_entities(
     }
     ui.separator();
     if ui.button("Refresh").clicked() {
+        trace!("Clicked Refresh");
         state.entities = {
             let mut vec = HashMap::new();
             for (entity, scene_data) in state

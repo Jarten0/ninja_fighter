@@ -2,6 +2,7 @@ use self::entity_view::EntityViewState;
 use self::field_view::{FieldViewState, InspectableAsField, InspectorComponentField};
 use self::inspector_view::InspectorViewState;
 use self::modname::InspectorData;
+use bevy_ecs::component::ComponentId;
 use bevy_ecs::prelude::*;
 use bevy_reflect::{reflect_trait, Reflect, TypeRegistry};
 use egui::{Pos2, Ui};
@@ -52,9 +53,12 @@ where
 {
     gui: ggegui::Gui,
     dock_state: egui_dock::DockState<EditorTabTypes>,
+    /// (`ID`, `Name`)
+    ///
+    /// `String` = entity name
     focused_entity: Option<(Entity, String)>,
     current_response: Option<Response>,
-    focused_component: Option<String>,
+    focused_component: Option<ComponentId>,
     window: InspectorWindow,
 }
 
@@ -124,12 +128,14 @@ where
 
     // "global" state (available in all inspector views)
     entities: HashMap<String, Entity>,
-    components: HashMap<Entity, Vec<String>>,
+    components: HashMap<Entity, Vec<ComponentId>>,
     current_response: Option<Response>,
 
+    /// (`ID`, `Name`)
+    ///
     /// `String` = scene name
     pub focused_entity: Option<(Entity, String)>,
-    pub focused_component: Option<String>,
+    pub focused_component: Option<ComponentId>,
 }
 
 impl InspectorWindow {
@@ -146,9 +152,9 @@ impl InspectorWindow {
         let mut components = HashMap::new();
 
         for (entity, scene_data) in world.query::<(Entity, &SceneData)>().iter(&world) {
-            if scene_data.hide_in_inspector {
-                continue;
-            }
+            // if scene_data.hide_in_inspector {
+            //     continue;
+            // }
 
             entities.insert(scene_data.object_name.clone(), entity);
         }
@@ -159,8 +165,13 @@ impl InspectorWindow {
                 entity,
                 dyn_components
                     .iter()
-                    .map(|component| component.as_reflect().reflect_type_path().to_string())
-                    .collect::<Vec<String>>(),
+                    .map(|component| {
+                        world
+                            .components()
+                            .get_id(component.as_reflect().type_id())
+                            .unwrap()
+                    })
+                    .collect::<Vec<ComponentId>>(),
             );
         }
 
@@ -193,7 +204,7 @@ impl egui_dock::TabViewer for InspectorWindow {
 
     fn ui(&mut self, ui: &mut egui::Ui, tab: &mut Self::Tab) {
         if let Some(focused_entity) = self.focused_entity.clone() {
-            let mut v: Vec<String> = Vec::new();
+            let mut v: Vec<TypeId> = Vec::new();
             for (entity, read) in self
                 .world()
                 .query::<(Entity, &dyn TestSuperTrait)>()
@@ -206,12 +217,16 @@ impl egui_dock::TabViewer for InspectorWindow {
                 // TODO: Continue writing component update functionality, refactor component type if you must
                 v = read
                     .iter()
-                    .map(|component| component.as_reflect().reflect_type_path().to_string())
+                    .map(|component| component.as_reflect().type_id())
                     .collect();
             }
-            self.components.insert(focused_entity.0, v);
 
-            // for component in self.components.get(&focused_entity.0) {}
+            let v = v
+                .iter()
+                .map(|component| self.world().components().get_id(*component).unwrap())
+                .collect();
+
+            self.components.insert(focused_entity.0, v);
         }
         self.current_response = match tab {
             EditorTabTypes::Entities => entity_view::draw_entities(self, ui, tab),
@@ -289,7 +304,7 @@ mod modname {
                                 let field_widget = inspect_data.create_widget();
 
                                 let inspectable_field = InspectorComponentField {
-                                    field_widget,
+                                    field_inspection_data: inspect_data.to_owned(),
                                     field_name: field_name.to_string(),
                                 };
 
@@ -297,7 +312,6 @@ mod modname {
                             }
                         }
                         bevy_reflect::TypeInfo::TupleStruct(ts) => todo!(),
-                        bevy_reflect::TypeInfo::Tuple(t) => todo!(),
                         bevy_reflect::TypeInfo::Enum(e) => todo!(),
                         _ => unreachable!(), // you implemented reflect on your component incorrectly, will not be implementing functionality for that.
                     }

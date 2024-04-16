@@ -1,15 +1,21 @@
+use std::any::Any;
+
+use bevy_ecs::identifier::error;
 use bevy_ecs::reflect::ReflectComponent;
 use bevy_ecs::reflect::ReflectFromWorld;
 use bevy_ecs::world::Mut;
 use bevy_ecs::world::World;
 use bevy_reflect::DynamicStruct;
 use bevy_reflect::DynamicTupleStruct;
+use bevy_reflect::Reflect;
+use bevy_reflect::ReflectKind;
 use bevy_reflect::Struct;
-use bevy_utils::tracing::trace;
+use bevy_reflect::TypeInfo;
+use bevy_reflect::TypeRegistry;
 use bevy_utils::Duration;
 use engine::scene::ReflectTestSuperTrait;
 use engine::scene::SceneManager;
-use log::error;
+use log::*;
 
 use super::field_view::InspectableAsField;
 use super::InspectorWindow;
@@ -20,7 +26,7 @@ pub struct InspectorViewState {
     adding_component: bool,
 }
 
-pub fn draw_inspector(
+pub(super) fn draw_inspector(
     state: &mut InspectorWindow,
     ui: &mut egui::Ui,
     tab: &mut <InspectorWindow as egui_dock::TabViewer>::Tab,
@@ -39,33 +45,50 @@ pub fn draw_inspector(
                 .world()
                 .resource_scope(|world, res: Mut<SceneManager>| {
                     for component in some {
-                        ui.collapsing(component.clone(), |ui: &mut egui::Ui| {
-                            let reg = res.type_registry.get_with_type_path(&component).unwrap();
-                            match reg.type_info() {
-                                bevy_reflect::TypeInfo::Struct(s) => {
-                                    for field in s.iter() {
-                                        let field_widget = res
-                                            .type_registry
-                                            .get(field.type_id())
-                                            .unwrap()
-                                            .data::<InspectableAsField>()
-                                            .expect(
-                                                format!(
-                                                    "InspectableAsField to be implemented into {}",
-                                                    field.type_path()
-                                                )
-                                                .as_str(),
-                                            )
-                                            .create_widget();
+                        let component_struct = world
+                            .components()
+                            .get_info(component)
+                            .ok_or_else({
+                                error!("Could not find component  on {}", entity.1);
+                                return;
+                                || {}
+                            })
+                            .unwrap();
 
-                                        ui.add(field_widget);
-                                    }
-                                }
-                                bevy_reflect::TypeInfo::TupleStruct(ts) => todo!(),
-                                bevy_reflect::TypeInfo::Enum(_) => todo!(),
-                                _ => panic!("Incorrect type registration"),
-                            }
-                        });
+                        let type_registration = res
+                            .type_registry
+                            .get(
+                                component_struct
+                                    .type_id()
+                                    .expect("dynamic components not implemented"), // theres no unwrap with message.
+                            )
+                            .expect("expected a type registration for component");
+
+                        let ptr = world
+                            .get_entity_mut(entity.0)
+                            .unwrap()
+                            .get_mut_by_id(component)
+                            .expect("component not found on entity")
+                            .as_mut();
+
+                        let reflected = unsafe {
+                            type_registration
+                                .data::<bevy_reflect::ReflectFromPtr>()
+                                .unwrap()
+                                .as_reflect_mut(ptr)
+                        };
+
+                        assert_eq!(reflected.type_id(), component_struct.type_id().unwrap());
+                        // SAFETY: ptr is of type type_id as required in safety contract, type_id was checked above
+                        // also, I'm totally taking "inspiration" from `bevy-inspector-egui`. Go check it out, it's awesome :D
+
+                        match reflected.reflect_mut() {
+                            bevy_reflect::ReflectMut::Struct(s) => draw_struct_in_inspector(s, ui),
+                            bevy_reflect::ReflectMut::TupleStruct(ts) => todo!(),
+                            bevy_reflect::ReflectMut::Enum(e) => todo!(),
+                            _ => unimplemented!(),
+                        }
+                        // ui.collapsing(ui: &mut egui::Ui| {});
                     }
                 });
         }
@@ -111,7 +134,7 @@ pub fn draw_inspector(
                         trace!("Setting fields");
 
                         match type_.type_info() {
-                            bevy_reflect::TypeInfo::Struct(s) => {
+                            TypeInfo::Struct(s) => {
                                 let mut bundle = DynamicStruct::default();
 
                                 trace!("Setting represented type");
@@ -142,7 +165,7 @@ pub fn draw_inspector(
                                     &res.type_registry,
                                 );
                             }
-                            bevy_reflect::TypeInfo::TupleStruct(ts) => {
+                            TypeInfo::TupleStruct(ts) => {
                                 let mut bundle = DynamicTupleStruct::default();
 
                                 bundle.set_represented_type(Some(type_.type_info()));
@@ -153,7 +176,7 @@ pub fn draw_inspector(
                                     &res.type_registry,
                                 );
                             }
-                            bevy_reflect::TypeInfo::Enum(e) => todo!(),
+                            TypeInfo::Enum(e) => todo!(),
                             _ => unreachable!(),
                         }
 
@@ -171,4 +194,18 @@ pub fn draw_inspector(
         }
     }
     None
+}
+
+fn draw_struct_in_inspector(
+    structure: &mut dyn Struct,
+    ui: &mut egui::Ui,
+    type_registry: &TypeRegistry,
+) {
+    for field in structure.iter_fields() {
+        let type_data = type_registry
+            .get_type_data::<InspectableAsField>(field.type_id())
+            .unwrap();
+
+        type_data.ui;
+    }
 }

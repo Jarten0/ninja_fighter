@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 //! Home to all game logic and custom built scripts.
 //!
 //! Any component files can be added and removed without worry.

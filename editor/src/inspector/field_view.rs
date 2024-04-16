@@ -6,13 +6,13 @@ use super::Response;
 use bevy_reflect::FromType;
 use bevy_reflect::NamedField;
 use bevy_reflect::Reflect;
-use egui::Ui;
 use egui::Widget;
+use log::trace;
 
 #[derive(Debug, Default)]
 pub struct FieldViewState {}
 
-pub fn draw_field(
+pub(super) fn draw_field(
     state: &mut InspectorWindow,
     ui: &mut egui::Ui,
     tab: &mut <InspectorWindow as egui_dock::TabViewer>::Tab,
@@ -25,14 +25,13 @@ pub fn draw_field(
 ///
 /// There must be a [`egui::Widget`] stored with the field for it to display.
 pub struct InspectorComponentField {
-    pub field_widget: Box<dyn FieldWidget>,
+    pub field_inspection_data: InspectableAsField,
     pub field_name: String,
 }
 
 impl Debug for InspectorComponentField {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("InspectorComponentField")
-            .field("field_widget", &None::<InspectorComponentField>)
             .field("field_name", &self.field_name)
             .finish()
     }
@@ -42,7 +41,7 @@ impl Debug for InspectorComponentField {
 pub struct CustomWidget;
 
 impl egui::Widget for CustomWidget {
-    fn ui(self, ui: &mut Ui) -> egui::Response {
+    fn ui(self, ui: &mut egui::Ui) -> egui::Response {
         ui.label("CustomWidget:D");
         egui::Response {
             ctx: egui::Context::default(),
@@ -69,14 +68,13 @@ impl egui::Widget for CustomWidget {
 
 /// A simple supertrait for `egui::Widget` that requires the type to implement `Sync` and `Send` (also `Debug`)
 #[bevy_reflect::reflect_trait]
-pub trait FieldWidget: egui::Widget + Send + Sync {}
-impl<T> FieldWidget for T where T: Sync + Send + egui::Widget {}
-
-impl egui::Widget for Box<dyn FieldWidget> {
-    fn ui(self, ui: &mut Ui) -> egui::Response {
-        ui.add(self)
+pub trait FieldWidget: egui::Widget + Send + Sync {
+    fn ui(&self, ui: &mut egui::Ui) -> egui::Response {
+        // ui.add(widget)
+        todo!()
     }
 }
+impl<T> FieldWidget for T where T: Sync + Send + egui::Widget {}
 
 /// Insert into the type registry.
 ///
@@ -88,12 +86,6 @@ impl egui::Widget for Box<dyn FieldWidget> {
 #[derive(Debug, Clone)]
 pub struct InspectableAsField {
     custom_widget_fn: fn() -> Box<dyn FieldWidget>,
-}
-
-pub trait Inspectable {
-    fn widget() -> Box<dyn FieldWidget>
-    where
-        Self: Sized;
 }
 
 impl<T> FromType<T> for InspectableAsField {
