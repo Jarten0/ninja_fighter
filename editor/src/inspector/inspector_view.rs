@@ -10,11 +10,14 @@ use bevy_reflect::DynamicTupleStruct;
 use bevy_reflect::Reflect;
 use bevy_reflect::ReflectKind;
 use bevy_reflect::Struct;
+use bevy_reflect::TupleStruct;
 use bevy_reflect::TypeInfo;
 use bevy_reflect::TypeRegistry;
 use bevy_utils::Duration;
 use egui::ComboBox;
 use egui::Label;
+use egui::Rect;
+use egui::Sense;
 use engine::scene::ReflectTestSuperTrait;
 use engine::scene::SceneManager;
 use log::*;
@@ -218,21 +221,23 @@ fn draw_struct_in_inspector(
     structure: &mut dyn Struct,
     ui: &mut egui::Ui,
     type_registry: &TypeRegistry,
-) {
+) -> Option<egui::Response> {
     let Some(some) = structure.get_represented_type_info().cloned() else {
         error!(
             "Could not get type info for {}",
             structure.reflect_type_path()
         );
-        return;
+        return None;
     };
     let TypeInfo::Struct(struct_info) = some else {
         error!(
             "Invalid type info for {}, this is not a struct",
             structure.reflect_type_path()
         );
-        return;
+        return None;
     };
+
+    let mut responses = Vec::new();
 
     for field_name in struct_info.field_names() {
         let name = field_name.to_owned();
@@ -255,17 +260,88 @@ fn draw_struct_in_inspector(
             continue;
         };
 
-        match field.reflect_mut() {
-            bevy_reflect::ReflectMut::Struct(s) => todo!(),
+        responses.push(ui.add(|ui: &mut egui::Ui| {
+            ui.label(field_name.to_owned());
+            match field.reflect_mut() {
+                bevy_reflect::ReflectMut::Struct(s) => {
+                    draw_struct_in_inspector(s, ui, type_registry).unwrap()
+                }
+                bevy_reflect::ReflectMut::TupleStruct(ts) => todo!(),
+                bevy_reflect::ReflectMut::Tuple(t) => todo!(),
+                bevy_reflect::ReflectMut::List(l) => todo!(),
+                bevy_reflect::ReflectMut::Array(a) => todo!(),
+                bevy_reflect::ReflectMut::Map(m) => todo!(),
+                bevy_reflect::ReflectMut::Enum(e) => todo!(),
+                bevy_reflect::ReflectMut::Value(v) => type_data.show(ui, v),
+            }
+        }));
+    }
+
+    let final_response = match responses.get(0) {
+        Some(some) => some.to_owned(),
+        None => {
+            error!("No fields gave a response!");
+            return None;
+        }
+    };
+
+    for response in &responses {
+        final_response.union(response.clone());
+    }
+
+    Some(final_response)
+}
+
+fn draw_tuple_struct_in_inspector(
+    structure: &mut dyn TupleStruct,
+    ui: &mut egui::Ui,
+    type_registry: &TypeRegistry,
+) {
+    let Some(some) = structure.get_represented_type_info().cloned() else {
+        error!(
+            "Could not get type info for {}",
+            structure.reflect_type_path()
+        );
+        return;
+    };
+    let TypeInfo::TupleStruct(struct_info) = some else {
+        error!(
+            "Invalid type info for {}, this is not a struct",
+            structure.reflect_type_path()
+        );
+        return;
+    };
+
+    for unnamed_field in struct_info.iter() {
+        let name = unnamed_field.to_owned();
+
+        let field_mut = TupleStruct::field_mut(structure, unnamed_field.index());
+
+        let Some(field) = field_mut else {
+            error!("Invalid field data: Field at {} exists in type data, but not in the reflected struct.", unnamed_field.index());
+            continue;
+        };
+
+        let Some(type_data) =
+            type_registry.get_type_data::<InspectableAsField>(field.as_reflect().type_id())
+        else {
+            error!(
+                "Could not find inspector data for type [{}] for field at index [{}]",
+                field.reflect_type_path(),
+                unnamed_field.index()
+            );
+            continue;
+        };
+
+        ui.add(|ui: &mut egui::Ui| match field.reflect_mut() {
+            bevy_reflect::ReflectMut::Struct(s) => draw_struct_in_inspector(s, ui, type_registry),
             bevy_reflect::ReflectMut::TupleStruct(ts) => todo!(),
             bevy_reflect::ReflectMut::Tuple(t) => todo!(),
             bevy_reflect::ReflectMut::List(l) => todo!(),
             bevy_reflect::ReflectMut::Array(a) => todo!(),
             bevy_reflect::ReflectMut::Map(m) => todo!(),
             bevy_reflect::ReflectMut::Enum(e) => todo!(),
-            bevy_reflect::ReflectMut::Value(v) => {
-                type_data.show(ui, v);
-            }
-        }
+            bevy_reflect::ReflectMut::Value(v) => type_data.show(ui, v),
+        });
     }
 }

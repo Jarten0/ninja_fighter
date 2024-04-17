@@ -289,9 +289,10 @@ impl EventHandler for GameRoot {
         _x: f32,
         _y: f32,
     ) -> Result<(), ggez::GameError> {
-        Err(ggez::GameError::CustomError(String::from(
-            "Missing SCROLLWHEEL functionality",
-        )))
+        // Err(ggez::GameError::CustomError(String::from(
+        //     "Missing SCROLLWHEEL functionality",
+        // )))
+        Ok(())
     }
 
     fn key_down_event(
