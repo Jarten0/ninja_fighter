@@ -238,7 +238,7 @@ impl EventHandler for GameRoot {
         _x: f32,
         _y: f32,
     ) -> Result<(), ggez::GameError> {
-        trace!("Key pressed");
+        // trace!("Key pressed");
 
         self.world
             .resource_mut::<Input>()
@@ -349,6 +349,8 @@ impl EventHandler for GameRoot {
         _ctx: &mut Context,
         _character: char,
     ) -> Result<(), ggez::GameError> {
+        self.world.resource_mut::<Input>().update_key_queue(KeycodeType::Keyboard(()), is_held)
+        
         Ok(())
     }
 

@@ -99,6 +99,17 @@ impl Input {
         self.key_update_queue.push_front((key, is_held))
     }
 
+    pub(crate) fn register_text_input(&mut self, char: char) {
+        todo!() // TODO: Make work
+    }
+
+    /// Registers a mouse wheel up/down event
+    ///
+    /// up = true if scroll up, = false if scroll down
+    pub(crate) fn register_scroll(&mut self, up: bool) {
+        todo!() // TODO: Make work
+    }
+
     pub(crate) fn update_mouse_pos(&mut self, mouse_pos: space::Vector2) {
         self.mouse_pos = mouse_pos
     }

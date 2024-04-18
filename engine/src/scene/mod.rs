@@ -39,7 +39,7 @@ pub fn register_scene_types(world: &mut bevy_ecs::world::World) {
         register::<space::Scale>(world, &mut res);
         register::<space::TransformSettings>(world, &mut res);
         register::<space::Velocity>(world, &mut res);
-        // register::<space::Vector2>(world, &mut res);
+        register::<space::Vector2>(world, &mut res);
     });
 }
 

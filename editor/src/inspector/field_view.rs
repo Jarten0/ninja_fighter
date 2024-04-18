@@ -10,6 +10,7 @@ use bevy_reflect::Reflect;
 use bevy_reflect::Struct;
 use egui::Ui;
 use egui::Widget;
+use engine::space::Vector2;
 use log::trace;
 
 #[derive(Debug, Default)]
@@ -92,6 +93,22 @@ impl FieldWidget for bool {
         ui.add(egui::Checkbox::new(value, "test bool"))
     }
 }
+
+impl FieldWidget for engine::space::Vector2 {
+    fn ui(value: &mut dyn Reflect, ui: &mut Ui) -> egui::Response {
+        let value = value.downcast_mut::<Vector2>().unwrap();
+
+        ui.horizontal_top(|ui| {
+            ui.label("x");
+            egui::DragValue::new(&mut value.x).ui(ui);
+            ui.label("y");
+            egui::DragValue::new(&mut value.y).ui(ui)
+        })
+        .inner
+    }
+}
+
+impl FieldWidget for engine::space::Position {}
 
 // impl<T> FieldWidget for T where T: Sync + Send {}
 

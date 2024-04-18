@@ -7,6 +7,7 @@ use bevy_ecs::world::Mut;
 use bevy_ecs::world::World;
 use bevy_reflect::DynamicStruct;
 use bevy_reflect::DynamicTupleStruct;
+use bevy_reflect::Enum;
 use bevy_reflect::Reflect;
 use bevy_reflect::ReflectKind;
 use bevy_reflect::Struct;
@@ -16,6 +17,9 @@ use bevy_reflect::TypeRegistry;
 use bevy_utils::Duration;
 use egui::ComboBox;
 use egui::Label;
+use egui::LayerId;
+use egui::Layout;
+use egui::Pos2;
 use egui::Rect;
 use egui::Sense;
 use engine::scene::ReflectTestSuperTrait;
@@ -98,12 +102,11 @@ pub(super) fn draw_inspector(
                         };
                         if let bevy_reflect::ReflectMut::TupleStruct(ts) = reflected.reflect_mut() {
                             ui.collapsing(type_path.clone(), |ui| {
-                                ui.add(Label::new("TupleStruct not implemented"));
+                                draw_tuple_struct_in_inspector(ts, ui, &res.type_registry);
                             });
                         };
                         if let bevy_reflect::ReflectMut::Enum(e) = reflected.reflect_mut() {
-                            // ui.add(ComboBox::new("Enum", "Not supported"));
-                            // ui.label("Enums not yet supported");
+                            draw_enum_in_inspector(e, ui, &res.type_registry);
                         };
 
                         //     bevy_reflect::ReflectMut::TupleStruct(ts) => todo!(),
@@ -221,75 +224,78 @@ fn draw_struct_in_inspector(
     structure: &mut dyn Struct,
     ui: &mut egui::Ui,
     type_registry: &TypeRegistry,
-) -> Option<egui::Response> {
+) {
     let Some(some) = structure.get_represented_type_info().cloned() else {
         error!(
             "Could not get type info for {}",
             structure.reflect_type_path()
         );
-        return None;
+        return;
     };
     let TypeInfo::Struct(struct_info) = some else {
         error!(
             "Invalid type info for {}, this is not a struct",
             structure.reflect_type_path()
         );
-        return None;
+        return;
     };
 
-    let mut responses = Vec::new();
+    let striped = egui::Grid::new(structure.reflect_type_path())
+        .num_columns(2)
+        .striped(true);
 
-    for field_name in struct_info.field_names() {
-        let name = field_name.to_owned();
+    striped.show(ui, |ui: &mut egui::Ui| {
+        for field_name in struct_info.field_names() {
+            let name = field_name.to_owned();
 
-        let field_mut = Struct::field_mut(structure, name);
+            let field_mut = Struct::field_mut(structure, name);
 
-        let Some(field) = field_mut else {
-            error!("Invalid field data: Field {} exists in type data, but not in the reflected struct.", field_name);
-            continue;
-        };
+            let Some(field) = field_mut else {
+                // this error log is breaking rustfmt >:(
+                // log::error!("Invalid field data: Field {} exists in type data, but not in the reflected struct.", field_name);
+                continue;
+            };
 
-        let Some(type_data) =
-            type_registry.get_type_data::<InspectableAsField>(field.as_reflect().type_id())
-        else {
-            error!(
-                "Could not find inspector data for type [{}] for field [{}]",
-                field.reflect_type_path(),
-                name
-            );
-            continue;
-        };
-
-        responses.push(ui.add(|ui: &mut egui::Ui| {
-            ui.label(field_name.to_owned());
-            match field.reflect_mut() {
-                bevy_reflect::ReflectMut::Struct(s) => {
-                    draw_struct_in_inspector(s, ui, type_registry).unwrap()
-                }
-                bevy_reflect::ReflectMut::TupleStruct(ts) => todo!(),
-                bevy_reflect::ReflectMut::Tuple(t) => todo!(),
-                bevy_reflect::ReflectMut::List(l) => todo!(),
-                bevy_reflect::ReflectMut::Array(a) => todo!(),
-                bevy_reflect::ReflectMut::Map(m) => todo!(),
-                bevy_reflect::ReflectMut::Enum(e) => todo!(),
-                bevy_reflect::ReflectMut::Value(v) => type_data.show(ui, v),
+            if let Some(type_data) =
+                type_registry.get_type_data::<InspectableAsField>(field.as_reflect().type_id())
+            {
+                ui.label(field_name.to_owned());
+                ui.scope(|ui: &mut egui::Ui| {
+                    type_data.show(ui, field);
+                });
+                ui.end_row();
+                continue;
             }
-        }));
-    }
 
-    let final_response = match responses.get(0) {
-        Some(some) => some.to_owned(),
-        None => {
-            error!("No fields gave a response!");
-            return None;
+            ui.scope(|ui: &mut egui::Ui| {
+                match field.reflect_mut() {
+                    bevy_reflect::ReflectMut::Struct(s) => {
+                        draw_struct_in_inspector(s, ui, type_registry);
+                    }
+                    bevy_reflect::ReflectMut::TupleStruct(ts) => {
+                        draw_tuple_struct_in_inspector(ts, ui, type_registry);
+                    }
+                    bevy_reflect::ReflectMut::Tuple(t) => todo!(),
+                    bevy_reflect::ReflectMut::List(l) => todo!(),
+                    bevy_reflect::ReflectMut::Array(a) => todo!(),
+                    bevy_reflect::ReflectMut::Map(m) => todo!(),
+                    bevy_reflect::ReflectMut::Enum(e) => {
+                        draw_enum_in_inspector(e, ui, type_registry);
+                    }
+                    bevy_reflect::ReflectMut::Value(v) => {
+                        ui.label(field_name.to_owned());
+
+                        ui.label(format!(
+                            "(No inspector implementation for {})",
+                            v.reflect_type_path()
+                        ));
+                    }
+                };
+            });
+
+            ui.end_row();
         }
-    };
-
-    for response in &responses {
-        final_response.union(response.clone());
-    }
-
-    Some(final_response)
+    });
 }
 
 fn draw_tuple_struct_in_inspector(
@@ -333,15 +339,33 @@ fn draw_tuple_struct_in_inspector(
             continue;
         };
 
-        ui.add(|ui: &mut egui::Ui| match field.reflect_mut() {
-            bevy_reflect::ReflectMut::Struct(s) => draw_struct_in_inspector(s, ui, type_registry),
-            bevy_reflect::ReflectMut::TupleStruct(ts) => todo!(),
-            bevy_reflect::ReflectMut::Tuple(t) => todo!(),
-            bevy_reflect::ReflectMut::List(l) => todo!(),
-            bevy_reflect::ReflectMut::Array(a) => todo!(),
-            bevy_reflect::ReflectMut::Map(m) => todo!(),
-            bevy_reflect::ReflectMut::Enum(e) => todo!(),
-            bevy_reflect::ReflectMut::Value(v) => type_data.show(ui, v),
+        ui.scope(|ui: &mut egui::Ui| {
+            match field.reflect_mut() {
+                bevy_reflect::ReflectMut::Struct(s) => {
+                    draw_struct_in_inspector(s, ui, type_registry)
+                }
+                bevy_reflect::ReflectMut::TupleStruct(ts) => {
+                    draw_tuple_struct_in_inspector(ts, ui, type_registry)
+                }
+                bevy_reflect::ReflectMut::Tuple(t) => todo!(),
+                bevy_reflect::ReflectMut::List(l) => todo!(),
+                bevy_reflect::ReflectMut::Array(a) => todo!(),
+                bevy_reflect::ReflectMut::Map(m) => todo!(),
+                bevy_reflect::ReflectMut::Enum(e) => todo!(),
+                bevy_reflect::ReflectMut::Value(v) => {
+                    type_data.show(ui, v);
+                }
+            };
         });
     }
+}
+
+fn draw_enum_in_inspector(
+    structure: &mut dyn Enum,
+    ui: &mut egui::Ui,
+    type_registry: &TypeRegistry,
+) -> Option<egui::Response> {
+    ComboBox::new("Enum", "Not supported").show_ui(ui, |ui| todo!());
+
+    todo!()
 }

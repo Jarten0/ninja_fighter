@@ -1,7 +1,7 @@
 use self::entity_view::EntityViewState;
 use self::field_view::{FieldViewState, InspectableAsField, InspectorComponentField};
 use self::inspector_view::InspectorViewState;
-use self::modname::InspectorData;
+// use self::modname::InspectorData;
 use bevy_ecs::component::ComponentId;
 use bevy_ecs::prelude::*;
 use bevy_reflect::{reflect_trait, Reflect, TypeRegistry};
@@ -63,7 +63,7 @@ where
 }
 
 impl EditorInterface {
-    pub fn new(ctx: &mut ggez::Context, world: &mut World) -> Self {
+    pub(crate) fn new(ctx: &mut ggez::Context, world: &mut World) -> Self {
         let tabs = vec![
             EditorTabTypes::Entities,
             EditorTabTypes::Inspector {
@@ -175,10 +175,10 @@ impl InspectorWindow {
             );
         }
 
-        for entity in entities.values() {
-            let bundle = InspectorData::new(world, *entity);
-            world.entity_mut(*entity).insert(bundle);
-        }
+        // for entity in entities.values() {
+        //     let bundle = InspectorData::new(world, *entity);
+        //     world.entity_mut(*entity).insert(bundle);
+        // }
 
         Self {
             inspector: InspectorViewState::default(),
@@ -244,84 +244,84 @@ impl egui_dock::TabViewer for InspectorWindow {
     }
 }
 
-mod modname {
-    use std::any::Any;
-    use std::any::TypeId;
+// mod modname {
+//     use std::any::Any;
+//     use std::any::TypeId;
 
-    use bevy_ecs::prelude::*;
-    use engine::scene::TestSuperTrait;
+//     use bevy_ecs::prelude::*;
+//     use engine::scene::TestSuperTrait;
 
-    use engine::scene::SceneManager;
+//     use engine::scene::SceneManager;
 
-    use std::collections::HashMap;
+//     use std::collections::HashMap;
 
-    use super::field_view::InspectableAsField;
-    use super::field_view::InspectorComponentField;
+//     use super::field_view::InspectableAsField;
+//     use super::field_view::InspectorComponentField;
 
-    /// A component containing data for the inspector to use, stored with each entity and updated whenever that entity is in focus.
-    ///
-    /// Note that this is one of few components that shouldn't show up in the inspector.
-    #[derive(Debug, Component)]
-    pub struct InspectorData {
-        /// Contains each component, stored via its path, and each field, stored via its name.
-        pub component_data: HashMap<String, HashMap<String, InspectorComponentField>>,
-    }
+//     /// A component containing data for the inspector to use, stored with each entity and updated whenever that entity is in focus.
+//     ///
+//     /// Note that this is one of few components that shouldn't show up in the inspector.
+//     #[derive(Debug, Component)]
+//     pub struct InspectorData {
+//         /// Contains each component, stored via its path, and each field, stored via its name.
+//         pub component_data: HashMap<String, HashMap<String, InspectorComponentField>>,
+//     }
 
-    impl InspectorData {
-        pub fn new(world: &mut World, entity: Entity) -> InspectorData {
-            let mut component_data = HashMap::new();
+//     impl InspectorData {
+//         pub fn new(world: &mut World, entity: Entity) -> InspectorData {
+//             let mut component_data = HashMap::new();
 
-            world.resource_scope(|world: &mut World, res: Mut<SceneManager>| {
-                let mut query = world.query::<&dyn TestSuperTrait>();
+//             world.resource_scope(|world: &mut World, res: Mut<SceneManager>| {
+//                 let mut query = world.query::<&dyn TestSuperTrait>();
 
-                for component in query.get(world, entity).unwrap() {
-                    if !component.show_in_inspector() {
-                        continue;
-                    }
+//                 for component in query.get(world, entity).unwrap() {
+//                     if !component.show_in_inspector() {
+//                         continue;
+//                     }
 
-                    let path = component.as_reflect().reflect_type_path().to_owned();
+//                     let path = component.as_reflect().reflect_type_path().to_owned();
 
-                    let mut component_fields = HashMap::new();
+//                     let mut component_fields = HashMap::new();
 
-                    let type_info = res
-                        .type_registry
-                        .get_type_info(component.as_reflect().type_id()) // btw as_reflect() is the stupidest workaround ever but it works! goddamn this issue is stupid
-                        .expect(&format!("Expected type info on component {}", path));
+//                     let type_info = res
+//                         .type_registry
+//                         .get_type_info(component.as_reflect().type_id()) // btw as_reflect() is the stupidest workaround ever but it works! goddamn this issue is stupid
+//                         .expect(&format!("Expected type info on component {}", path));
 
-                    match type_info {
-                        bevy_reflect::TypeInfo::Struct(s) => {
-                            for field_name in s.field_names() {
-                                let inspect_data: &InspectableAsField = match res
-                                    .type_registry
-                                    .get_type_data(TypeId::of::<InspectableAsField>())
-                                {
-                                    Some(field_data) => field_data,
-                                    None => {
-                                        continue;
-                                    }
-                                };
+//                     match type_info {
+//                         bevy_reflect::TypeInfo::Struct(s) => {
+//                             for field_name in s.field_names() {
+//                                 let inspect_data: &InspectableAsField = match res
+//                                     .type_registry
+//                                     .get_type_data(TypeId::of::<InspectableAsField>())
+//                                 {
+//                                     Some(field_data) => field_data,
+//                                     None => {
+//                                         continue;
+//                                     }
+//                                 };
 
-                                let inspectable_field = InspectorComponentField {
-                                    field_inspection_data: inspect_data.to_owned(),
-                                    field_name: field_name.to_string(),
-                                };
+//                                 let inspectable_field = InspectorComponentField {
+//                                     field_inspection_data: inspect_data.to_owned(),
+//                                     field_name: field_name.to_string(),
+//                                 };
 
-                                component_fields.insert(field_name.to_string(), inspectable_field);
-                            }
-                        }
-                        bevy_reflect::TypeInfo::TupleStruct(ts) => todo!(),
-                        bevy_reflect::TypeInfo::Enum(e) => todo!(),
-                        _ => unreachable!(), // you implemented reflect on your component incorrectly, will not be implementing functionality for that.
-                    }
+//                                 component_fields.insert(field_name.to_string(), inspectable_field);
+//                             }
+//                         }
+//                         bevy_reflect::TypeInfo::TupleStruct(ts) => todo!(),
+//                         bevy_reflect::TypeInfo::Enum(e) => todo!(),
+//                         _ => unreachable!(), // you implemented reflect on your component incorrectly, will not be implementing functionality for that.
+//                     }
 
-                    component_data.insert(path, component_fields);
-                }
-            });
+//                     component_data.insert(path, component_fields);
+//                 }
+//             });
 
-            Self { component_data }
-        }
-    }
-}
+//             Self { component_data }
+//         }
+//     }
+// }
 
 static mut WORLD_REF: Option<*mut World> = None;
 
@@ -335,6 +335,8 @@ pub fn update_inspector<'a>(world: &mut World) {
                 .constrain(true)
                 .show(&editor.gui.ctx(), |ui| {
                     EditorInterface::inspector_dock_ui(&mut editor, ui, world_scoped);
+
+                    editor.gui.input.text_input_event(ch)
 
                     ggegui::Gui::update(
                         &mut editor.gui,
