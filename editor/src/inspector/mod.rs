@@ -8,7 +8,7 @@ use bevy_reflect::{reflect_trait, Reflect, TypeRegistry};
 use egui::{Pos2, Ui};
 use egui_dock::{DockArea, DockState, Style, SurfaceIndex};
 use engine::scene::{SceneData, SceneManager, TestSuperTrait};
-use engine::GgezInterface;
+use engine::{GgezInterface, Input};
 use ggez::graphics::DrawParam;
 use std::any::{Any, TypeId};
 use std::collections::HashMap;
@@ -336,7 +336,9 @@ pub fn update_inspector<'a>(world: &mut World) {
                 .show(&editor.gui.ctx(), |ui| {
                     EditorInterface::inspector_dock_ui(&mut editor, ui, world_scoped);
 
-                    editor.gui.input.text_input_event(ch)
+                    for key in world.resource_mut::<Input>().iter_editor_keys_from_events() {
+                        editor.gui.input.text_input_event(ch);
+                    }
 
                     ggegui::Gui::update(
                         &mut editor.gui,

@@ -4,8 +4,6 @@
 
 // Hi! If your reading this, welcome to my fun little project. Some shenanigans are afoot!
 
-// Hi! If your reading this, welcome to my fun little project. Some shenanigans are afoot!
-
 use crate::assets::AssetManager;
 use crate::input::KeycodeType;
 use crate::logging;
@@ -286,12 +284,11 @@ impl EventHandler for GameRoot {
     fn mouse_wheel_event(
         &mut self,
         _ctx: &mut Context,
-        _x: f32,
-        _y: f32,
+        x: f32,
+        y: f32,
     ) -> Result<(), ggez::GameError> {
-        // Err(ggez::GameError::CustomError(String::from(
-        //     "Missing SCROLLWHEEL functionality",
-        // )))
+        self.world.resource_mut::<Input>().register_scroll(x, y);
+
         Ok(())
     }
 
@@ -347,38 +344,12 @@ impl EventHandler for GameRoot {
     fn text_input_event(
         &mut self,
         _ctx: &mut Context,
-        _character: char,
+        character: char,
     ) -> Result<(), ggez::GameError> {
-        self.world.resource_mut::<Input>().update_key_queue(KeycodeType::Keyboard(()), is_held)
-        
-        Ok(())
-    }
+        self.world
+            .resource_mut::<Input>()
+            .register_text_input(character);
 
-    fn gamepad_button_down_event(
-        &mut self,
-        _ctx: &mut Context,
-        _btn: ggez::input::gamepad::gilrs::Button,
-        _id: event::GamepadId,
-    ) -> Result<(), ggez::GameError> {
-        Ok(())
-    }
-
-    fn gamepad_button_up_event(
-        &mut self,
-        _ctx: &mut Context,
-        _btn: ggez::input::gamepad::gilrs::Button,
-        _id: event::GamepadId,
-    ) -> Result<(), ggez::GameError> {
-        Ok(())
-    }
-
-    fn gamepad_axis_event(
-        &mut self,
-        _ctx: &mut Context,
-        _axis: ggez::input::gamepad::gilrs::Axis,
-        _value: f32,
-        _id: event::GamepadId,
-    ) -> Result<(), ggez::GameError> {
         Ok(())
     }
 
