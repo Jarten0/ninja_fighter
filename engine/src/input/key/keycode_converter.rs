@@ -7,11 +7,30 @@ use std::fmt::{Display, Error};
 use std::str::FromStr;
 use std::{collections::HashMap, sync::OnceLock};
 
-#[derive(Debug, Clone, Copy, PartialEq, Hash, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum KeycodeType {
     Keyboard(KeyCode),  // 161 variants
     Gamepad(Button),    // 18 variants
     Mouse(MouseButton), // 4 variants
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub enum ButtonEvent {
+    Scroll {
+        x: f32,
+        y: f32,
+    },
+    /// A text event that is the result of typing into a text field.
+    ///
+    /// Note that this is different from [`KeycodeType::Keyboard`] in that it has no key up event.
+    /// Both are still registered as necessary though.
+    Text(char),
+}
+
+impl std::hash::Hash for ButtonEvent {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        core::mem::discriminant(self).hash(state);
+    }
 }
 
 impl FromStr for KeycodeType {

@@ -1,9 +1,10 @@
 use super::action::{ActionData, ActionID, KeyStatus};
 use super::key::input_hashmap::InputFile;
-use super::key::keycode_converter::KeycodeType;
+use super::key::keycode_converter::{ButtonEvent, KeycodeType};
 use super::key::{input_hashmap, keycode_converter, Key};
 use crate::space;
 use bevy_ecs::system::Resource;
+use ggez::event::MouseButton;
 use std::collections::{HashMap, LinkedList};
 use std::env::current_dir;
 use std::fs::File;
@@ -48,7 +49,7 @@ where
     /// The current position of the mouse, where the origin is the top left corner of the screen.
     pub(super) mouse_pos: space::Vector2,
     /// The current list of editor events. These are used for scrolling and text input events, instead of the regular input system. Refer to [`ggegui`](https://docs.rs/ggegui/latest/ggegui/) as to why.
-    pub(super) editor_events: Vec<KeycodeType>,
+    pub(super) editor_events: Vec<ButtonEvent>,
 }
 
 impl std::fmt::Debug for Input
@@ -101,15 +102,20 @@ impl Input {
         self.key_update_queue.push_front((key, is_held))
     }
 
+    /// Register a text input event
     pub(crate) fn register_text_input(&mut self, char: char) {
-        todo!() // TODO: Make work
+        self.editor_events.push(ButtonEvent::Text(char))
+    }
+
+    pub fn iter_editor_keys_from_events(&mut self) -> std::vec::Drain<'_, ButtonEvent> {
+        self.editor_events.drain(..)
     }
 
     /// Registers a mouse wheel up/down event
     ///
-    /// up = true if scroll up, = false if scroll down
+    /// Used to directly interface with [`ggez`] and [`ggegui`](https://docs.rs/ggegui)
     pub(crate) fn register_scroll(&mut self, x: f32, y: f32) {
-        self.editor_events.push(value)
+        self.editor_events.push(ButtonEvent::Scroll { x, y })
     }
 
     pub(crate) fn update_mouse_pos(&mut self, mouse_pos: space::Vector2) {

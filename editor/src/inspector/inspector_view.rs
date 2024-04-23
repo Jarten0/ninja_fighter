@@ -1,4 +1,5 @@
 use std::any::Any;
+use std::collections::HashMap;
 
 use bevy_ecs::identifier::error;
 use bevy_ecs::reflect::ReflectComponent;
@@ -13,6 +14,7 @@ use bevy_reflect::ReflectKind;
 use bevy_reflect::Struct;
 use bevy_reflect::TupleStruct;
 use bevy_reflect::TypeInfo;
+use bevy_reflect::TypeRegistration;
 use bevy_reflect::TypeRegistry;
 use bevy_utils::Duration;
 use egui::ComboBox;
@@ -123,100 +125,116 @@ pub(super) fn draw_inspector(
 
     ui.add(egui::Separator::default());
 
-    if ui.button("Add component").clicked() {
-        state.inspector.adding_component = true;
-    }
+    ui.collapsing("Add components", |ui| {
+        let world = state.world();
+        world.resource_scope(|world: &mut World, res: Mut<SceneManager>| {
+            let types = res
+                .type_registry
+                .iter()
+                .filter(|i| i.data::<ReflectTestSuperTrait>().is_some());
 
-    if state.inspector.adding_component {
-        let mut close_inspector: bool = false;
-        state
-            .world()
-            .resource_scope(|world: &mut World, res: Mut<SceneManager>| {
-                let types = res
-                    .type_registry
-                    .iter()
-                    .filter(|i| i.data::<ReflectTestSuperTrait>().is_some());
+            let mut modules: HashMap<String, Vec<(String, &TypeRegistration)>> = HashMap::new();
 
-                for type_ in types {
-                    let path = type_.type_info().type_path();
+            for type_ in types {
+                let full_path = type_.type_info().type_path().to_string();
 
-                    if ui.button(path).clicked() {
-                        close_inspector = true;
+                let find = full_path.find("::");
 
-                        trace!("Clicked on component button");
+                if let Some(index) = find {
+                    let split = (
+                        full_path.split_at(index).0.to_owned(),
+                        full_path.split_at(index).1.to_owned(),
+                    );
 
-                        let reflect_component = match type_.data::<ReflectComponent>() {
-                            Some(some) => some,
-                            None => {
-                                error!("Couldnt find ReflectComponent type data for {}", path);
-                                continue;
-                            }
-                        };
-
-                        let mut entity_mut = world.entity_mut(entity.0);
-
-                        trace!("Setting fields");
-
-                        match type_.type_info() {
-                            TypeInfo::Struct(s) => {
-                                let mut bundle = DynamicStruct::default();
-
-                                trace!("Setting represented type");
-
-                                bundle.set_represented_type(Some(type_.type_info()));
-
-                                log::trace!("Set. Iterating fields");
-                                for field in s.iter() {
-                                    let value = res.type_registry.get_type_info(field.type_id());
-
-                                    if value.is_none() {
-                                        error!(
-                                            "{} has no obtainable type info in the registry!",
-                                            field.name()
-                                        );
-                                        return;
-                                    }
-                                }
-
-                                for field in bundle.iter_fields() {
-                                    println!("{:#?}", field);
-                                }
-                                log::info!("itered fields");
-
-                                reflect_component.apply_or_insert(
-                                    &mut entity_mut,
-                                    &bundle,
-                                    &res.type_registry,
-                                );
-                            }
-                            TypeInfo::TupleStruct(ts) => {
-                                let mut bundle = DynamicTupleStruct::default();
-
-                                bundle.set_represented_type(Some(type_.type_info()));
-
-                                reflect_component.apply_or_insert(
-                                    &mut entity_mut,
-                                    &bundle,
-                                    &res.type_registry,
-                                );
-                            }
-                            TypeInfo::Enum(e) => todo!(),
-                            _ => unreachable!(),
-                        }
-
-                        log::trace!(
-                            "Added {} to {}",
-                            type_.type_info().type_path_table().short_path(),
-                            entity.1
-                        );
-                    }
+                    if (&modules.get_mut(&split.0)).is_some() {
+                        modules.get_mut(&split.0).unwrap().push((split.1, type_));
+                    } else {
+                        modules.insert(full_path, vec![(split.1, type_)]);
+                    };
                 }
-            });
+            }
 
-        if close_inspector {
-            state.inspector.adding_component = false;
-        }
-    }
+            for module in modules {
+                ui.collapsing(module.0.split_once("::").unwrap().0, |ui| {
+                    for (component, type_) in module.1 {
+                        if ui.button(module.0.clone()).clicked() {
+                            trace!("Clicked on component button");
+
+                            let reflect_component = match type_.data::<ReflectComponent>() {
+                                Some(some) => some,
+                                None => {
+                                    error!(
+                                        "Couldnt find ReflectComponent type data for {}",
+                                        module.0.to_string()
+                                    );
+                                    continue;
+                                }
+                            };
+
+                            let mut entity_mut = world.entity_mut(entity.0);
+
+                            trace!("Setting fields");
+
+                            match type_.type_info() {
+                                TypeInfo::Struct(s) => {
+                                    let mut bundle = DynamicStruct::default();
+
+                                    trace!("Setting represented type");
+
+                                    bundle.set_represented_type(Some(type_.type_info()));
+
+                                    log::trace!("Set. Iterating fields");
+                                    for field in s.iter() {
+                                        let value =
+                                            res.type_registry.get_type_info(field.type_id());
+
+                                        if value.is_none() {
+                                            error!(
+                                                "{} has no obtainable type info in the registry!",
+                                                field.name()
+                                            );
+                                            return;
+                                        }
+                                    }
+
+                                    for field in bundle.iter_fields() {
+                                        println!("{:#?}", field);
+                                    }
+                                    log::info!("itered fields");
+
+                                    reflect_component.apply_or_insert(
+                                        &mut entity_mut,
+                                        &bundle,
+                                        &res.type_registry,
+                                    );
+                                }
+                                TypeInfo::TupleStruct(ts) => {
+                                    let mut bundle = DynamicTupleStruct::default();
+
+                                    bundle.set_represented_type(Some(type_.type_info()));
+
+                                    reflect_component.apply_or_insert(
+                                        &mut entity_mut,
+                                        &bundle,
+                                        &res.type_registry,
+                                    );
+                                }
+                                TypeInfo::Enum(e) => todo!(),
+                                _ => unreachable!(),
+                            }
+
+                            log::trace!(
+                                "Added {} to {}",
+                                type_.type_info().type_path_table().short_path(),
+                                entity.1
+                            );
+                        }
+                    }
+                });
+            }
+        });
+    });
+
     None
 }
 

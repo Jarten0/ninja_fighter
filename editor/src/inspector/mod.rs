@@ -330,15 +330,26 @@ pub fn update_inspector<'a>(world: &mut World) {
         |world_scoped: &mut World, mut editor: Mut<EditorInterface>| {
             unsafe { WORLD_REF = Some(std::ptr::from_mut(world_scoped)) }
 
+            for key in world_scoped
+                .resource_mut::<Input>()
+                .iter_editor_keys_from_events()
+            {
+                match key {
+                    engine::input::key::keycode_converter::ButtonEvent::Scroll { x, y } => {
+                        // TODO: Get system scroll amount and set it here
+                        editor.gui.input.mouse_wheel_event(x * 10.0, y * 10.0)
+                    }
+                    engine::input::key::keycode_converter::ButtonEvent::Text(ch) => {
+                        editor.gui.input.text_input_event(ch)
+                    }
+                }
+            }
+
             egui::Window::new("Inspector")
                 .id("InspectorWindow".into())
                 .constrain(true)
                 .show(&editor.gui.ctx(), |ui| {
                     EditorInterface::inspector_dock_ui(&mut editor, ui, world_scoped);
-
-                    for key in world.resource_mut::<Input>().iter_editor_keys_from_events() {
-                        editor.gui.input.text_input_event(ch);
-                    }
 
                     ggegui::Gui::update(
                         &mut editor.gui,
