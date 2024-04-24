@@ -72,6 +72,7 @@ impl egui::Widget for CustomWidget {
 
 /// A simple supertrait for `egui::Widget` that requires the type to implement `Sync` and `Send` (also `Debug`)
 // #[bevy_reflect::reflect_trait]
+// #[cfg(editor)]
 pub trait FieldWidget: Send + Sync + Sized {
     fn ui(value: &mut dyn Reflect, ui: &mut Ui) -> egui::Response {
         ui.label("Default implementation of widget for ".to_owned() + value.reflect_type_path())

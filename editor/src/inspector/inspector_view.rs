@@ -126,44 +126,19 @@ pub(super) fn draw_inspector(
     ui.add(egui::Separator::default());
 
     ui.collapsing("Add components", |ui| {
-        let world = state.world();
+        let modules = &state.component_modules.clone();
+        let world = state.world(); // pulled out into variable so that formatter wouldnt add an extra tab of indentation for no reason like why is it so much
         world.resource_scope(|world: &mut World, res: Mut<SceneManager>| {
-            let types = res
-                .type_registry
-                .iter()
-                .filter(|i| i.data::<ReflectTestSuperTrait>().is_some());
-
-            let mut modules: HashMap<String, Vec<(String, &TypeRegistration)>> = HashMap::new();
-
-            for type_ in types {
-                let full_path = type_.type_info().type_path().to_string();
-
-                let find = full_path.find("::");
-
-                if let Some(index) = find {
-                    let split = (
-                        full_path.split_at(index).0.to_owned(),
-                        full_path.split_at(index).1.to_owned(),
-                    );
-
-                    if (&modules.get_mut(&split.0)).is_some() {
-                        modules.get_mut(&split.0).unwrap().push((split.1, type_));
-                    } else {
-                        modules.insert(full_path, vec![(split.1, type_)]);
-                    };
-                }
-            }
-
             for module in modules {
-                ui.collapsing(module.0.split_once("::").unwrap().0, |ui| {
+                ui.collapsing(module.0.clone(), |ui| {
                     for (component, type_) in module.1 {
-                        if ui.button(module.0.clone()).clicked() {
-                            trace!("Clicked on component button");
+                        if ui.button(component.1.clone()).clicked() {
+                            trace!("Clicked on component add button");
 
                             let reflect_component = match type_.data::<ReflectComponent>() {
                                 Some(some) => some,
                                 None => {
-                                    error!(
+                                    log::error!(
                                         "Couldnt find ReflectComponent type data for {}",
                                         module.0.to_string()
                                     );
@@ -173,23 +148,23 @@ pub(super) fn draw_inspector(
 
                             let mut entity_mut = world.entity_mut(entity.0);
 
-                            trace!("Setting fields");
+                            trace!("Setting values for fields in component");
 
                             match type_.type_info() {
                                 TypeInfo::Struct(s) => {
                                     let mut bundle = DynamicStruct::default();
 
-                                    trace!("Setting represented type");
+                                    trace!("Setting represented type to iterate over expected fields for type info");
 
                                     bundle.set_represented_type(Some(type_.type_info()));
 
-                                    log::trace!("Set. Iterating fields");
+                                    log::trace!("Iterating over fields to ensure field types have type info stored");
                                     for field in s.iter() {
                                         let value =
                                             res.type_registry.get_type_info(field.type_id());
 
                                         if value.is_none() {
-                                            error!(
+                                            log::error!(
                                                 "{} has no obtainable type info in the registry!",
                                                 field.name()
                                             );
@@ -197,10 +172,10 @@ pub(super) fn draw_inspector(
                                         }
                                     }
 
-                                    for field in bundle.iter_fields() {
-                                        println!("{:#?}", field);
-                                    }
-                                    log::info!("itered fields");
+                                    // for field in bundle.iter_fields() {
+                                    //     println!("{:#?}", field);
+                                    // }
+                                    // log::info!("itered fields");
 
                                     reflect_component.apply_or_insert(
                                         &mut entity_mut,
@@ -223,7 +198,7 @@ pub(super) fn draw_inspector(
                                 _ => unreachable!(),
                             }
 
-                            log::trace!(
+                            log::info!(
                                 "Added {} to {}",
                                 type_.type_info().type_path_table().short_path(),
                                 entity.1

@@ -7,7 +7,7 @@ use bevy_ecs::prelude::*;
 use bevy_reflect::{reflect_trait, Reflect, TypeRegistry};
 use egui::{Pos2, Ui};
 use egui_dock::{DockArea, DockState, Style, SurfaceIndex};
-use engine::scene::{SceneData, SceneManager, TestSuperTrait};
+use engine::scene::{ReflectTestSuperTrait, SceneData, SceneManager, TestSuperTrait};
 use engine::{GgezInterface, Input};
 use ggez::graphics::DrawParam;
 use std::any::{Any, TypeId};
@@ -136,6 +136,7 @@ where
     /// `String` = scene name
     pub focused_entity: Option<(Entity, String)>,
     pub focused_component: Option<ComponentId>,
+    component_modules: HashMap<String, Vec<((String, String), bevy_reflect::TypeRegistration)>>,
 }
 
 impl InspectorWindow {
@@ -180,6 +181,40 @@ impl InspectorWindow {
         //     world.entity_mut(*entity).insert(bundle);
         // }
 
+        let types = world
+            .resource::<SceneManager>()
+            .type_registry
+            .iter()
+            .filter(|i| i.data::<ReflectTestSuperTrait>().is_some());
+
+        let mut modules: HashMap<String, Vec<((String, String), bevy_reflect::TypeRegistration)>> =
+            HashMap::new();
+
+        for type_ in types {
+            let full_path = type_.type_info().type_path().to_string();
+
+            if let Some(index) = full_path.find("::") {
+                let split = (
+                    full_path.split_at(index).0.to_owned(), // the module name
+                    full_path
+                        .split_at(index)
+                        .1
+                        .strip_prefix("::")
+                        .unwrap()
+                        .to_owned(), // the other part of the component path, including the name
+                );
+
+                if (&modules.get_mut(&split.0)).is_some() {
+                    modules
+                        .get_mut(&split.0)
+                        .unwrap()
+                        .push(((full_path, split.1), type_.clone()));
+                } else {
+                    modules.insert(split.0, vec![((full_path, split.1), type_.clone())]);
+                };
+            }
+        }
+
         Self {
             inspector: InspectorViewState::default(),
             entity_state: EntityViewState::default(),
@@ -191,6 +226,7 @@ impl InspectorWindow {
 
             focused_entity: None,
             focused_component: None,
+            component_modules: modules,
         }
     }
 }
@@ -243,85 +279,6 @@ impl egui_dock::TabViewer for InspectorWindow {
         false
     }
 }
-
-// mod modname {
-//     use std::any::Any;
-//     use std::any::TypeId;
-
-//     use bevy_ecs::prelude::*;
-//     use engine::scene::TestSuperTrait;
-
-//     use engine::scene::SceneManager;
-
-//     use std::collections::HashMap;
-
-//     use super::field_view::InspectableAsField;
-//     use super::field_view::InspectorComponentField;
-
-//     /// A component containing data for the inspector to use, stored with each entity and updated whenever that entity is in focus.
-//     ///
-//     /// Note that this is one of few components that shouldn't show up in the inspector.
-//     #[derive(Debug, Component)]
-//     pub struct InspectorData {
-//         /// Contains each component, stored via its path, and each field, stored via its name.
-//         pub component_data: HashMap<String, HashMap<String, InspectorComponentField>>,
-//     }
-
-//     impl InspectorData {
-//         pub fn new(world: &mut World, entity: Entity) -> InspectorData {
-//             let mut component_data = HashMap::new();
-
-//             world.resource_scope(|world: &mut World, res: Mut<SceneManager>| {
-//                 let mut query = world.query::<&dyn TestSuperTrait>();
-
-//                 for component in query.get(world, entity).unwrap() {
-//                     if !component.show_in_inspector() {
-//                         continue;
-//                     }
-
-//                     let path = component.as_reflect().reflect_type_path().to_owned();
-
-//                     let mut component_fields = HashMap::new();
-
-//                     let type_info = res
-//                         .type_registry
-//                         .get_type_info(component.as_reflect().type_id()) // btw as_reflect() is the stupidest workaround ever but it works! goddamn this issue is stupid
-//                         .expect(&format!("Expected type info on component {}", path));
-
-//                     match type_info {
-//                         bevy_reflect::TypeInfo::Struct(s) => {
-//                             for field_name in s.field_names() {
-//                                 let inspect_data: &InspectableAsField = match res
-//                                     .type_registry
-//                                     .get_type_data(TypeId::of::<InspectableAsField>())
-//                                 {
-//                                     Some(field_data) => field_data,
-//                                     None => {
-//                                         continue;
-//                                     }
-//                                 };
-
-//                                 let inspectable_field = InspectorComponentField {
-//                                     field_inspection_data: inspect_data.to_owned(),
-//                                     field_name: field_name.to_string(),
-//                                 };
-
-//                                 component_fields.insert(field_name.to_string(), inspectable_field);
-//                             }
-//                         }
-//                         bevy_reflect::TypeInfo::TupleStruct(ts) => todo!(),
-//                         bevy_reflect::TypeInfo::Enum(e) => todo!(),
-//                         _ => unreachable!(), // you implemented reflect on your component incorrectly, will not be implementing functionality for that.
-//                     }
-
-//                     component_data.insert(path, component_fields);
-//                 }
-//             });
-
-//             Self { component_data }
-//         }
-//     }
-// }
 
 static mut WORLD_REF: Option<*mut World> = None;
 
