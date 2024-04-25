@@ -19,6 +19,9 @@ pub mod freeze;
 pub mod render;
 pub mod root;
 
+#[cfg(feature = "editor_features")]
+pub mod editor;
+
 pub use camera::Camera;
 pub use engine::GgezInterface;
 pub use input::input_cli_editor;

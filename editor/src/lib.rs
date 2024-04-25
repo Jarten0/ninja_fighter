@@ -13,8 +13,8 @@ use engine::{EngineConfig, Input};
 use input_debugger::InputDebugger;
 use log::trace;
 
-use crate::inspector::field_view::InspectableAsField;
 use crate::inspector::EditorInterface;
+use engine::editor::InspectableAsField;
 
 static DEBUG_ACTION_NAME: &str = "debugconsole";
 

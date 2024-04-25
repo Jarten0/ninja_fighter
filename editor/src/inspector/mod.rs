@@ -1,6 +1,7 @@
 use self::entity_view::EntityViewState;
-use self::field_view::{FieldViewState, InspectableAsField, InspectorComponentField};
+use self::field_view::{FieldViewState, InspectorComponentField};
 use self::inspector_view::InspectorViewState;
+use engine::editor::InspectableAsField;
 // use self::modname::InspectorData;
 use bevy_ecs::component::ComponentId;
 use bevy_ecs::prelude::*;
@@ -137,6 +138,7 @@ where
     pub focused_entity: Option<(Entity, String)>,
     pub focused_component: Option<ComponentId>,
     component_modules: HashMap<String, Vec<((String, String), bevy_reflect::TypeRegistration)>>,
+    debug_mode: bool,
 }
 
 impl InspectorWindow {
@@ -227,6 +229,8 @@ impl InspectorWindow {
             focused_entity: None,
             focused_component: None,
             component_modules: modules,
+
+            debug_mode: false,
         }
     }
 }
@@ -278,6 +282,20 @@ impl egui_dock::TabViewer for InspectorWindow {
     fn closeable(&mut self, _tab: &mut Self::Tab) -> bool {
         false
     }
+
+    fn context_menu(
+        &mut self,
+        ui: &mut Ui,
+        tab: &mut Self::Tab,
+        surface: SurfaceIndex,
+        node: egui_dock::NodeIndex,
+    ) {
+        if ui.label("Refresh").clicked() {
+            log::info!("Clicked refresh")
+        }
+
+        ui.checkbox(&mut self.debug_mode, "Debug mode");
+    }
 }
 
 static mut WORLD_REF: Option<*mut World> = None;
@@ -302,19 +320,30 @@ pub fn update_inspector<'a>(world: &mut World) {
                 }
             }
 
+            egui::TopBottomPanel::top("Menu").show(&editor.gui.ctx(), |ui| {
+                ui.label("hehe");
+                ui.checkbox(&mut editor.window.debug_mode, "Dbeg mode")
+            });
+
+            ggegui::Gui::update(
+                &mut editor.gui,
+                world_scoped
+                    .resource_mut::<GgezInterface>()
+                    .get_context_mut(),
+            );
+
             egui::Window::new("Inspector")
-                .id("InspectorWindow".into())
                 .constrain(true)
                 .show(&editor.gui.ctx(), |ui| {
                     EditorInterface::inspector_dock_ui(&mut editor, ui, world_scoped);
-
-                    ggegui::Gui::update(
-                        &mut editor.gui,
-                        world_scoped
-                            .resource_mut::<GgezInterface>()
-                            .get_context_mut(),
-                    );
                 });
+
+            ggegui::Gui::update(
+                &mut editor.gui,
+                world_scoped
+                    .resource_mut::<GgezInterface>()
+                    .get_context_mut(),
+            );
 
             unsafe { WORLD_REF = None }
         },

@@ -10,10 +10,9 @@ bevy-trait-query.workspace = true
 bevy_ecs.workspace = true
 bevy_reflect.workspace = true
 bevy_utils = "0.13.2"
-components = { version = "0.1.0", path = "../components" }
 egui = "0.26.2" # uses 0.26 since 0.27 has breaking changes that ggegui 0.4.0 hasn't fixed
 egui_dock = {version = "0.11.4"} # requires egui 0.26
-engine = { version = "0.1.0", path = "../engine" }
+engine = { version = "0.1.0", path = "../engine", features = ["editor_features"] }
 game = { version = "0.1.0", path = "../game" }
 ggegui = {version = "0.4.0", path = '..\..\ggegui'} # using a custom implementation at the moment. don't mind.
 ggez.workspace = true

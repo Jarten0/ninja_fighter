@@ -24,11 +24,11 @@ use egui::Layout;
 use egui::Pos2;
 use egui::Rect;
 use egui::Sense;
+use engine::editor::InspectableAsField;
 use engine::scene::ReflectTestSuperTrait;
 use engine::scene::SceneManager;
 use log::*;
 
-use super::field_view::InspectableAsField;
 use super::InspectorWindow;
 use super::Response;
 
@@ -50,78 +50,76 @@ pub(super) fn draw_inspector(
     let entity = state.focused_entity.clone().unwrap();
 
     ui.label("Inspecting ".to_owned() + &entity.1);
-    match state.components.get(&entity.0).cloned() {
-        Some(some) => {
-            state
-                .world()
-                .resource_scope(|world, res: Mut<SceneManager>| {
-                    for component in some {
-                        let Some(component_info) = world.components().get_info(component) else {
-                            error!("Could not find component {:?} on {}", component, entity.1);
-                            return;
-                        };
 
-                        let component_type_id = component_info.clone().type_id().unwrap();
+    let Some(component_ids) = state.components.get(&entity.0).cloned() else {
+        ui.label("(Components Unavailable)".to_owned());
 
-                        let type_registration = res
-                            .type_registry
-                            .get(component_type_id)
-                            .expect("expected a type registration for component");
+        error!("Could not find component data for {}", &entity.1);
+        return None;
+    };
 
-                        let Some(mut get_entity_mut) = world.get_entity_mut(entity.0) else {
-                            error!("Could not find entity in world");
-                            return;
-                        };
+    state
+        .world()
+        .resource_scope(|world, res: Mut<SceneManager>| {
+            for c_id in component_ids.iter() {
+                let Some(component_info) = world.components().get_info(*c_id) else {
+                    error!("Could not find component {:?} on {}", c_id, entity.1);
+                    return;
+                };
 
-                        let Some(mut ptr) = get_entity_mut.get_mut_by_id(component) else {
-                            error!("Could not find");
-                            return;
-                        };
+                let component_type_id = component_info.clone().type_id().unwrap();
 
-                        let reflected = unsafe {
-                            let val = ptr.as_mut();
+                let type_registration = res
+                    .type_registry
+                    .get(component_type_id)
+                    .expect("expected a type registration for component");
 
-                            type_registration
-                                .data::<bevy_reflect::ReflectFromPtr>()
-                                .unwrap()
-                                .as_reflect_mut(val)
-                        };
+                let Some(mut get_entity_mut) = world.get_entity_mut(entity.0) else {
+                    error!("Could not find entity in world");
+                    return;
+                };
 
-                        assert_eq!(reflected.as_reflect().type_id(), component_type_id);
-                        // SAFETY: ptr is of type type_id as required in safety contract, type_id was checked above
-                        // also, I'm totally taking "inspiration" from `bevy-inspector-egui`. Go check it out, it's awesome :D
+                let Some(mut ptr) = get_entity_mut.get_mut_by_id(*c_id) else {
+                    error!("Could not get untyped component from ComponentID.");
+                    return;
+                };
 
-                        let type_path = reflected.reflect_type_path().to_owned();
+                let reflected = unsafe {
+                    let val = ptr.as_mut();
 
-                        if let bevy_reflect::ReflectMut::Struct(s) = reflected.reflect_mut() {
-                            if s.field_len() == 0 {
-                                ui.label(type_path.clone());
-                            } else {
-                                ui.collapsing(type_path.clone(), |ui| {
-                                    draw_struct_in_inspector(s, ui, &res.type_registry);
-                                });
-                            }
-                        };
-                        if let bevy_reflect::ReflectMut::TupleStruct(ts) = reflected.reflect_mut() {
-                            ui.collapsing(type_path.clone(), |ui| {
-                                draw_tuple_struct_in_inspector(ts, ui, &res.type_registry);
-                            });
-                        };
-                        if let bevy_reflect::ReflectMut::Enum(e) = reflected.reflect_mut() {
-                            draw_enum_in_inspector(e, ui, &res.type_registry);
-                        };
+                    type_registration
+                        .data::<bevy_reflect::ReflectFromPtr>()
+                        .unwrap()
+                        .as_reflect_mut(val)
+                };
 
-                        //     bevy_reflect::ReflectMut::TupleStruct(ts) => todo!(),
-                        //     bevy_reflect::ReflectMut::Enum(e) => todo!(),
-                        // }
-                        // ui.collapsing(ui: &mut egui::Ui| {});
+                assert_eq!(reflected.as_reflect().type_id(), component_type_id);
+                // SAFETY: ptr is of type type_id as required in safety contract, type_id was checked above
+                // also, I'm totally taking "inspiration" from `bevy-inspector-egui`. Go check it out, it's awesome :D
+
+                let type_path = reflected.reflect_type_path().to_owned();
+
+                if let bevy_reflect::ReflectMut::Struct(s) = reflected.reflect_mut() {
+                    if s.field_len() == 0 {
+                        ui.label(type_path.clone());
+                    } else {
+                        ui.collapsing(type_path.clone(), |ui| {
+                            draw_struct_in_inspector(s, ui, &res.type_registry);
+                        });
                     }
-                });
-        }
-        None => {
-            ui.label("(Components Unavailable) ".to_owned());
-        }
-    }
+                };
+                if let bevy_reflect::ReflectMut::TupleStruct(ts) = reflected.reflect_mut() {
+                    ui.collapsing(type_path.clone(), |ui| {
+                        draw_tuple_struct_in_inspector(ts, ui, &res.type_registry);
+                    });
+                };
+                if let bevy_reflect::ReflectMut::Enum(e) = reflected.reflect_mut() {
+                    draw_enum_in_inspector(e, ui, &res.type_registry);
+                };
+
+                // ui.collapsing(ui: &mut egui::Ui| {});
+            }
+        });
 
     ui.add(egui::Separator::default());
 
@@ -132,6 +130,12 @@ pub(super) fn draw_inspector(
             for module in modules {
                 ui.collapsing(module.0.clone(), |ui| {
                     for (component, type_) in module.1 {
+                        if let Some(c_id) = world.components().get_id(type_.type_id()) {
+                            if component_ids.contains(&c_id) {
+                                continue;
+                            }
+                        }
+
                         if ui.button(component.1.clone()).clicked() {
                             trace!("Clicked on component add button");
 
