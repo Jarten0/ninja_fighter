@@ -12,7 +12,7 @@
 
 use bevy_ecs::prelude::*;
 use collider::mesh_editor::MeshEditor;
-use engine::scene::serialize_component;
+use engine::scene::register_component;
 use engine::scene::SceneManager;
 
 // #[allow(unused)]
@@ -25,10 +25,10 @@ pub fn init_components(world: &mut World) -> () {
 
     world.resource_scope(|world: &mut World, mut manager: Mut<SceneManager>| {
         let register = &mut manager.type_registry;
-        serialize_component::<render::Renderer>(world, register);
-        serialize_component::<collider::Collider>(world, register);
-        serialize_component::<collider::GravitySettings>(world, register);
-        serialize_component::<protag::Protag>(world, register);
-        serialize_component::<protag::ProtagController>(world, register);
+        register_component::<render::Renderer>(world, register);
+        register_component::<collider::Collider>(world, register);
+        register_component::<collider::GravitySettings>(world, register);
+        register_component::<protag::Protag>(world, register);
+        register_component::<protag::ProtagController>(world, register);
     });
 }

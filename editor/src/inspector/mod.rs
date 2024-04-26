@@ -320,21 +320,19 @@ pub fn update_inspector<'a>(world: &mut World) {
                 }
             }
 
-            egui::TopBottomPanel::top("Menu").show(&editor.gui.ctx(), |ui| {
-                ui.label("hehe");
-                ui.checkbox(&mut editor.window.debug_mode, "Dbeg mode")
-            });
+            let ctx = editor.gui.ctx();
 
-            ggegui::Gui::update(
-                &mut editor.gui,
-                world_scoped
-                    .resource_mut::<GgezInterface>()
-                    .get_context_mut(),
-            );
+            egui::TopBottomPanel::top("Menu").show(&ctx, |ui| {
+                ui.horizontal(|ui| {
+                    ui.label("Menu");
+                    ui.separator();
+                    ui.checkbox(&mut editor.window.debug_mode, "Debeg mode")
+                });
+            });
 
             egui::Window::new("Inspector")
                 .constrain(true)
-                .show(&editor.gui.ctx(), |ui| {
+                .show(&ctx, |ui| {
                     EditorInterface::inspector_dock_ui(&mut editor, ui, world_scoped);
                 });
 

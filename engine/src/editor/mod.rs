@@ -1,3 +1,5 @@
+use std::ops::{Deref, DerefMut};
+
 use bevy_reflect::{FromType, Reflect};
 use egui::{Ui, Widget};
 
@@ -5,17 +7,56 @@ use crate::space::Vector2;
 
 /// A simple supertrait for `egui::Widget` that requires the type to implement `Sync` and `Send` (also `Debug`)
 // #[bevy_reflect::reflect_trait]
-pub trait FieldWidget: Send + Sync + Sized {
+pub trait FieldWidget: Send + Sync + Sized + Reflect {
+    // the Reflect trait bound might be removed later
     fn ui(value: &mut dyn Reflect, ui: &mut Ui) -> egui::Response {
         ui.label("Default implementation of widget for ".to_owned() + value.reflect_type_path())
     }
+}
+
+#[derive(PartialEq, Clone, Debug)]
+pub enum NumberFieldTypes<T> {
+    DragValue,
+    Slider { min: T, max: T },
 }
 
 impl FieldWidget for f32 {
     fn ui(value: &mut dyn Reflect, ui: &mut Ui) -> egui::Response {
         let value = value.downcast_mut::<f32>().unwrap();
 
-        ui.add(egui::Slider::new(value, 0.0..=100.0))
+        egui::DragValue::new(value)
+            .ui(ui)
+            .context_menu(|ui| {
+                egui::ComboBox::from_label("Pick a slider type")
+                    .selected_text(format!("Waht {:?}"))
+                    .show_ui(ui, |ui| {
+                        ui.selectable_value(
+                            todo!(),
+                            NumberFieldTypes::DragValue::<f32>,
+                            "Drag value",
+                        );
+                        ui.selectable_value(
+                            todo!(),
+                            NumberFieldTypes::Slider {
+                                min: -100.0,
+                                max: 100.0,
+                            },
+                            "Slider",
+                        );
+                    });
+            })
+            .unwrap()
+            .response
+
+        // ui.add(egui::Slider::new(value, 0.0..=100.0))
+    }
+}
+
+impl FieldWidget for f64 {
+    fn ui(value: &mut dyn Reflect, ui: &mut Ui) -> egui::Response {
+        let value = value.downcast_mut::<f64>().unwrap();
+
+        ui.add(egui::Slider::new(value, -100.0..=100.0))
     }
 }
 

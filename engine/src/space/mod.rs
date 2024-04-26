@@ -38,7 +38,7 @@ use std::time::Duration;
 
 // Struct block //
 
-#[derive(Debug, Clone, Copy, TypePath, Component, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, Copy, TypePath, PartialEq, PartialOrd)]
 pub struct Vector2 {
     pub x: f32,
     pub y: f32,
