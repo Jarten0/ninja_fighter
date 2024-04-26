@@ -12,8 +12,7 @@
 
 use bevy_ecs::prelude::*;
 use collider::mesh_editor::MeshEditor;
-use engine::scene::register_component;
-use engine::scene::SceneManager;
+use engine::{register_component, scene::SceneManager};
 
 // #[allow(unused)]
 pub mod collider;

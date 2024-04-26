@@ -8,7 +8,7 @@ use engine::space::{Position, Transform, TransformSettings, Velocity};
 use engine::GgezInterface;
 use engine::{space, Input};
 use ggez::graphics::{self, Color, DrawParam, Image, Rect};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 pub fn init(mut commands: Commands, _engine: Res<GgezInterface>) {
     // commands.spawn(ProtagBundle::new(&engine));
@@ -19,7 +19,7 @@ pub fn init(mut commands: Commands, _engine: Res<GgezInterface>) {
         });
 }
 
-#[derive(Default, Component, Reflect, Serialize, Clone, Debug)]
+#[derive(Default, Component, Reflect, Serialize, Deserialize, Clone, Debug)]
 #[reflect(Component)]
 pub struct Protag;
 
@@ -33,7 +33,7 @@ pub struct ProtagBundle {
     // collider_mesh: ColliderMesh,
 }
 
-#[derive(Default, Debug, Component, Reflect, Serialize)]
+#[derive(Default, Debug, Component, Reflect, Serialize, Deserialize)]
 #[reflect(Component)]
 #[reflect(FromWorld)]
 pub struct ProtagController {

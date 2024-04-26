@@ -2,6 +2,7 @@
 //! It can also serialize and deserialize component data and instantiate entities using it to provide full building functionality.
 
 use crate::scene::object_data::SceneData;
+use crate::scene::serialized_scene::ComponentData;
 use crate::scene::serialized_scene::SerializedSceneData;
 
 use super::error;
@@ -22,6 +23,7 @@ use bevy_ecs::entity::Entity;
 use bevy_ecs::system::Query;
 use bevy_ecs::world::World;
 
+use bevy_reflect::serde::Serializable;
 use bevy_reflect::TypeRegistry;
 use inquire::Text;
 use log::error;
@@ -422,13 +424,29 @@ pub fn to_serializable_scene_data<'a>(
                 SceneError::NoSerializationImplementation(component_type_path.to_owned()),
             )?;
 
+            match _registry
+                .get_type_info(reflected_component.type_id())
+                .unwrap()
+            {
+                bevy_reflect::TypeInfo::Struct(s) => {
+                    let mut serialized_values: serde_json::Map<String, serde_json::Value> =
+                        serde_json::Map::new();
+
+                    for field in s.iter() {
+                        //todo: serialize field into data :D
+                        todo!()
+                    }
+                }
+                bevy_reflect::TypeInfo::TupleStruct(ts) => todo!(),
+                bevy_reflect::TypeInfo::Enum(e) => todo!(),
+                _ => unreachable!(),
+            }
+
             // To swap out serializers, simply replace serde_json::Serializer with another serializer of your choice
             // well now, you also need to replicate the ToReflect trait implemented to serde_json::Value. sorry lol.
             let value = match serializable {
-                bevy_reflect::serde::Serializable::Owned(owned) => serde_json::to_value(owned),
-                bevy_reflect::serde::Serializable::Borrowed(borrowed) => {
-                    serde_json::to_value(borrowed)
-                }
+                Serializable::Owned(owned) => serde_json::to_value(owned),
+                Serializable::Borrowed(borrowed) => serde_json::to_value(borrowed),
             }
             .map_err(|err| SceneError::SerializeFailure(err.to_string()))?;
 

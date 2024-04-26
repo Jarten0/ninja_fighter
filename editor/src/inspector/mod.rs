@@ -18,30 +18,13 @@ use std::fmt::Debug;
 pub mod entity_view;
 pub mod field_view;
 pub mod inspector_view;
+mod scene_window;
 
 type Response = TabResponse;
 
-#[derive(Debug, PartialEq, Eq, Hash)]
-enum EditorTabTypes {
-    Entities,
-    Inspector { adding_component: bool },
-    Field,
-}
-
-impl ToString for EditorTabTypes {
-    fn to_string(&self) -> String {
-        match self {
-            EditorTabTypes::Entities => "Entities",
-            EditorTabTypes::Inspector { .. } => "Inspector",
-            EditorTabTypes::Field => "Field",
-        }
-        .to_string()
-    }
-}
-
 #[derive(Debug)]
 enum TabResponse {
-    SwitchToTab(EditorTabTypes),
+    SwitchToTab(String),
 }
 
 ///
@@ -53,7 +36,7 @@ where
     Self: Sync,
 {
     gui: ggegui::Gui,
-    dock_state: egui_dock::DockState<EditorTabTypes>,
+    dock_state: egui_dock::DockState<String>,
     /// (`ID`, `Name`)
     ///
     /// `String` = entity name
@@ -65,13 +48,10 @@ where
 
 impl EditorInterface {
     pub(crate) fn new(ctx: &mut ggez::Context, world: &mut World) -> Self {
-        let tabs = vec![
-            EditorTabTypes::Entities,
-            EditorTabTypes::Inspector {
-                adding_component: false,
-            },
-            EditorTabTypes::Field,
-        ];
+        let tabs = vec!["Entities", "Inspector", "Field", "Scene"]
+            .drain(..)
+            .map(str::to_string)
+            .collect();
 
         let dock_state = DockState::new(tabs);
 
@@ -236,7 +216,7 @@ impl InspectorWindow {
 }
 
 impl egui_dock::TabViewer for InspectorWindow {
-    type Tab = EditorTabTypes;
+    type Tab = String;
 
     fn title(&mut self, tab: &mut Self::Tab) -> egui::WidgetText {
         tab.to_string().into()
@@ -268,10 +248,15 @@ impl egui_dock::TabViewer for InspectorWindow {
 
             self.components.insert(focused_entity.0, v);
         }
-        self.current_response = match tab {
-            EditorTabTypes::Entities => entity_view::draw_entities(self, ui, tab),
-            EditorTabTypes::Inspector { .. } => inspector_view::draw_inspector(self, ui, tab),
-            EditorTabTypes::Field => field_view::draw_field(self, ui, tab),
+        self.current_response = match tab.as_str() {
+            "Entities" => entity_view::draw_entities(self, ui, tab),
+            "Inspector" => inspector_view::draw_inspector(self, ui, tab),
+            "Field" => field_view::draw_field(self, ui, tab),
+            "Scene" => scene_window::draw_scene_window(self, ui, tab),
+            _unknown_window => {
+                log::error!("Window not found! {}", _unknown_window);
+                return;
+            }
         };
     }
 
@@ -330,7 +315,7 @@ pub fn update_inspector<'a>(world: &mut World) {
                 });
             });
 
-            egui::Window::new("Inspector")
+            egui::Window::new("Dockable Windows")
                 .constrain(true)
                 .show(&ctx, |ui| {
                     EditorInterface::inspector_dock_ui(&mut editor, ui, world_scoped);

@@ -1,7 +1,5 @@
 use std::collections::HashMap;
 
-use super::EditorTabTypes;
-
 use bevy_ecs::entity::Entity;
 use engine::scene::SceneData;
 use log::*;
@@ -25,9 +23,7 @@ pub(super) fn draw_entities(
         if ui.small_button(name).clicked() {
             trace!("Clicked on entity [{}]", name);
             state.focused_entity = Some((entity.clone(), name.clone()));
-            return Some(Response::SwitchToTab(EditorTabTypes::Inspector {
-                adding_component: false,
-            }));
+            return Some(Response::SwitchToTab("Inspector".to_owned()));
         }
     }
     ui.separator();

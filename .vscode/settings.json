@@ -22,7 +22,7 @@
         "**/*.godot": true,
         "**/*.import": true,
         "**/*.meta": true,
-        "**/*.png": false,
+        "**/*.png": true,
         "**/*.so": true,
         "**/*.zip": true,
         "icon.svg": true,

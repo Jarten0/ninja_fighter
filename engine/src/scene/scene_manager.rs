@@ -8,7 +8,7 @@ use bevy_ecs::world::World;
 use bevy_reflect::TypeRegistry;
 
 use super::{component::Scene, load_scene, save_scene};
-use super::{error, unload_scene, ObjectID};
+use super::{error, unload_scene, ObjectID, SceneError};
 
 #[derive(Resource, Default)]
 pub struct SceneManager {
@@ -115,5 +115,14 @@ impl SceneManager {
     }
     pub fn get_scene_by_name(&self, name: String) -> Option<Entity> {
         self.current_scenes.get(&name).copied()
+    }
+
+    pub fn get_target_scene_component<'a>(
+        &self,
+        world: &'a World,
+    ) -> Result<&'a Scene, SceneError> {
+        world
+            .get::<Scene>(self.target_scene.ok_or(SceneError::NoTargetScene)?)
+            .ok_or(SceneError::NoSceneComponent)
     }
 }

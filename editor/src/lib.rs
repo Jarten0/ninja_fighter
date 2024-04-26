@@ -35,17 +35,6 @@ pub fn init_editor_schedules(world: &mut World) {
 
     world.insert_resource(InputDebugger::default());
 
-    world.resource_scope(|world, mut res: Mut<SceneManager>| {
-        res.type_registry
-            .register_type_data::<f32, InspectableAsField>();
-        // res.type_registry
-        //     .register_type_data::<f64, InspectableAsField>();
-        res.type_registry
-            .register_type_data::<bool, InspectableAsField>();
-        res.type_registry
-            .register_type_data::<engine::space::Vector2, InspectableAsField>();
-    });
-
     let editor_interface =
         world.resource_scope(|world: &mut World, mut engine: Mut<GgezInterface>| {
             EditorInterface::new(engine.get_context_mut(), world)

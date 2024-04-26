@@ -22,13 +22,22 @@ pub mod root;
 #[cfg(feature = "editor_features")]
 pub mod editor;
 
+use std::any::TypeId;
+
+use bevy_ecs::reflect::ReflectFromWorld;
+use bevy_ecs::world::{FromWorld, Mut};
+use bevy_trait_query::RegisterExt as _;
 pub use camera::Camera;
+use editor::FieldWidget;
 pub use engine::GgezInterface;
 pub use input::input_cli_editor;
 pub use input::{ActionData, Input, Key};
 pub use logging::LogData;
 pub use render::render_type::RenderType;
 pub use root::GameRoot;
+use scene::{SceneManager, TestSuperTrait};
+
+use crate::editor::InspectableAsField;
 
 /// A list of settings that the engine needs in order to operate exactly as you want it to.
 ///
@@ -93,4 +102,82 @@ impl ToString for SomeError {
     fn to_string(&self) -> String {
         todo!()
     }
+}
+
+pub fn register_scene_types(world: &mut bevy_ecs::world::World) {
+    world.init_resource::<SceneManager>();
+    world.resource_scope(|world, mut res: Mut<SceneManager>| {
+        let mut registry = &mut res.type_registry;
+
+        // #[cfg(features = "editor_features")]
+        {
+            // register_value::<i8>(registry);
+            // register_value::<i16>(registry);
+            // register_value::<i32>(registry);
+            // register_value::<i64>(registry);
+            // register_value::<i128>(registry);
+            // register_value::<isize>(registry);
+            // register_value::<u8>(registry);
+            // register_value::<u16>(registry);
+            // register_value::<u32>(registry);
+            // register_value::<u64>(registry);
+            // register_value::<u128>(registry);
+            // register_value::<isize>(registry);
+            register_value::<f32>(registry);
+            register_value::<f64>(registry);
+            register_value::<space::Vector2>(registry);
+        }
+        register_component::<space::Position>(world, registry);
+        register_component::<space::Rotation>(world, registry);
+        register_component::<space::Scale>(world, registry);
+        register_component::<space::TransformSettings>(world, registry);
+        register_component::<space::Velocity>(world, registry);
+    });
+}
+
+/// Registers the value into the type registr with inspector type data
+// #[cfg(features = "editor_features")]
+pub fn register_value<T>(type_registry: &mut bevy_reflect::TypeRegistry)
+where
+    T: bevy_reflect::Reflect
+        + bevy_reflect::GetTypeRegistration
+        + bevy_reflect::FromReflect
+        + bevy_reflect::TypePath
+        + Default
+        + FromWorld
+        + FieldWidget,
+{
+    type_registry.register::<T>();
+    log::trace!(
+        "Registered value type {:?}\n",
+        type_registry.get_type_info(std::any::TypeId::of::<T>())
+    );
+    type_registry.register_type_data::<T, ReflectFromWorld>();
+    type_registry.register_type_data::<T, InspectableAsField>();
+}
+
+/// Registers type data in the registry for the componenets.
+pub fn register_component<
+    T: bevy_ecs::component::Component
+        + bevy_reflect::Reflect
+        + bevy_reflect::GetTypeRegistration
+        + bevy_reflect::FromReflect
+        + bevy_reflect::TypePath
+        + serde::Serialize
+        + Default
+        + TestSuperTrait
+        + FromWorld,
+>(
+    world: &mut bevy_ecs::prelude::World,
+    type_registry: &mut bevy_reflect::TypeRegistry,
+) {
+    type_registry.register::<T>();
+    log::trace!(
+        "Registered component type {:?}\n",
+        type_registry.get_type_info(TypeId::of::<T>())
+    );
+    type_registry.register_type_data::<T, ReflectFromWorld>();
+    type_registry.register_type_data::<T, scene::ReflectTestSuperTrait>();
+    world.init_component::<T>(); // Registers the component id
+    world.register_component_as::<dyn TestSuperTrait, T>(); // TestSuperTrait is used in world queries for iterating over types dynamically
 }

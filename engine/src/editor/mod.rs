@@ -9,8 +9,8 @@ use crate::space::Vector2;
 // #[bevy_reflect::reflect_trait]
 pub trait FieldWidget: Send + Sync + Sized + Reflect {
     // the Reflect trait bound might be removed later
-    fn ui(value: &mut dyn Reflect, ui: &mut Ui) -> egui::Response {
-        ui.label("Default implementation of widget for ".to_owned() + value.reflect_type_path())
+    fn ui(value: &mut dyn Reflect, ui: &mut Ui) {
+        ui.label("Default implementation of widget for ".to_owned() + value.reflect_type_path());
     }
 }
 
@@ -21,64 +21,45 @@ pub enum NumberFieldTypes<T> {
 }
 
 impl FieldWidget for f32 {
-    fn ui(value: &mut dyn Reflect, ui: &mut Ui) -> egui::Response {
+    fn ui(value: &mut dyn Reflect, ui: &mut Ui) {
         let value = value.downcast_mut::<f32>().unwrap();
 
-        egui::DragValue::new(value)
-            .ui(ui)
-            .context_menu(|ui| {
-                egui::ComboBox::from_label("Pick a slider type")
-                    .selected_text(format!("Waht {:?}"))
-                    .show_ui(ui, |ui| {
-                        ui.selectable_value(
-                            todo!(),
-                            NumberFieldTypes::DragValue::<f32>,
-                            "Drag value",
-                        );
-                        ui.selectable_value(
-                            todo!(),
-                            NumberFieldTypes::Slider {
-                                min: -100.0,
-                                max: 100.0,
-                            },
-                            "Slider",
-                        );
-                    });
-            })
-            .unwrap()
-            .response
+        egui::DragValue::new(value).speed(0.05).ui(ui);
 
-        // ui.add(egui::Slider::new(value, 0.0..=100.0))
+        // ui.add(
+        //     egui::Slider::new(value, -100.0..=100.0)
+        //         .logarithmic(false)
+        //         .trailing_fill(true)
+        //         .max_decimals(2)
+        //         .clamp_to_range(false),
+        // );
     }
 }
 
 impl FieldWidget for f64 {
-    fn ui(value: &mut dyn Reflect, ui: &mut Ui) -> egui::Response {
+    fn ui(value: &mut dyn Reflect, ui: &mut Ui) {
         let value = value.downcast_mut::<f64>().unwrap();
 
-        ui.add(egui::Slider::new(value, -100.0..=100.0))
+        ui.add(egui::Slider::new(value, -100.0..=100.0));
     }
 }
 
 impl FieldWidget for bool {
-    fn ui(value: &mut dyn Reflect, ui: &mut Ui) -> egui::Response {
+    fn ui(value: &mut dyn Reflect, ui: &mut Ui) {
         let value = value.downcast_mut::<bool>().unwrap();
 
-        ui.add(egui::Checkbox::new(value, "test bool"))
+        ui.add(egui::Checkbox::new(value, "test bool"));
     }
 }
 
 impl FieldWidget for Vector2 {
-    fn ui(value: &mut dyn Reflect, ui: &mut Ui) -> egui::Response {
+    fn ui(value: &mut dyn Reflect, ui: &mut Ui) {
         let value = value.downcast_mut::<Vector2>().unwrap();
 
         ui.horizontal_top(|ui| {
-            ui.label("x");
-            egui::DragValue::new(&mut value.x).ui(ui);
-            ui.label("y");
-            egui::DragValue::new(&mut value.y).ui(ui)
-        })
-        .inner
+            egui::DragValue::new(&mut value.x).prefix("x: ").ui(ui);
+            egui::DragValue::new(&mut value.y).prefix("y: ").ui(ui)
+        });
     }
 }
 
@@ -95,7 +76,7 @@ impl FieldWidget for crate::space::Position {}
 /// You must give it information required to serialize, display and edit it via [`egui`]
 #[derive(Debug, Clone)]
 pub struct InspectableAsField {
-    ui_display_fn: fn(&mut dyn Reflect, &mut Ui) -> egui::Response,
+    ui_display_fn: fn(&mut dyn Reflect, &mut Ui),
 }
 
 impl<T: FieldWidget> FromType<T> for InspectableAsField {
@@ -115,11 +96,11 @@ impl<T: FieldWidget> FromType<T> for InspectableAsField {
 // }
 
 impl InspectableAsField {
-    pub fn new(ui_display_fn: fn(&mut dyn Reflect, &mut Ui) -> egui::Response) -> Self {
+    pub fn new(ui_display_fn: fn(&mut dyn Reflect, &mut Ui)) -> Self {
         Self { ui_display_fn }
     }
 
-    pub fn show(&self, ui: &mut egui::Ui, field: &mut dyn Reflect) -> egui::Response {
+    pub fn show(&self, ui: &mut egui::Ui, field: &mut dyn Reflect) {
         (self.ui_display_fn)(field, ui)
     }
 }
