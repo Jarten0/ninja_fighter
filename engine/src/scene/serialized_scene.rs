@@ -28,7 +28,7 @@ use std::collections::HashMap;
 
 pub type DataHashmap = HashMap<String, EntityHashmap>; // string = entity name, entity hashmap = entities owned components
 pub type EntityHashmap = HashMap<String, ComponentData>; // static str = type path of component
-pub type ComponentData = serde_json::Value; // component data
+pub type ComponentData = serde_json::Map<String, serde_json::Value>; // component data
 
 /// Private trait that converts [`serde_json::Value`] to [`Reflect`]
 pub trait ToReflect {
@@ -327,8 +327,8 @@ impl SerializedSceneData {
 
                     component_patch.set_represented_type(Some(type_info));
 
-                    let _reflected_component_data =
-                        component_data.to_reflect(Some(&component_path), type_registry);
+                    // let _reflected_component_data =
+                    //     component_data.to_reflect(Some(&component_path), type_registry);
 
                     reflect_component.apply_or_insert(&mut entity, &component_patch, type_registry);
 

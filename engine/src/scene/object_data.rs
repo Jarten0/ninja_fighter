@@ -49,16 +49,6 @@ pub trait TestSuperTrait
 where
     Self: 'static,
 {
-    fn erased_serialize(&self, serializer: &mut dyn Serializer) -> Result<(), Error>;
-
-    fn get_component_id(world: &World) -> Option<ComponentId>
-    where
-        Self: Sized + Component;
-
-    fn component_id(world: &World) -> ComponentId
-    where
-        Self: Sized + Component;
-
     fn as_reflect(&self) -> &dyn Reflect;
 
     /// Return a bool determining if the component should be visible in the inspector or not.
@@ -71,30 +61,8 @@ where
 
 impl<T> TestSuperTrait for T
 where
-    T: erased_serde::Serialize + Component + Reflect + serde::Serialize + Default + FromWorld,
+    T: Component + Reflect + Default + FromWorld,
 {
-    fn erased_serialize(&self, serializer: &mut dyn Serializer) -> Result<(), erased_serde::Error> {
-        <T as erased_serde::Serialize>::erased_serialize(self, serializer)
-    }
-
-    /// Gets the current [`ComponentId`] for the object
-    fn get_component_id(world: &World) -> Option<ComponentId>
-    where
-        Self: Sized + Component,
-    {
-        world.component_id::<Self>()
-    }
-
-    /// Get the current [`ComponentId`] of the object.
-    ///
-    /// Panicking version of [`TestSuperTrait::get_component_id`], fails when the component has yet to be initialized in the world.
-    fn component_id(world: &World) -> ComponentId
-    where
-        Self: Sized + Component,
-    {
-        world.component_id::<Self>().unwrap()
-    }
-
     fn as_reflect(&self) -> &dyn Reflect
     where
         Self: Reflect,

@@ -24,6 +24,8 @@ use bevy_ecs::system::Query;
 use bevy_ecs::world::World;
 
 use bevy_reflect::serde::Serializable;
+use bevy_reflect::ReflectRef;
+use bevy_reflect::ReflectSerialize;
 use bevy_reflect::TypeRegistry;
 use inquire::Text;
 use log::error;
@@ -420,39 +422,95 @@ pub fn to_serializable_scene_data<'a>(
             let component_type_path = reflected_component.reflect_type_path();
             trace!("    - Serializing {}", component_type_path);
 
-            let serializable = reflected_component.serializable().ok_or(
-                SceneError::NoSerializationImplementation(component_type_path.to_owned()),
-            )?;
+            // let serializable = reflected_component.serializable().ok_or(
+            //     SceneError::NoSerializationImplementation(component_type_path.to_owned()),
+            // )?;
 
-            match _registry
+            let serialized_values = match _registry
                 .get_type_info(reflected_component.type_id())
                 .unwrap()
             {
                 bevy_reflect::TypeInfo::Struct(s) => {
-                    let mut serialized_values: serde_json::Map<String, serde_json::Value> =
-                        serde_json::Map::new();
+                    log::trace!("      - Goin thru the values {}...", s.type_path());
+
+                    let mut serialized_values: ComponentData = serde_json::Map::new();
+
+                    let ReflectRef::Struct(v) = reflected_component.reflect_ref() else {
+                        error!("
+                        Mismatching implementations of `TypeInfo` and `Reflect` for {}. 
+                        (`TypeInfo` states that the type is Struct, but `Reflect::reflect_ref()` returns a non-struct reflect type.)
+                        ", reflected_component.reflect_type_path());
+                        continue;
+                    };
 
                     for field in s.iter() {
-                        //todo: serialize field into data :D
-                        todo!()
+                        trace!("         - Serializing field {}", field.name());
+                        let Some(type_data) =
+                            _registry.get_type_data::<ReflectSerialize>(field.type_id())
+                        else {
+                            error!("Could not find serialzie type data for {}", field.name());
+                            continue;
+                        };
+
+                        let value = v.field(field.name()).unwrap();
+
+                        let v = match type_data.get_serializable(value) {
+                            Serializable::Owned(owned) => serde_json::to_value(owned),
+                            Serializable::Borrowed(borrowed) => serde_json::to_value(borrowed),
+                        }
+                        .unwrap();
+
+                        serialized_values.insert(field.name().to_owned(), v);
                     }
+                    serialized_values
                 }
-                bevy_reflect::TypeInfo::TupleStruct(ts) => todo!(),
+                bevy_reflect::TypeInfo::TupleStruct(ts) => {
+                    let mut serialized_values = serde_json::Map::new();
+
+                    let ReflectRef::TupleStruct(v) = reflected_component.reflect_ref() else {
+                        error!("
+                        Mismatching implementations of `TypeInfo` and `Reflect` for {}. 
+                        (`TypeInfo` states that the type is Struct, but `Reflect::reflect_ref()` returns a non-struct reflect type.)
+                        ", reflected_component.reflect_type_path());
+                        continue;
+                    };
+
+                    for field in ts.iter() {
+                        let index = field.index();
+
+                        trace!("         - Serializing field {}", index);
+                        let Some(type_data) =
+                            _registry.get_type_data::<ReflectSerialize>(field.type_id())
+                        else {
+                            error!(
+                                "Could not find serialzie type data for field at index {}",
+                                index
+                            );
+                            continue;
+                        };
+
+                        let value = v.field(index).unwrap();
+
+                        let v = match type_data.get_serializable(value) {
+                            Serializable::Owned(owned) => serde_json::to_value(owned),
+                            Serializable::Borrowed(borrowed) => serde_json::to_value(borrowed),
+                        }
+                        .unwrap();
+
+                        serialized_values.insert(index.to_string(), v);
+                    }
+                    serialized_values
+                }
                 bevy_reflect::TypeInfo::Enum(e) => todo!(),
                 _ => unreachable!(),
-            }
-
-            // To swap out serializers, simply replace serde_json::Serializer with another serializer of your choice
-            // well now, you also need to replicate the ToReflect trait implemented to serde_json::Value. sorry lol.
-            let value = match serializable {
-                Serializable::Owned(owned) => serde_json::to_value(owned),
-                Serializable::Borrowed(borrowed) => serde_json::to_value(borrowed),
-            }
-            .map_err(|err| SceneError::SerializeFailure(err.to_string()))?;
+            };
 
             trace!("      - Serialized");
 
-            entity_hashmap.insert(reflected_component.reflect_type_path().to_owned(), value);
+            entity_hashmap.insert(
+                reflected_component.reflect_type_path().to_owned(),
+                serialized_values,
+            );
 
             trace!(
                 "   - Inserted serialized component data to {}'s data",

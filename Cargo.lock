@@ -803,6 +803,7 @@ dependencies = [
  "bevy-trait-query",
  "bevy_ecs",
  "bevy_reflect",
+ "egui",
  "engine",
  "erased-serde",
  "ggez",

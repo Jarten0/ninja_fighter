@@ -6,12 +6,14 @@ use bevy_ecs::system::Query;
 use bevy_ecs::system::Res;
 use bevy_ecs::system::ResMut;
 use bevy_reflect::Reflect;
+use engine::editor::FieldWidget;
 use engine::Camera;
 use ggez::graphics::{self as ggraphics, *};
 
 use engine::space;
 use engine::GgezInterface;
 use ggraphics::Canvas;
+use serde::Deserialize;
 use serde::Serialize;
 
 use self::render_type::RenderType;
@@ -43,7 +45,7 @@ pub fn update(mut query: Query<(&mut Renderer, TransformComponentTuple)>) {
 
         let draw_param = renderer.draw_param.to_owned();
 
-        Renderer::set(&mut renderer, draw_param, Position::new(0.0, 0.0))
+        Renderer::set(&mut renderer, draw_param, Vector2::new(0.0, 0.0))
     }
 }
 
@@ -106,8 +108,10 @@ pub struct Renderer {
     pub draw_param: DrawParam,
     #[reflect(ignore)]
     pub image: Option<RenderType>,
-    pub offset: space::Position,
+    pub offset: space::Vector2,
 }
+
+impl FieldWidget for Renderer {}
 
 #[allow(dead_code)]
 impl Renderer {
@@ -120,7 +124,8 @@ impl Renderer {
             transform: transform.into(),
             z: 0,
         };
-        let offset = space::Position::new(0.0, 0.0);
+
+        let offset = space::Vector2::new(0.0, 0.0);
 
         Renderer {
             image,
@@ -133,7 +138,7 @@ impl Renderer {
     pub fn new_opt(
         image: Option<RenderType>,
         draw_param: DrawParam,
-        offset: space::Position,
+        offset: space::Vector2,
     ) -> Self {
         Renderer {
             image,
@@ -142,7 +147,7 @@ impl Renderer {
         }
     }
 
-    pub fn set(&mut self, draw_param: DrawParam, offset: space::Position) {
+    pub fn set(&mut self, draw_param: DrawParam, offset: space::Vector2) {
         self.draw_param = draw_param;
         self.offset = offset;
     }
@@ -156,14 +161,5 @@ impl Renderer {
             draw_param: Default::default(),
             offset: Default::default(),
         }
-    }
-}
-
-impl Serialize for Renderer {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        serializer.serialize_str("Renderer placeholder")
     }
 }

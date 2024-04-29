@@ -5,6 +5,7 @@ pub mod mesh_editor;
 pub mod mesh_renderer;
 mod traits;
 
+use bevy_ecs::reflect::ReflectComponent;
 pub use box_collider::BoxCollider;
 pub use convex_mesh::ConvexMesh;
 use engine::scene::ObjectID;
@@ -20,19 +21,10 @@ use std::fmt::Debug;
 use traits::SuperMesh;
 
 #[derive(Debug, Component, Default, Reflect)]
+#[reflect(Component)]
 pub struct Collider {
     #[reflect(ignore)]
     pub meshes: HashMap<ObjectID, Box<dyn SuperMesh>>,
-}
-
-impl Serialize for Collider {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        let _s = serializer.serialize_struct("Collider", 1)?;
-        todo!()
-    }
 }
 
 impl Collider {

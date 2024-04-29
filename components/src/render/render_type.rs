@@ -1,3 +1,5 @@
+use bevy_reflect::{Reflect, ReflectKind, ReflectMut};
+use engine::editor::FieldWidget;
 use ggez::graphics::{Color, GraphicsContext, Image, InstanceArray, Mesh, Text};
 use serde::Serialize;
 
@@ -10,6 +12,21 @@ pub enum RenderType {
     Text(Text),
     #[default]
     None,
+}
+
+impl FieldWidget for RenderType {
+    fn ui(value: &mut dyn bevy_reflect::Reflect, ui: &mut egui::Ui) {
+        let ReflectMut::Enum(value) = value.reflect_mut() else {
+            ui.label("value is bugged".to_owned() + value.reflect_type_path());
+            return;
+        };
+
+        egui::ComboBox::from_label("Rendering data type")
+            .selected_text("{:#?}")
+            .show_ui(ui, |ui: &mut egui::Ui| {
+                // ui.selectable_value(value, RenderType::None, "None")
+            });
+    }
 }
 
 impl Serialize for RenderType {

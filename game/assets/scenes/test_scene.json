@@ -1,1 +1,30 @@
-{"name":"test_scene","entity_data":{"New entity":{"components::protag::Protag":{}}}}
+{
+    "name": "test_scene",
+    "entity_data": {
+        "New entity": {
+            "components::collider::gravity_settings::GravitySettings": {
+                "force": {
+                    "x": 0.0,
+                    "y": 0.0
+                },
+                "force_cap": 0.0
+            },
+            "components::collider::Collider": {},
+            "components::render::Renderer": {
+                "offset": {
+                    "x": 0.0,
+                    "y": 0.0
+                }
+            },
+            "components::protag::Protag": {},
+            "components::protag::ProtagController": {
+                "acc": 1.100000023841858,
+                "decel": 0.0,
+                "fall_acc": 0.0,
+                "jump_power": 0.0,
+                "max_fall_speed": 0.0,
+                "speed_cap": 0.0
+            }
+        }
+    }
+}

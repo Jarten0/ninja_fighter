@@ -19,7 +19,7 @@ pub fn init(mut commands: Commands, _engine: Res<GgezInterface>) {
         });
 }
 
-#[derive(Default, Component, Reflect, Serialize, Deserialize, Clone, Debug)]
+#[derive(Default, Component, Reflect, Clone, Debug)]
 #[reflect(Component)]
 pub struct Protag;
 
@@ -136,7 +136,7 @@ impl ProtagBundle {
                 transform: transform.into(),
                 z: 0,
             },
-            space::Position::new(10.0, 0.0),
+            space::Vector2::new(10.0, 0.0),
         );
 
         let mut bundle = BoxCollider::new(space::ONE);

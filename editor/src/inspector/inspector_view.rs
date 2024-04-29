@@ -143,9 +143,11 @@ pub(super) fn draw_inspector(
                                 Some(some) => some,
                                 None => {
                                     log::error!(
-                                        "Couldnt find ReflectComponent type data for {}",
-                                        module.0.to_string()
+                                        "Couldnt find ReflectComponent type data for {}.
+                                        (Perhaps you're missing the #[reflect(Component) macro attribute)",
+                                        component.1
                                     );
+
                                     continue;
                                 }
                             };

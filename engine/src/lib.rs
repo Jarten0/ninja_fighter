@@ -26,6 +26,7 @@ use std::any::TypeId;
 
 use bevy_ecs::reflect::ReflectFromWorld;
 use bevy_ecs::world::{FromWorld, Mut};
+use bevy_reflect::{ReflectDeserialize, ReflectSerialize};
 use bevy_trait_query::RegisterExt as _;
 pub use camera::Camera;
 use editor::FieldWidget;
@@ -135,7 +136,7 @@ pub fn register_scene_types(world: &mut bevy_ecs::world::World) {
     });
 }
 
-/// Registers the value into the type registr with inspector type data
+/// Registers the value into the type registry with inspector type data
 // #[cfg(features = "editor_features")]
 pub fn register_value<T>(type_registry: &mut bevy_reflect::TypeRegistry)
 where
@@ -145,7 +146,9 @@ where
         + bevy_reflect::TypePath
         + Default
         + FromWorld
-        + FieldWidget,
+        + FieldWidget
+        + serde::Serialize
+        + for<'b> serde::Deserialize<'b>,
 {
     type_registry.register::<T>();
     log::trace!(
@@ -154,6 +157,8 @@ where
     );
     type_registry.register_type_data::<T, ReflectFromWorld>();
     type_registry.register_type_data::<T, InspectableAsField>();
+    type_registry.register_type_data::<T, ReflectSerialize>();
+    type_registry.register_type_data::<T, ReflectDeserialize>();
 }
 
 /// Registers type data in the registry for the componenets.
@@ -163,7 +168,7 @@ pub fn register_component<
         + bevy_reflect::GetTypeRegistration
         + bevy_reflect::FromReflect
         + bevy_reflect::TypePath
-        + serde::Serialize
+        // + serde::Serialize
         + Default
         + TestSuperTrait
         + FromWorld,

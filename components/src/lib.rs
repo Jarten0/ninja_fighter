@@ -22,6 +22,8 @@ pub mod render;
 pub fn init_components(world: &mut World) -> () {
     world.insert_resource(MeshEditor::default());
 
+    // world.bundles().
+
     world.resource_scope(|world: &mut World, mut manager: Mut<SceneManager>| {
         let register = &mut manager.type_registry;
         register_component::<render::Renderer>(world, register);

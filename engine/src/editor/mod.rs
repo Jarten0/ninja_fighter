@@ -7,9 +7,12 @@ use crate::space::Vector2;
 
 /// A simple supertrait for `egui::Widget` that requires the type to implement `Sync` and `Send` (also `Debug`)
 // #[bevy_reflect::reflect_trait]
-pub trait FieldWidget: Send + Sync + Sized + Reflect {
+#[cfg(feature = "editor_features")]
+pub trait FieldWidget: Send + Sync + Sized {
     // the Reflect trait bound might be removed later
-    fn ui(value: &mut dyn Reflect, ui: &mut Ui) {
+    fn ui(value: &mut dyn Reflect, ui: &mut egui::Ui) {
+        // let field_value = value.downcast_mut::<Self>().unwrap(); //you can use this if your type implements reflect
+
         ui.label("Default implementation of widget for ".to_owned() + value.reflect_type_path());
     }
 }
