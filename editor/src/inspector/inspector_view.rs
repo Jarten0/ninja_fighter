@@ -1,9 +1,12 @@
 use std::any::Any;
 use std::collections::HashMap;
 
+use bevy_ecs::component::ComponentId;
 use bevy_ecs::identifier::error;
 use bevy_ecs::reflect::ReflectComponent;
 use bevy_ecs::reflect::ReflectFromWorld;
+use bevy_ecs::world::EntityMut;
+use bevy_ecs::world::EntityWorldMut;
 use bevy_ecs::world::Mut;
 use bevy_ecs::world::World;
 use bevy_reflect::DynamicStruct;
@@ -31,7 +34,7 @@ use engine::scene::SceneManager;
 use log::*;
 
 use super::InspectorWindow;
-use super::Response;
+use super::TabResponse;
 
 #[derive(Debug, Default)]
 pub struct InspectorViewState {
@@ -42,13 +45,15 @@ pub(super) fn draw_inspector(
     state: &mut InspectorWindow,
     ui: &mut egui::Ui,
     tab: &mut <InspectorWindow as egui_dock::TabViewer>::Tab,
-) -> Option<Response> {
+) -> Option<TabResponse> {
     if state.focused_entity.is_none() {
         ui.label("No entity in focus");
         return None;
     }
 
     let entity = state.focused_entity.clone().unwrap();
+
+    let mut current_response = None;
 
     let debug_mode = state.debug_mode;
 
@@ -62,11 +67,14 @@ pub(super) fn draw_inspector(
     };
 
     state
-        .world()
+        .world_mut()
         .resource_scope(|world, res: Mut<SceneManager>| {
-            for c_id in component_ids.iter() {
-                let Some(component_info) = world.components().get_info(*c_id) else {
-                    error!("Could not find component {:?} on {}", c_id, entity.1);
+            for component_id in component_ids.iter() {
+                let Some(component_info) = world.components().get_info(*component_id) else {
+                    error!(
+                        "Could not find component {:?} on {}",
+                        component_id, entity.1
+                    );
                     return;
                 };
 
@@ -82,7 +90,7 @@ pub(super) fn draw_inspector(
                     return;
                 };
 
-                let Some(mut ptr) = get_entity_mut.get_mut_by_id(*c_id) else {
+                let Some(mut ptr) = get_entity_mut.get_mut_by_id(*component_id) else {
                     error!("Could not get untyped component from ComponentID.");
                     return;
                 };
@@ -133,6 +141,13 @@ pub(super) fn draw_inspector(
                                 }
                             };
                             draw_struct_in_inspector(s, ui, &res.type_registry, debug_mode);
+                        })
+                        .header_response
+                        .context_menu(|ui| {
+                            if ui.selectable_label(true, "Remove component").clicked() {
+                                current_response =
+                                    Some(TabResponse::RemoveComponent(entity.0, *component_id))
+                            }
                         });
                     }
                 };
@@ -163,7 +178,7 @@ pub(super) fn draw_inspector(
 
     ui.collapsing("Add components", |ui| {
         let modules = &state.component_modules.clone();
-        let world = state.world(); // pulled out into variable so that formatter wouldnt add an extra tab of indentation for no reason like why is it so much
+        let world = state.world_mut(); // pulled out into variable so that formatter wouldnt add an extra tab of indentation for no reason like why is it so much
         world.resource_scope(|world: &mut World, res: Mut<SceneManager>| {
             for module in modules {
                 ui.collapsing(module.0.clone(), |ui| {
@@ -263,7 +278,7 @@ pub(super) fn draw_inspector(
         });
     });
 
-    None
+    current_response
 }
 
 fn draw_struct_in_inspector(

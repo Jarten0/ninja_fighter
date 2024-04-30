@@ -188,10 +188,10 @@ impl FieldWidget for Renderer {
                 }
             });
 
-            ui.add(egui::DragValue::new(&mut draw_param.z));
+            let z_label = ui.label("z");
+            ui.add(egui::DragValue::new(&mut draw_param.z))
+                .labelled_by(z_label.id);
         });
-
-        // ui.label("Default implementation of widget for ".to_owned() + value.reflect_type_path());
     }
 }
 

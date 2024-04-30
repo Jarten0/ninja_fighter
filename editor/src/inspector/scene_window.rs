@@ -8,7 +8,7 @@ pub fn draw_scene_window(
     ui: &mut egui::Ui,
     tab: &mut String,
 ) -> Option<TabResponse> {
-    let world = state.world();
+    let world = state.world_mut();
     world.resource_scope(|world: &mut World, res: Mut<SceneManager>| {
         match res.get_target_scene_component(world) {
             Ok(ok) => ui.label(ok.name.to_string()),

@@ -20,11 +20,10 @@ pub mod field_view;
 pub mod inspector_view;
 mod scene_window;
 
-type Response = TabResponse;
-
 #[derive(Debug)]
 enum TabResponse {
     SwitchToTab(String),
+    RemoveComponent(Entity, ComponentId),
 }
 
 ///
@@ -41,7 +40,7 @@ where
     ///
     /// `String` = entity name
     focused_entity: Option<(Entity, String)>,
-    current_response: Option<Response>,
+    current_response: Option<TabResponse>,
     focused_component: Option<ComponentId>,
     window: InspectorWindow,
 }
@@ -87,6 +86,9 @@ impl EditorInterface {
                     self.dock_state
                         .set_active_tab((SurfaceIndex::main(), node.0, node.1));
                 }
+                // TabResponse::RemoveComponent(entity, component_id) => {
+                //     world.
+                // }
                 #[allow(unreachable_patterns)]
                 // so that if there is a new tab response, I don't have to deal with this right away. Let it fail I say.
                 // TODO: Remove if this project gains significance lol
@@ -108,9 +110,9 @@ where
     pub field_state: FieldViewState,
 
     // "global" state (available in all inspector views)
-    entities: HashMap<String, Entity>,
+    entities: Vec<Entity>,
     components: HashMap<Entity, Vec<ComponentId>>,
-    current_response: Option<Response>,
+    current_response: Option<TabResponse>,
 
     /// (`ID`, `Name`)
     ///
@@ -126,12 +128,20 @@ impl InspectorWindow {
     ///
     /// Only works under specific circumstances.
     // TODO: Describe those circumstances here. Essentially, don't call outside of `draw_inspector()`
-    pub(crate) fn world(&mut self) -> &mut World {
+    pub(crate) fn world_ref(&self) -> &World {
+        unsafe { &*(WORLD_REF.unwrap()) } // You called `world` when the reference wasn't available
+    }
+
+    /// Requires access to InspectorWindow to get world access.
+    ///
+    /// Only works under specific circumstances.
+    // TODO: Describe those circumstances here. Essentially, don't call outside of `draw_inspector()`
+    pub(crate) fn world_mut(&mut self) -> &mut World {
         unsafe { &mut *(WORLD_REF.unwrap()) } // You called `world` when the reference wasn't available
     }
 
     pub fn new(world: &mut World) -> Self {
-        let mut entities = HashMap::new();
+        let mut entities = Vec::new();
         let mut components = HashMap::new();
 
         for (entity, scene_data) in world.query::<(Entity, &SceneData)>().iter(&world) {
@@ -139,7 +149,7 @@ impl InspectorWindow {
             //     continue;
             // }
 
-            entities.insert(scene_data.object_name.clone(), entity);
+            entities.push(entity);
         }
 
         for (entity, dyn_components) in world.query::<(Entity, &dyn TestSuperTrait)>().iter(&world)
@@ -226,9 +236,9 @@ impl egui_dock::TabViewer for InspectorWindow {
         if let Some(focused_entity) = self.focused_entity.clone() {
             let mut v: Vec<TypeId> = Vec::new();
             for (entity, read) in self
-                .world()
+                .world_mut()
                 .query::<(Entity, &dyn TestSuperTrait)>()
-                .iter(self.world())
+                .iter(self.world_mut())
             {
                 if !(entity == focused_entity.0) {
                     continue;
@@ -243,7 +253,7 @@ impl egui_dock::TabViewer for InspectorWindow {
 
             let v = v
                 .iter()
-                .map(|component| self.world().components().get_id(*component).unwrap())
+                .map(|component| self.world_mut().components().get_id(*component).unwrap())
                 .collect();
 
             self.components.insert(focused_entity.0, v);

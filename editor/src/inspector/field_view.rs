@@ -3,7 +3,7 @@ use std::fmt::Debug;
 use std::ops::RangeInclusive;
 
 use super::InspectorWindow;
-use super::Response;
+use super::TabResponse;
 use bevy_reflect::FromType;
 use bevy_reflect::NamedField;
 use bevy_reflect::Reflect;
@@ -20,7 +20,7 @@ pub(super) fn draw_field(
     state: &mut InspectorWindow,
     ui: &mut egui::Ui,
     tab: &mut <InspectorWindow as egui_dock::TabViewer>::Tab,
-) -> Option<Response> {
+) -> Option<TabResponse> {
     ui.label("No implementation of field editor at the moment");
     None
 }

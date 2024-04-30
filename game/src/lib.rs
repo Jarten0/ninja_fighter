@@ -31,17 +31,21 @@ pub fn tick_schedule() -> Schedule {
     sched
         .set_build_settings(TICK_SETTINGS.clone())
         .set_executor_kind(ExecutorKind::MultiThreaded)
-        .add_systems((
-            collider::update,
-            protag::update,
-            components::collider::mesh_editor::update_editor,
-        ));
+        .add_systems(
+            (
+                components::collider::mesh_editor::update_editor,
+                protag::update,
+                engine::space::update,
+                collider::update,
+            )
+                .chain(),
+        );
 
     sched
 }
 
 pub fn freeze_tick_schedule() -> Schedule {
-    let mut sched = Schedule::new(ScheduleTag::Tick);
+    let mut sched = Schedule::new(ScheduleTag::FreezeTick);
     // Configuration block
     sched
         .set_build_settings(TICK_SETTINGS.clone())

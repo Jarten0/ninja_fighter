@@ -21,7 +21,7 @@ use mint::Point2;
 pub use pos::Position;
 pub use rtt::Rotation;
 pub use scl::Scale;
-pub use transform::{Transform, TransformSettings, DEFAULT_TRANSFORM};
+pub use transform::{update, Transform, TransformSettings, DEFAULT_TRANSFORM};
 pub use vel::Velocity;
 pub use vtx::Vertex;
 

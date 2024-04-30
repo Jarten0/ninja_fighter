@@ -20,6 +20,7 @@ use super::TestSuperTrait;
 
 use bevy_ecs::component::Component;
 use bevy_ecs::entity::Entity;
+use bevy_ecs::query::QueryEntityError;
 use bevy_ecs::system::Query;
 use bevy_ecs::world::World;
 
@@ -313,16 +314,23 @@ pub fn add_entity_to_scene<'a>(
 
         let mut query = world.query::<&dyn TestSuperTrait>();
 
-        let get = query
-            .get(world, entity_to_add)
-            .map_err(|err| SceneError::QueryFailure(err.to_string()))?;
-
-        for component in get.iter() {
-            let id = ComponentInstanceID::get_new();
-            let path = component.as_reflect().reflect_type_path().to_string();
-            component_paths.insert(id, path.clone());
-            component_ids.insert(path, id);
-        }
+        match query.get(world, entity_to_add) {
+            Ok(components) => {
+                for component in components.iter() {
+                    let id = ComponentInstanceID::get_new();
+                    let path = component.as_reflect().reflect_type_path().to_string();
+                    component_paths.insert(id, path.clone());
+                    component_ids.insert(path, id);
+                }
+                trace!("Added inspectable components from entity to scene");
+            }
+            Err(err) => {
+                let QueryEntityError::QueryDoesNotMatch(err) = err else {
+                    return Err(SceneError::QueryFailure(err.to_string()));
+                };
+                trace!("No inspectable components found, adding effectively empty entity to scene");
+            }
+        };
 
         world
             .entity_mut(entity_to_add)

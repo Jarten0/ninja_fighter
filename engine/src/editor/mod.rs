@@ -63,6 +63,57 @@ impl FieldWidget for Vector2 {
     }
 }
 
+// impl FieldWidget for ggez::graphics::DrawParam {
+//     fn ui(value: &mut dyn Reflect, ui: &mut egui::Ui) {
+//         // let field_value = value.downcast_mut::<Self>().unwrap(); //you can use this if your type implements reflect
+
+//         ui.label("Default implementation of widget for ".to_owned() + value.reflect_type_path());
+//         ui.collapsing("Draw Param", |ui| {
+//             let draw_param = &mut field_value.draw_param;
+
+//             ui.collapsing("src", |ui| {
+//                 ui.add(egui::DragValue::new(&mut draw_param.src.x));
+//                 ui.add(egui::DragValue::new(&mut draw_param.src.y));
+//                 ui.add(egui::DragValue::new(&mut draw_param.src.w));
+//                 ui.add(egui::DragValue::new(&mut draw_param.src.h));
+//             });
+
+//             let rgba = draw_param.color.to_rgba();
+//             let color_label = ui.label("Color");
+//             let mut color32 = egui::Color32::from_rgba_unmultiplied(rgba.0, rgba.1, rgba.2, rgba.3);
+//             ui.color_edit_button_srgba(&mut color32)
+//                 .labelled_by(color_label.id);
+//             draw_param.color(ggraphics::Color::from_rgba(
+//                 color32.r(),
+//                 color32.g(),
+//                 color32.b(),
+//                 color32.a(),
+//             ));
+
+//             ui.collapsing("Transform", |ui| match &mut draw_param.transform {
+//                 ggraphics::Transform::Values {
+//                     dest,
+//                     rotation,
+//                     scale,
+//                     offset,
+//                 } => {
+//                     ui.add(egui::DragValue::new(&mut dest.x));
+//                     ui.add(egui::DragValue::new(&mut dest.y));
+//                     ui.add(egui::DragValue::new(&mut scale.x));
+//                     ui.add(egui::DragValue::new(&mut scale.y));
+//                 }
+//                 ggraphics::Transform::Matrix(matrix) => {
+//                     ui.label("transform is matrix, which is currently unsupported");
+//                 }
+//             });
+
+//             let z_label = ui.label("z");
+//             ui.add(egui::DragValue::new(&mut draw_param.z))
+//                 .labelled_by(z_label.id);
+//         });
+//     }
+// }
+
 /// Insert into the type registry.
 ///
 /// States that the type can be inspected as a field, and when it is, display this widget.
