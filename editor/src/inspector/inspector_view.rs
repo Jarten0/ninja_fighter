@@ -49,6 +49,8 @@ pub(super) fn draw_inspector(
 
     let entity = state.focused_entity.clone().unwrap();
 
+    let debug_mode = state.debug_mode;
+
     ui.label("Inspecting ".to_owned() + &entity.1);
 
     let Some(component_ids) = state.components.get(&entity.0).cloned() else {
@@ -99,25 +101,33 @@ pub(super) fn draw_inspector(
 
                 let type_path = reflected.reflect_type_path().to_owned();
 
+                let display_path = match debug_mode {
+                    true => type_path,
+                    false => type_path
+                        .split("::")
+                        .collect::<Vec<&str>>()
+                        .pop()
+                        .unwrap()
+                        .to_string(),
+                };
+
                 if let bevy_reflect::ReflectMut::Struct(s) = reflected.reflect_mut() {
                     if s.field_len() == 0 {
-                        ui.label(type_path.clone());
+                        ui.label(display_path.clone());
                     } else {
-                        ui.collapsing(type_path.clone(), |ui| {
+                        ui.collapsing(display_path.clone(), |ui| {
                             draw_struct_in_inspector(s, ui, &res.type_registry);
                         });
                     }
                 };
                 if let bevy_reflect::ReflectMut::TupleStruct(ts) = reflected.reflect_mut() {
-                    ui.collapsing(type_path.clone(), |ui| {
+                    ui.collapsing(display_path.clone(), |ui| {
                         draw_tuple_struct_in_inspector(ts, ui, &res.type_registry);
                     });
                 };
                 if let bevy_reflect::ReflectMut::Enum(e) = reflected.reflect_mut() {
                     draw_enum_in_inspector(e, ui, &res.type_registry);
                 };
-
-                // ui.collapsing(ui: &mut egui::Ui| {});
             }
         });
 
@@ -136,7 +146,16 @@ pub(super) fn draw_inspector(
                             }
                         }
 
-                        if ui.button(component.1.clone()).clicked() {
+                        let display_path = match debug_mode {
+                            true => {
+                                component.1.clone()
+                            },
+                            false => {
+                                component.1.split("::").collect::<Vec<&str>>().pop().unwrap().to_string()
+                            },
+                        };
+
+                        if ui.button(display_path).clicked() {
                             trace!("Clicked on component add button");
 
                             let reflect_component = match type_.data::<ReflectComponent>() {

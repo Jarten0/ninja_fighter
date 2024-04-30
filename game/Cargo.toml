@@ -10,10 +10,9 @@ repository = "https://github.com/Jarten0/ninja_fighter/"
 keywords = ["game", "gamedev", "ggez", "bevy-ecs"]
 publish = false
 
-
 [dependencies]
 ggez.workspace = true
 bevy_ecs.workspace = true
-engine = {version = "0.1.0", path = "../engine"}
+engine = { version = "0.1.0", path = "../engine" }
 components = { version = "0.1.0", path = "../components" }
 log = "0.4.21"

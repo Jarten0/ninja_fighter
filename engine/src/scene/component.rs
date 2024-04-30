@@ -208,6 +208,8 @@ pub fn save_scene(
 
     trace!("Writing saved data to disk");
 
+    save_file.set_len(0);
+
     serde_json::to_writer(save_file, &value)
         .map_err(|err| error::SceneError::SerializeFailure(err.to_string()))?;
 

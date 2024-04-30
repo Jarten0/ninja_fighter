@@ -7,8 +7,8 @@ use bevy_ecs::system::Resource;
 use bevy_ecs::world::World;
 use bevy_reflect::TypeRegistry;
 
+use super::{add_entity_to_scene, error, unload_scene, ObjectID, SceneError};
 use super::{component::Scene, load_scene, save_scene};
-use super::{error, unload_scene, ObjectID, SceneError};
 
 #[derive(Resource, Default)]
 pub struct SceneManager {
@@ -124,5 +124,16 @@ impl SceneManager {
         world
             .get::<Scene>(self.target_scene.ok_or(SceneError::NoTargetScene)?)
             .ok_or(SceneError::NoSceneComponent)
+    }
+
+    pub fn new_entity(&mut self, world: &mut World, name: String) -> Result<(), SceneError> {
+        let entity_to_add = world.spawn_empty().id();
+
+        add_entity_to_scene(
+            world,
+            self.target_scene.ok_or(SceneError::NoTargetScene)?,
+            entity_to_add,
+            Some(name),
+        )
     }
 }
