@@ -30,6 +30,7 @@ use bevy_reflect::TypeRegistry;
 use inquire::Text;
 use log::error;
 use log::trace;
+use object_data::CustomSerialization;
 
 use std::collections::HashMap;
 use std::ffi::OsStr;
@@ -312,7 +313,11 @@ pub fn add_entity_to_scene<'a>(
 
         let mut query = world.query::<&dyn TestSuperTrait>();
 
-        for component in query.get(world, entity_to_add).unwrap().iter() {
+        let get = query
+            .get(world, entity_to_add)
+            .map_err(|err| SceneError::QueryFailure(err.to_string()))?;
+
+        for component in get.iter() {
             let id = ComponentInstanceID::get_new();
             let path = component.as_reflect().reflect_type_path().to_string();
             component_paths.insert(id, path.clone());
@@ -384,7 +389,7 @@ pub fn validate_name(names: &mut dyn Iterator<Item = &String>, name_to_check: &m
 /// Creates a [`SerializableScene`] using the scene's component data
 pub fn to_serializable_scene_data<'a>(
     world: &'a mut World,
-    _registry: &TypeRegistry,
+    registry: &TypeRegistry,
     scene_entity: Entity,
 ) -> Result<serialized_scene::SerializedSceneData, SceneError> {
     let scene = world
@@ -417,8 +422,6 @@ pub fn to_serializable_scene_data<'a>(
         let mut entity_hashmap: EntityHashmap = HashMap::new();
 
         for component in serializable_components_data.iter() {
-            let _component_serialized_data: Vec<u8> = Vec::new();
-
             let reflected_component = component.as_reflect();
 
             let component_type_path = reflected_component.reflect_type_path();
@@ -428,7 +431,23 @@ pub fn to_serializable_scene_data<'a>(
             //     SceneError::NoSerializationImplementation(component_type_path.to_owned()),
             // )?;
 
-            let serialized_values = match _registry
+            if let Some(some) = registry
+                .get_with_type_path(component_type_path)
+                .unwrap()
+                .data::<super::CustomSerializationData>()
+            {
+                entity_hashmap.insert(
+                    reflected_component.reflect_type_path().to_owned(),
+                    some.serialize_data(reflected_component),
+                );
+                trace!(
+                    "   - Inserted custom component data to {}'s serialize data",
+                    entities_name
+                );
+                continue;
+            }
+
+            let serialized_values = match registry
                 .get_type_info(reflected_component.type_id())
                 .unwrap()
             {
@@ -448,7 +467,7 @@ pub fn to_serializable_scene_data<'a>(
                     for field in s.iter() {
                         trace!("         - Serializing field {}", field.name());
                         let Some(type_data) =
-                            _registry.get_type_data::<ReflectSerialize>(field.type_id())
+                            registry.get_type_data::<ReflectSerialize>(field.type_id())
                         else {
                             error!("Could not find serialzie type data for {}", field.name());
                             continue;
@@ -482,7 +501,7 @@ pub fn to_serializable_scene_data<'a>(
 
                         trace!("         - Serializing field {}", index);
                         let Some(type_data) =
-                            _registry.get_type_data::<ReflectSerialize>(field.type_id())
+                            registry.get_type_data::<ReflectSerialize>(field.type_id())
                         else {
                             error!(
                                 "Could not find serialzie type data for field at index {}",
@@ -515,7 +534,7 @@ pub fn to_serializable_scene_data<'a>(
             );
 
             trace!(
-                "   - Inserted serialized component data to {}'s data",
+                "   - Inserted serialized component data to {}'s serialize data",
                 entities_name
             );
         }

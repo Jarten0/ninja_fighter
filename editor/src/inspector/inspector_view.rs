@@ -17,6 +17,7 @@ use bevy_reflect::TypeInfo;
 use bevy_reflect::TypeRegistration;
 use bevy_reflect::TypeRegistry;
 use bevy_utils::Duration;
+use convert_case::Casing as _;
 use egui::ComboBox;
 use egui::Label;
 use egui::LayerId;
@@ -108,25 +109,52 @@ pub(super) fn draw_inspector(
                         .collect::<Vec<&str>>()
                         .pop()
                         .unwrap()
-                        .to_string(),
+                        .to_string()
+                        .to_case(convert_case::Case::Title),
                 };
 
                 if let bevy_reflect::ReflectMut::Struct(s) = reflected.reflect_mut() {
                     if s.field_len() == 0 {
+                        if let Some(inspectable) = type_registration.data::<InspectableAsField>() {
+                            inspectable.show(ui, s.as_reflect_mut());
+                            if !debug_mode {
+                                continue;
+                            }
+                        };
                         ui.label(display_path.clone());
                     } else {
                         ui.collapsing(display_path.clone(), |ui| {
-                            draw_struct_in_inspector(s, ui, &res.type_registry);
+                            if let Some(inspectable) =
+                                type_registration.data::<InspectableAsField>()
+                            {
+                                inspectable.show(ui, s.as_reflect_mut());
+                                if !debug_mode {
+                                    return;
+                                }
+                            };
+                            draw_struct_in_inspector(s, ui, &res.type_registry, debug_mode);
                         });
                     }
                 };
                 if let bevy_reflect::ReflectMut::TupleStruct(ts) = reflected.reflect_mut() {
                     ui.collapsing(display_path.clone(), |ui| {
-                        draw_tuple_struct_in_inspector(ts, ui, &res.type_registry);
+                        if let Some(inspectable) = type_registration.data::<InspectableAsField>() {
+                            inspectable.show(ui, ts.as_reflect_mut());
+                            if !debug_mode {
+                                return;
+                            }
+                        };
+                        draw_tuple_struct_in_inspector(ts, ui, &res.type_registry, debug_mode);
                     });
                 };
                 if let bevy_reflect::ReflectMut::Enum(e) = reflected.reflect_mut() {
-                    draw_enum_in_inspector(e, ui, &res.type_registry);
+                    if let Some(inspectable) = type_registration.data::<InspectableAsField>() {
+                        inspectable.show(ui, e.as_reflect_mut());
+                        if !debug_mode {
+                            continue;
+                        }
+                    };
+                    draw_enum_in_inspector(e, ui, &res.type_registry, debug_mode);
                 };
             }
         });
@@ -242,6 +270,7 @@ fn draw_struct_in_inspector(
     structure: &mut dyn Struct,
     ui: &mut egui::Ui,
     type_registry: &TypeRegistry,
+    debug_mode: bool,
 ) {
     let Some(some) = structure.get_represented_type_info().cloned() else {
         error!(
@@ -274,10 +303,14 @@ fn draw_struct_in_inspector(
                 continue;
             };
 
+            let display_name = match debug_mode {
+                true => field_name.to_string(),
+                false => field_name.to_case(convert_case::Case::Title),
+            };
             if let Some(type_data) =
                 type_registry.get_type_data::<InspectableAsField>(field.as_reflect().type_id())
             {
-                ui.label(field_name.to_owned());
+                ui.label(display_name);
                 ui.scope(|ui: &mut egui::Ui| {
                     type_data.show(ui, field);
                 });
@@ -288,20 +321,20 @@ fn draw_struct_in_inspector(
             ui.scope(|ui: &mut egui::Ui| {
                 match field.reflect_mut() {
                     bevy_reflect::ReflectMut::Struct(s) => {
-                        draw_struct_in_inspector(s, ui, type_registry);
+                        draw_struct_in_inspector(s, ui, type_registry, debug_mode);
                     }
                     bevy_reflect::ReflectMut::TupleStruct(ts) => {
-                        draw_tuple_struct_in_inspector(ts, ui, type_registry);
+                        draw_tuple_struct_in_inspector(ts, ui, type_registry, debug_mode);
                     }
                     bevy_reflect::ReflectMut::Tuple(t) => todo!(),
                     bevy_reflect::ReflectMut::List(l) => todo!(),
                     bevy_reflect::ReflectMut::Array(a) => todo!(),
                     bevy_reflect::ReflectMut::Map(m) => todo!(),
                     bevy_reflect::ReflectMut::Enum(e) => {
-                        draw_enum_in_inspector(e, ui, type_registry);
+                        draw_enum_in_inspector(e, ui, type_registry, debug_mode);
                     }
                     bevy_reflect::ReflectMut::Value(v) => {
-                        ui.label(field_name.to_owned());
+                        ui.label(display_name);
 
                         ui.label(format!(
                             "(No inspector implementation for {})",
@@ -320,6 +353,7 @@ fn draw_tuple_struct_in_inspector(
     structure: &mut dyn TupleStruct,
     ui: &mut egui::Ui,
     type_registry: &TypeRegistry,
+    debug_mode: bool,
 ) {
     let Some(some) = structure.get_represented_type_info().cloned() else {
         error!(
@@ -360,10 +394,10 @@ fn draw_tuple_struct_in_inspector(
         ui.scope(|ui: &mut egui::Ui| {
             match field.reflect_mut() {
                 bevy_reflect::ReflectMut::Struct(s) => {
-                    draw_struct_in_inspector(s, ui, type_registry)
+                    draw_struct_in_inspector(s, ui, type_registry, debug_mode)
                 }
                 bevy_reflect::ReflectMut::TupleStruct(ts) => {
-                    draw_tuple_struct_in_inspector(ts, ui, type_registry)
+                    draw_tuple_struct_in_inspector(ts, ui, type_registry, debug_mode)
                 }
                 bevy_reflect::ReflectMut::Tuple(t) => todo!(),
                 bevy_reflect::ReflectMut::List(l) => todo!(),
@@ -382,6 +416,7 @@ fn draw_enum_in_inspector(
     structure: &mut dyn Enum,
     ui: &mut egui::Ui,
     type_registry: &TypeRegistry,
+    debug_mode: bool,
 ) -> Option<egui::Response> {
     ComboBox::new("Enum", "Not supported").show_ui(ui, |ui| todo!());
 

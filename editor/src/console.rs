@@ -13,6 +13,8 @@ use engine::{
 use engine::{GameRoot, Input};
 use inquire::{validator::Validation, Confirm, InquireError, Select, Text};
 use log::error;
+use std::any::Any;
+use std::panic::PanicInfo;
 use std::process::exit;
 use std::{collections::HashMap, path::PathBuf, sync::OnceLock};
 
@@ -56,6 +58,23 @@ pub fn check_for_debug(input: Res<Input>, mut engine: ResMut<engine::GgezInterfa
     }
 }
 
+/// This is to be used purely by the panic handler, as an escape mechanism to save your data before it is lost.
+/// Do not use this under any other circumstances, doing so will result in behaviour that I don't care to define.
+static mut SECRET_ROOT_PTR: *mut GameRoot = std::ptr::null_mut();
+pub fn hook_emergency_panic_handler(root: &mut GameRoot) {
+    unsafe { SECRET_ROOT_PTR = root };
+
+    std::panic::set_hook(Box::new(|panic_info: &std::panic::PanicInfo| {
+        println!(
+            "\n{}\nEntering debug console to rescue data.",
+            // panic_info.location().unwrap(),
+            panic_info.to_string()
+        );
+        panic_debug_cli(unsafe { &mut *SECRET_ROOT_PTR }, panic_info);
+        // panic_info.log();
+    }));
+}
+
 struct DebugCommand {
     command_name: &'static str,
     function: fn(&mut GameRoot) -> Result<(), String>,
@@ -76,17 +95,72 @@ impl DebugCommand {
     }
 }
 
-pub fn debug_cli(root: &mut GameRoot) {
-    if !root
-        .world
-        .resource::<Input>()
-        .get_action("debugconsole")
-        .unwrap()
-        .is_just_pressed()
-    {
-        return;
+pub fn panic_debug_cli(root: &mut GameRoot, panic_info: &PanicInfo) {
+    let char_limit = |input: &str| match input.chars().count() <= 100 {
+        true => Ok(Validation::Valid),
+        false => Ok(Validation::Invalid(
+            "Max command length is 100 characters".into(),
+        )),
+    };
+
+    let mut action_to_function: HashMap<&str, fn(&mut GameRoot) -> Result<(), String>> =
+        HashMap::new();
+
+    for debug_command in commands() {
+        action_to_function.insert(debug_command.command_name, debug_command.function);
     }
 
+    loop {
+        let mut user_input = match Text::new("Panic debug >")
+            .with_validator(char_limit)
+            .prompt()
+        {
+            Ok(input) => input,
+            Err(err) => {
+                let _ = match err {
+                    InquireError::OperationCanceled => break,
+                    InquireError::OperationInterrupted => crash(root),
+                    _ => {
+                        println!("Err? [{}]", err);
+                        Ok(())
+                    }
+                };
+                continue;
+            }
+        };
+        user_input = user_input.to_lowercase();
+
+        if (&user_input == "exit") || (&user_input == "") {
+            break;
+        } else if &user_input == "logbacktrace" {
+            let var = std::env::var("RUST_BACKTRACE");
+            if var == Ok("1".to_owned()) {
+                log::trace!("{}", std::backtrace::Backtrace::capture());
+            } else {
+                std::env::set_var("RUST_BACKTRACE", "1");
+                log::trace!("{}", std::backtrace::Backtrace::capture());
+                if var.is_ok() {
+                    std::env::set_var("RUST_BACKTRACE", "0");
+                } else {
+                    std::env::set_var("RUST_BACKTRACE", "");
+                }
+                continue;
+            }
+        }
+        if let Some(f) = action_to_function.get(user_input.as_str()) {
+            if let Err(err) = f(root) {
+                println!("Operation error");
+                error!("{}", err);
+            };
+        } else {
+            println!("Invalid input.");
+        }
+    }
+
+    println!("Exiting debug console");
+}
+
+pub fn debug_cli(root: &mut GameRoot) {
     let char_limit = |input: &str| match input.chars().count() <= 100 {
         true => Ok(Validation::Valid),
         false => Ok(Validation::Invalid(
@@ -118,7 +192,7 @@ pub fn debug_cli(root: &mut GameRoot) {
         };
         user_input = user_input.to_lowercase();
 
-        if user_input == String::from("exit") {
+        if (&user_input == "exit") || (&user_input == "") {
             break;
         }
         if let Some(f) = action_to_function.get(user_input.as_str()) {
@@ -130,6 +204,8 @@ pub fn debug_cli(root: &mut GameRoot) {
             println!("Invalid input.");
         }
     }
+
+    println!("Exiting debug console");
 }
 
 // Misc commands

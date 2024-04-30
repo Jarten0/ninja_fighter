@@ -10,6 +10,7 @@ bevy-trait-query.workspace = true
 bevy_ecs.workspace = true
 bevy_reflect.workspace = true
 bevy_utils = "0.13.2"
+convert_case = "0.6.0"
 egui = "0.26.2" # uses 0.26 since 0.27 has breaking changes that ggegui 0.4.0 hasn't fixed
 egui_dock = {version = "0.11.4"} # requires egui 0.26
 engine = { version = "0.1.0", path = "../engine", features = ["editor_features"] }

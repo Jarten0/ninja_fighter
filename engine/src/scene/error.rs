@@ -33,6 +33,7 @@ pub enum SceneError {
     NoSceneDataComponent,
     /// There were no entities available to operate upon.
     NoEntitiesAvailable,
+    QueryFailure(String),
 }
 
 impl Display for SceneError {
@@ -63,6 +64,9 @@ impl Display for SceneError {
                 "Missing Serialization Implementation for {}",
                 missing_type
             ),
+            SceneError::QueryFailure(err) => {
+                write!(f, "Could not query for TestSuperTrait components {}", err)
+            }
         }
     }
 }

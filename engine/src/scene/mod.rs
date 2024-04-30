@@ -25,6 +25,8 @@ pub use component::{
 };
 pub use converter::*;
 pub use error::SceneError;
+pub use object_data::CustomSerialization;
+pub use object_data::CustomSerializationData;
 pub use object_data::ReflectTestSuperTrait;
 pub use object_data::SceneData;
 pub use object_data::TestSuperTrait;

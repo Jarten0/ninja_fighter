@@ -1,18 +1,23 @@
 pub mod render_type;
 
+use std::ops::Deref;
+
 use bevy_ecs::component::Component;
 use bevy_ecs::prelude::*;
 use bevy_ecs::system::Query;
 use bevy_ecs::system::Res;
 use bevy_ecs::system::ResMut;
 use bevy_reflect::Reflect;
+use bevy_reflect::Struct;
 use engine::editor::FieldWidget;
+use engine::scene::CustomSerialization;
 use engine::Camera;
 use ggez::graphics::{self as ggraphics, *};
 
 use engine::space;
 use engine::GgezInterface;
 use ggraphics::Canvas;
+use log::trace;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -70,7 +75,14 @@ pub fn draw(
                 RenderType::InstanceArray(_) => todo!(),
                 RenderType::Mesh(_) => todo!(),
                 RenderType::Text(_) => todo!(),
-                RenderType::None => todo!(),
+                RenderType::None => (),
+                RenderType::Quad(quad) => canvas.draw(
+                    quad,
+                    renderer.draw_param.dest::<mint::Point2<f32>>(mint::Point2 {
+                        x: transform.0.x,
+                        y: transform.0.y,
+                    }),
+                ),
             }
         }
     }
@@ -111,7 +123,77 @@ pub struct Renderer {
     pub offset: space::Vector2,
 }
 
-impl FieldWidget for Renderer {}
+impl FieldWidget for Renderer {
+    fn ui(value: &mut dyn Reflect, ui: &mut egui::Ui) {
+        let field_value = value.downcast_mut::<Self>().unwrap(); //you can use this if your type implements reflect
+
+        match &mut field_value.image {
+            Some(some) => {
+                some.ui(ui);
+            }
+            None => {
+                if ui.button("Set to prototype renderer").clicked() {
+                    field_value.image = Some(RenderType::Quad(ggraphics::Quad));
+                    field_value.draw_param = DrawParam {
+                        src: Rect {
+                            x: 0.0,
+                            y: 0.0,
+                            w: 20.0,
+                            h: 20.0,
+                        },
+                        color: Color::BLUE,
+                        transform: Transform::default().into(),
+                        z: 0,
+                    }
+                }
+            }
+        };
+
+        ui.collapsing("Draw Param", |ui| {
+            let draw_param = &mut field_value.draw_param;
+
+            ui.collapsing("src", |ui| {
+                ui.add(egui::DragValue::new(&mut draw_param.src.x));
+                ui.add(egui::DragValue::new(&mut draw_param.src.y));
+                ui.add(egui::DragValue::new(&mut draw_param.src.w));
+                ui.add(egui::DragValue::new(&mut draw_param.src.h));
+            });
+
+            let rgba = draw_param.color.to_rgba();
+            let color_label = ui.label("Color");
+            let mut color32 = egui::Color32::from_rgba_unmultiplied(rgba.0, rgba.1, rgba.2, rgba.3);
+            ui.color_edit_button_srgba(&mut color32)
+                .labelled_by(color_label.id);
+            draw_param.color(ggraphics::Color::from_rgba(
+                color32.r(),
+                color32.g(),
+                color32.b(),
+                color32.a(),
+            ));
+
+            ui.collapsing("Transform", |ui| match &mut draw_param.transform {
+                ggraphics::Transform::Values {
+                    dest,
+                    rotation,
+                    scale,
+                    offset,
+                } => {
+                    ui.add(egui::DragValue::new(&mut dest.x));
+                    ui.add(egui::DragValue::new(&mut dest.y));
+                    ui.add(egui::DragValue::new(&mut scale.x));
+                    ui.add(egui::DragValue::new(&mut scale.y));
+                }
+                ggraphics::Transform::Matrix(matrix) => {
+                    ui.label("transform is matrix, which is currently unsupported");
+                }
+            });
+
+            ui.add(egui::DragValue::new(&mut draw_param.z));
+        });
+
+        // ui.label("Default implementation of widget for ".to_owned() + value.reflect_type_path());
+    }
+}
 
 #[allow(dead_code)]
 impl Renderer {
@@ -153,13 +235,23 @@ impl Renderer {
     }
 }
 
-#[allow(dead_code)]
-impl Renderer {
-    pub fn default() -> Self {
-        Self {
-            image: None,
-            draw_param: Default::default(),
-            offset: Default::default(),
-        }
+impl CustomSerialization for Renderer {
+    fn serialize_data(
+        type_data: &engine::scene::CustomSerializationData,
+        value: &dyn Reflect,
+    ) -> serde_json::Map<String, serde_json::Value> {
+        let value = value.downcast_ref::<Self>().unwrap();
+
+        let mut map = serde_json::Map::new();
+
+        let draw_param = value.field("draw_param").unwrap();
+        let mut draw_param_map = serde_json::Map::new();
+        draw_param_map.insert("src".to_owned(), "test".into());
+        map.insert(
+            "draw_param".to_owned(),
+            serde_json::Value::Object(draw_param_map),
+        );
+
+        map
     }
 }

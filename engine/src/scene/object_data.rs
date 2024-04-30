@@ -1,10 +1,10 @@
-use std::collections::HashMap;
+use std::{any::Any, collections::HashMap};
 
 use bevy_ecs::{
     component::{Component, ComponentId},
     world::{FromWorld, World},
 };
-use bevy_reflect::{reflect_trait, Reflect};
+use bevy_reflect::{reflect_trait, FromType, Reflect};
 use erased_serde::{Error, Serializer};
 use serde::Serialize;
 
@@ -27,15 +27,6 @@ pub struct SceneData {
     pub component_ids: HashMap<String, ComponentInstanceID>,
     /// Can be enabled to prevent the entity from being shown in the inspector.
     pub hide_in_inspector: bool,
-}
-
-impl Serialize for SceneData {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        serializer.serialize_str("Placeholder for scenedata")
-    }
 }
 
 /// A trait for serializing components, must be implemented to serialize and deserialize components.
@@ -68,5 +59,34 @@ where
         Self: Reflect,
     {
         <Self as Reflect>::as_reflect(self)
+    }
+}
+
+pub trait CustomSerialization {
+    fn serialize_data(
+        type_data: &CustomSerializationData,
+        value: &dyn Reflect,
+    ) -> serde_json::Map<String, serde_json::Value>;
+}
+
+#[derive(Clone)]
+pub struct CustomSerializationData {
+    serialize_data_fn: fn(&Self, &dyn Reflect) -> serde_json::Map<String, serde_json::Value>,
+}
+
+impl CustomSerializationData {
+    pub(crate) fn serialize_data(
+        &self,
+        value: &dyn Reflect,
+    ) -> serde_json::Map<String, serde_json::Value> {
+        (self.serialize_data_fn)(self, value)
+    }
+}
+
+impl<T: CustomSerialization> FromType<T> for CustomSerializationData {
+    fn from_type() -> Self {
+        Self {
+            serialize_data_fn: <T as CustomSerialization>::serialize_data,
+        }
     }
 }

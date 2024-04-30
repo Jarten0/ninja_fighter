@@ -54,6 +54,8 @@ pub fn update(
     let screen_height = ggez.get_context().gfx.drawable_size().1;
 
     for (mut pos, mut velocity, controller) in query.iter_mut() {
+        // if controller.speed_cap < 0
+
         if velocity.x.abs() > controller.speed_cap {
             velocity.x -= (controller.decel) * (velocity.x / velocity.x.abs());
         }
@@ -77,6 +79,7 @@ pub fn update(
             velocity.x = velocity
                 .x
                 .clamp(-controller.speed_cap * 1.2, controller.speed_cap * 1.2);
+            //panics if speed_cap is negative
         }
         if velocity.y < controller.max_fall_speed && pos.y < screen_height - 110.0 {
             velocity.y += controller.fall_acc;

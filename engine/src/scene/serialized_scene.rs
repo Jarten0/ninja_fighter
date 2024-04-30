@@ -97,6 +97,7 @@ fn convert_number(
         downcast_int(expected_type, int)
     } else {
         let x = number.as_f64().unwrap_or(0.0);
+
         if expected_type == Some(f32::type_path()) {
             downcast_float(x)
         } else {
@@ -187,8 +188,8 @@ fn convert_struct(
         let mut dyn_struct = DynamicStruct::default();
 
         for (name, field) in jesoon_object {
-            if let Some(some) = dyn_struct.field(name) {
-                let expected_type_path = Some(some.reflect_type_path());
+            if let Some(some) = s_info.field(name) {
+                let expected_type_path = Some(some.type_path());
 
                 dyn_struct.insert_boxed(name, field.to_reflect(expected_type_path, type_registry));
             } else {
@@ -285,7 +286,7 @@ impl SerializedSceneData {
             component_data_hashmap
                 .keys()
                 .inspect(|path| {
-                    trace!("Inserted new component path");
+                    trace!("Inserted new component path [{}]", path);
                     let k = ComponentInstanceID::get_new();
                     component_paths.insert(k, (*path).to_owned());
                     component_ids.insert((*path).to_owned(), k);

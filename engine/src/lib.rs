@@ -126,6 +126,8 @@ pub fn register_scene_types(world: &mut bevy_ecs::world::World) {
             // register_value::<isize>(registry);
             register_value::<f32>(registry);
             register_value::<f64>(registry);
+            register_value::<bool>(registry);
+            register_value::<String>(registry);
             register_value::<space::Vector2>(registry);
         }
         register_component::<space::Position>(world, registry);
@@ -168,7 +170,6 @@ pub fn register_component<
         + bevy_reflect::GetTypeRegistration
         + bevy_reflect::FromReflect
         + bevy_reflect::TypePath
-        // + serde::Serialize
         + Default
         + TestSuperTrait
         + FromWorld,
@@ -185,4 +186,40 @@ pub fn register_component<
     type_registry.register_type_data::<T, scene::ReflectTestSuperTrait>();
     world.init_component::<T>(); // Registers the component id
     world.register_component_as::<dyn TestSuperTrait, T>(); // TestSuperTrait is used in world queries for iterating over types dynamically
+}
+
+#[cfg(feature = "editor_features")]
+pub fn register_custom_inspection<
+    T: bevy_ecs::component::Component
+        + bevy_reflect::Reflect
+        + bevy_reflect::GetTypeRegistration
+        + bevy_reflect::FromReflect
+        + bevy_reflect::TypePath
+        + Default
+        + TestSuperTrait
+        + FromWorld
+        + FieldWidget,
+>(
+    world: &mut bevy_ecs::prelude::World,
+    type_registry: &mut bevy_reflect::TypeRegistry,
+) {
+    type_registry.register_type_data::<T, InspectableAsField>();
+}
+
+#[cfg(feature = "editor_features")]
+pub fn register_custom_serialize<
+    T: bevy_ecs::component::Component
+        + bevy_reflect::Reflect
+        + bevy_reflect::GetTypeRegistration
+        + bevy_reflect::FromReflect
+        + bevy_reflect::TypePath
+        + Default
+        + TestSuperTrait
+        + FromWorld
+        + scene::CustomSerialization,
+>(
+    world: &mut bevy_ecs::prelude::World,
+    type_registry: &mut bevy_reflect::TypeRegistry,
+) {
+    type_registry.register_type_data::<T, scene::CustomSerializationData>();
 }

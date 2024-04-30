@@ -9,7 +9,6 @@ use crate::space::Vector2;
 // #[bevy_reflect::reflect_trait]
 #[cfg(feature = "editor_features")]
 pub trait FieldWidget: Send + Sync + Sized {
-    // the Reflect trait bound might be removed later
     fn ui(value: &mut dyn Reflect, ui: &mut egui::Ui) {
         // let field_value = value.downcast_mut::<Self>().unwrap(); //you can use this if your type implements reflect
 
@@ -17,25 +16,15 @@ pub trait FieldWidget: Send + Sync + Sized {
     }
 }
 
-#[derive(PartialEq, Clone, Debug)]
-pub enum NumberFieldTypes<T> {
-    DragValue,
-    Slider { min: T, max: T },
-}
-
 impl FieldWidget for f32 {
     fn ui(value: &mut dyn Reflect, ui: &mut Ui) {
         let value = value.downcast_mut::<f32>().unwrap();
 
-        egui::DragValue::new(value).speed(0.05).ui(ui);
+        let response = egui::DragValue::new(value).speed(0.05).ui(ui);
 
-        // ui.add(
-        //     egui::Slider::new(value, -100.0..=100.0)
-        //         .logarithmic(false)
-        //         .trailing_fill(true)
-        //         .max_decimals(2)
-        //         .clamp_to_range(false),
-        // );
+        response.context_menu(|ui| {
+            ui.button("hehe :3");
+        });
     }
 }
 
@@ -51,7 +40,15 @@ impl FieldWidget for bool {
     fn ui(value: &mut dyn Reflect, ui: &mut Ui) {
         let value = value.downcast_mut::<bool>().unwrap();
 
-        ui.add(egui::Checkbox::new(value, "test bool"));
+        ui.add(egui::Checkbox::without_text(value));
+    }
+}
+
+impl FieldWidget for String {
+    fn ui(value: &mut dyn Reflect, ui: &mut egui::Ui) {
+        let field_value = value.downcast_mut::<Self>().unwrap(); //you can use this if your type implements reflect
+
+        ui.add(egui::TextEdit::multiline(field_value));
     }
 }
 
@@ -65,10 +62,6 @@ impl FieldWidget for Vector2 {
         });
     }
 }
-
-impl FieldWidget for crate::space::Position {}
-
-// impl<T> FieldWidget for T where T: Sync + Send {}
 
 /// Insert into the type registry.
 ///
@@ -87,16 +80,6 @@ impl<T: FieldWidget> FromType<T> for InspectableAsField {
         Self::new(<T as FieldWidget>::ui)
     }
 }
-
-// impl Default for InspectableAsField {
-//     fn default() -> Self {
-//         Self {
-//             ui_display_fn: |field_data, ui| {
-//                 ui.add(egui::Label::new("DefaultFieldWidget"));
-//             },
-//         }
-//     }
-// }
 
 impl InspectableAsField {
     pub fn new(ui_display_fn: fn(&mut dyn Reflect, &mut Ui)) -> Self {

@@ -513,19 +513,62 @@ impl Reflect for Vector2 {
     }
 
     fn apply(&mut self, value: &dyn Reflect) {
-        let downcast_ref = match value.downcast_ref::<Self>() {
-            Some(some) => some,
-            None => {
-                error!(
-                    "Could not apply Reflect to Vector2: value is not a Vector2. value type: {}",
-                    value.reflect_type_path()
-                );
-                return;
-            }
-        };
+        // let downcast_ref = match value.downcast_ref::<Self>() {
+        //     Some(some) => some,
+        //     None => {
+        //         error!(
+        //             "Could not apply Reflect to Vector2: value is not a Vector2. value type: {}",
+        //             value.get_represented_type_info().unwrap().type_path()
+        //         );
+        //         return;
+        //     }
+        // };
 
-        self.x = downcast_ref.x;
-        self.y = downcast_ref.y;
+        match value.reflect_ref() {
+            bevy_reflect::ReflectRef::Struct(s) => {
+                let Some(x) = s.field("x") else {
+                    error!(
+                        "Could not apply Reflect to Vector2: value is not a Vector2. value : {:?}",
+                        value
+                    );
+                    return;
+                };
+
+                let Some(x) = x.downcast_ref::<f32>() else {
+                    error!(
+                        "Could not apply Reflect to Vector2: value is not a Vector2. value: {:?}",
+                        x.get_represented_type_info()
+                    );
+                    return;
+                };
+
+                let Some(y) = s.field("y") else {
+                    error!(
+                        "Could not apply Reflect to Vector2: value is not a Vector2.  value : {:?}",
+                        value
+                    );
+                    return;
+                };
+                let Some(y) = y.downcast_ref::<f32>() else {
+                    error!(
+                        "Could not apply Reflect to Vector2: value is not a Vector2.  value: {:?}",
+                        y.get_represented_type_info()
+                    );
+                    return;
+                };
+
+                self.x = *x;
+                self.y = *y;
+            }
+            bevy_reflect::ReflectRef::TupleStruct(ts) => todo!(),
+            // bevy_reflect::ReflectMut::Tuple(_) => todo!(),
+            // bevy_reflect::ReflectMut::List(_) => todo!(),
+            // bevy_reflect::ReflectMut::Array(_) => todo!(),
+            // bevy_reflect::ReflectMut::Map(_) => todo!(),
+            // bevy_reflect::ReflectMut::Enum(_) => todo!(),
+            // bevy_reflect::ReflectMut::Value(_) => todo!(),
+            _ => unimplemented!(),
+        };
     }
 
     fn set(&mut self, value: Box<dyn Reflect>) -> Result<(), Box<dyn Reflect>> {

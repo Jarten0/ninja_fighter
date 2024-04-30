@@ -35,26 +35,24 @@ pub(super) fn draw_entities(
         ui.label("There are no entities currently (Try refreshing!)");
     }
     for (name, entity) in state.entities.clone() {
-        let inner_response = ui
-            .small_button(name.clone())
-            .context_menu(|ui: &mut egui::Ui| {
-                ui.add(egui::Label::new("Name"));
-                ui.text_edit_singleline(
-                    &mut state
-                        .world()
-                        .get_mut::<SceneData>(entity)
-                        .unwrap()
-                        .object_name,
-                );
-            });
-        if inner_response.is_some() {
-            trace!("Some response...");
-            if inner_response.unwrap().response.clicked() {
-                trace!("Clicked on entity [{}]", name);
-                state.focused_entity = Some((entity.clone(), name.clone()));
-                return Some(Response::SwitchToTab("Inspector".to_owned()));
-            }
+        let response = ui.small_button(name.clone());
+
+        if response.clicked() {
+            trace!("Clicked on entity [{}]", name);
+            state.focused_entity = Some((entity.clone(), name.clone()));
+            return Some(Response::SwitchToTab("Inspector".to_owned()));
         }
+
+        response.context_menu(|ui: &mut egui::Ui| {
+            ui.add(egui::Label::new("Name"));
+            ui.text_edit_singleline(
+                &mut state
+                    .world()
+                    .get_mut::<SceneData>(entity)
+                    .unwrap()
+                    .object_name,
+            );
+        });
     }
 
     ui.separator();
@@ -64,7 +62,9 @@ pub(super) fn draw_entities(
         state
             .world()
             .resource_scope(|world: &mut World, mut res: Mut<SceneManager>| {
-                res.new_entity(world, "New entity".to_string())
+                if let Err(err) = res.new_entity(world, "New entity".to_string()) {
+                    error!("Could not add entity! [{}]", err.to_string())
+                }
             });
     }
 

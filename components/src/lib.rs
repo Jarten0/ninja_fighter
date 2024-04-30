@@ -13,6 +13,7 @@
 use bevy_ecs::prelude::*;
 use collider::mesh_editor::MeshEditor;
 use engine::{register_component, scene::SceneManager};
+use engine::{register_custom_inspection, register_custom_serialize};
 
 // #[allow(unused)]
 pub mod collider;
@@ -27,6 +28,9 @@ pub fn init_components(world: &mut World) -> () {
     world.resource_scope(|world: &mut World, mut manager: Mut<SceneManager>| {
         let register = &mut manager.type_registry;
         register_component::<render::Renderer>(world, register);
+        register_custom_inspection::<render::Renderer>(world, register);
+        // register_custom_serialize::<render::Renderer>(world, register);
+
         register_component::<collider::Collider>(world, register);
         register_component::<collider::GravitySettings>(world, register);
         register_component::<protag::Protag>(world, register);

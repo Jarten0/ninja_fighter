@@ -1,47 +1,75 @@
 use bevy_reflect::{Reflect, ReflectKind, ReflectMut};
 use engine::editor::FieldWidget;
-use ggez::graphics::{Color, GraphicsContext, Image, InstanceArray, Mesh, Text};
+use ggez::graphics::{self, Color, GraphicsContext, Image, InstanceArray, Mesh, Quad, Text};
 use serde::Serialize;
 
 #[allow(dead_code)]
 #[derive(Debug, Default)]
 pub enum RenderType {
     Image(Image),
+
     InstanceArray(InstanceArray),
+
     Mesh(Mesh),
+
     Text(Text),
+
+    Quad(Quad),
+
     #[default]
     None,
 }
 
-impl FieldWidget for RenderType {
-    fn ui(value: &mut dyn bevy_reflect::Reflect, ui: &mut egui::Ui) {
-        let ReflectMut::Enum(value) = value.reflect_mut() else {
-            ui.label("value is bugged".to_owned() + value.reflect_type_path());
-            return;
-        };
-
-        egui::ComboBox::from_label("Rendering data type")
-            .selected_text("{:#?}")
-            .show_ui(ui, |ui: &mut egui::Ui| {
-                // ui.selectable_value(value, RenderType::None, "None")
-            });
+impl PartialEq for RenderType {
+    fn eq(&self, other: &Self) -> bool {
+        match self {
+            RenderType::Image(..) => {
+                let RenderType::Image(..) = other else {
+                    return false;
+                };
+                true
+            }
+            RenderType::InstanceArray(..) => {
+                let RenderType::InstanceArray(..) = other else {
+                    return false;
+                };
+                true
+            }
+            RenderType::Mesh(..) => {
+                let RenderType::Mesh(..) = other else {
+                    return false;
+                };
+                true
+            }
+            RenderType::Text(..) => {
+                let RenderType::Text(..) = other else {
+                    return false;
+                };
+                true
+            }
+            RenderType::None => {
+                let RenderType::None = other else {
+                    return false;
+                };
+                true
+            }
+            RenderType::Quad(..) => {
+                let RenderType::Quad(..) = other else {
+                    return false;
+                };
+                true
+            }
+        }
     }
 }
 
-impl Serialize for RenderType {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        match self {
-            RenderType::Image(_) => serializer.serialize_str("image"),
-
-            RenderType::InstanceArray(_) => todo!(),
-            RenderType::Mesh(_) => todo!(),
-            RenderType::Text(_) => todo!(),
-            RenderType::None => todo!(),
-        }
+impl RenderType {
+    pub(crate) fn ui(&mut self, ui: &mut egui::Ui) {
+        egui::ComboBox::from_label("Rendering data type")
+            .selected_text("{:#?}")
+            .show_ui(ui, |ui: &mut egui::Ui| {
+                ui.selectable_value(self, RenderType::None, "None")
+            });
     }
 }
 
@@ -59,6 +87,7 @@ impl Clone for RenderType {
             Self::Mesh(arg0) => Self::Mesh(arg0.clone()),
             Self::Text(arg0) => Self::Text(arg0.clone()),
             Self::None => Self::None,
+            Self::Quad(..) => Self::Quad(graphics::Quad),
         }
     }
 }
