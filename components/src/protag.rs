@@ -12,11 +12,11 @@ use serde::{Deserialize, Serialize};
 
 pub fn init(mut commands: Commands, _engine: Res<GgezInterface>) {
     // commands.spawn(ProtagBundle::new(&engine));
-    commands
-        .spawn(BoxCollider::new((100.0, 100.0).into()))
-        .add(|mut entity: EntityWorldMut| {
-            entity.insert(Position::new(0.0, 0.0));
-        });
+    // commands
+    //     .spawn(BoxCollider::new((100.0, 100.0).into()))
+    //     .add(|mut entity: EntityWorldMut| {
+    //         entity.insert(Position::new(0.0, 0.0));
+    //     });
 }
 
 #[derive(Default, Component, Reflect, Clone, Debug)]

@@ -25,6 +25,7 @@ use bevy_ecs::system::Query;
 use bevy_ecs::world::World;
 
 use bevy_reflect::serde::Serializable;
+use bevy_reflect::GetTupleStructField;
 use bevy_reflect::ReflectRef;
 use bevy_reflect::ReflectSerialize;
 use bevy_reflect::TypeRegistry;
@@ -235,11 +236,17 @@ pub fn load_scene(
     registry: &TypeRegistry,
 ) -> Result<Entity, error::SceneError> {
     use std::io::prelude::*;
+
+    trace!("Opening file");
+
     let mut buf = String::new();
     let _s = File::open(path.clone())
         .map_err(|err| -> error::SceneError { error::SceneError::IOError(err) })?
         .read_to_string(&mut buf)
         .map_err(|err| SceneError::IOError(err))?;
+
+    trace!("File found");
+
     let deserialize = serde_json::from_str::<SerializedSceneData>(&buf)
         .map_err(|err| error::SceneError::LoadFailure(err.to_string()))?;
     let scene_entity = deserialize.initialize(world, registry)?;
@@ -504,29 +511,46 @@ pub fn to_serializable_scene_data<'a>(
                         continue;
                     };
 
-                    for field in ts.iter() {
-                        let index = field.index();
+                    if ts.field_len() == 1 {
+                        let field = ts.field_at(0).unwrap();
+                        let type_info = registry
+                            .get_type_data::<ReflectSerialize>(field.type_id())
+                            .unwrap();
 
-                        trace!("         - Serializing field {}", index);
-                        let Some(type_data) =
-                            registry.get_type_data::<ReflectSerialize>(field.type_id())
-                        else {
-                            error!(
-                                "Could not find serialzie type data for field at index {}",
-                                index
-                            );
-                            continue;
-                        };
-
-                        let value = v.field(index).unwrap();
-
-                        let v = match type_data.get_serializable(value) {
-                            Serializable::Owned(owned) => serde_json::to_value(owned),
-                            Serializable::Borrowed(borrowed) => serde_json::to_value(borrowed),
+                        let serialized = match type_info.get_serializable(v.field(0).unwrap()) {
+                            Serializable::Owned(o) => serde_json::to_value(o),
+                            Serializable::Borrowed(b) => serde_json::to_value(b),
                         }
                         .unwrap();
 
-                        serialized_values.insert(index.to_string(), v);
+                        for field in serialized.as_object().unwrap() {
+                            serialized_values.insert(field.0.to_string(), field.1.clone());
+                        }
+                    } else {
+                        for field in ts.iter() {
+                            let index = field.index();
+
+                            trace!("         - Serializing field {}", index);
+                            let Some(type_data) =
+                                registry.get_type_data::<ReflectSerialize>(field.type_id())
+                            else {
+                                error!(
+                                    "Could not find serialzie type data for field at index {}",
+                                    index
+                                );
+                                continue;
+                            };
+
+                            let value = v.field(index).unwrap();
+
+                            let v = match type_data.get_serializable(value) {
+                                Serializable::Owned(owned) => serde_json::to_value(owned),
+                                Serializable::Borrowed(borrowed) => serde_json::to_value(borrowed),
+                            }
+                            .unwrap();
+
+                            serialized_values.insert(index.to_string(), v);
+                        }
                     }
                     serialized_values
                 }

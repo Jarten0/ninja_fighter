@@ -1,10 +1,31 @@
 use bevy_ecs::prelude::*;
-use bevy_ecs::schedule::{Schedule, ScheduleLabel};
+use bevy_ecs::schedule::{Schedule, ScheduleBuildSettings, ScheduleLabel};
+use egui::ahash::HashMap;
 
 pub fn add_schedules(world: &mut World, schedule_builders: Vec<fn() -> Schedule>) {
     for builder in schedule_builders {
         world.add_schedule(builder())
     }
+}
+
+pub struct ScheduleBuilder {
+    schedule_settings: ScheduleBuildSettings,
+    systems: Vec<Box<dyn Any + IntoSystem<(), (), ()>>>,
+    tag: ScheduleTag,
+}
+
+impl ScheduleBuilder {
+    pub fn build(&self) -> Schedule {
+        let mut schedule = Schedule::default();
+
+        for system in self.systems {
+            schedule.add_systems(system);
+        }
+
+        schedule
+    }
+
+    pub fn add_schedule(&mut self) {}
 }
 
 /// A value representing this schedule's behaviour, for when it should be run

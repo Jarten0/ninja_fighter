@@ -10,6 +10,7 @@ use bevy_ecs::reflect::ReflectComponent;
 use bevy_ecs::world::World;
 use bevy_reflect::DynamicList;
 use bevy_reflect::DynamicStruct;
+use bevy_reflect::DynamicTuple;
 use bevy_reflect::DynamicTupleStruct;
 use bevy_reflect::List;
 use bevy_reflect::Reflect;
@@ -17,6 +18,7 @@ use bevy_reflect::ReflectOwned;
 use bevy_reflect::Struct;
 use bevy_reflect::TypeInfo;
 use bevy_reflect::TypePath;
+use bevy_reflect::TypeRegistration;
 use bevy_reflect::TypeRegistry;
 use log::*;
 use serde::de::Visitor;
@@ -224,6 +226,87 @@ fn convert_struct(
     unreachable!()
 }
 
+fn convert_newtype_tuple_struct(
+    jesoon_object: &serde_json::Map<String, Value>,
+    expected_type: Option<&str>,
+    type_registry: &TypeRegistry,
+) -> bevy_reflect::ReflectOwned {
+    if expected_type.is_none() {
+        todo!();
+    }
+
+    let TypeInfo::TupleStruct(tuple_struct_type_info) = type_registry
+        .get_with_type_path(expected_type.unwrap())
+        .expect("todo")
+        .type_info()
+    else {
+        panic!()
+    };
+
+    let field_path = tuple_struct_type_info.field_at(0).unwrap().type_path();
+    let inner_struct_type_info = type_registry.get_with_type_path(field_path).unwrap();
+
+    match inner_struct_type_info.type_info() {
+        TypeInfo::Struct(s) => {
+            let mut dynamic_struct = DynamicStruct::default();
+
+            for field in s.iter() {
+                dynamic_struct.insert_boxed(
+                    field.name(),
+                    jesoon_object
+                        .get(field.name())
+                        .unwrap()
+                        .to_reflect(Some(field.type_path()), type_registry),
+                );
+            }
+
+            return bevy_reflect::ReflectOwned::Struct(Box::new(dynamic_struct));
+        }
+        TypeInfo::TupleStruct(ts) => {
+            let mut dynamic_tuple_struct = DynamicTupleStruct::default();
+
+            for field in ts.iter() {
+                dynamic_tuple_struct.insert_boxed(
+                    jesoon_object
+                        .get(&field.index().to_string())
+                        .unwrap()
+                        .to_reflect(Some(field.type_path()), type_registry),
+                )
+            }
+
+            return ReflectOwned::TupleStruct(Box::new(dynamic_tuple_struct));
+        }
+        TypeInfo::Tuple(t) => {
+            let mut dynamic_tuple = DynamicTuple::default();
+
+            for field in t.iter() {
+                dynamic_tuple.insert_boxed(
+                    jesoon_object
+                        .get(field.index().to_string().as_str())
+                        .unwrap()
+                        .to_reflect(Some(field.type_path()), type_registry),
+                )
+            }
+
+            return ReflectOwned::Tuple(Box::new(dynamic_tuple));
+        }
+        TypeInfo::List(l) => todo!(),
+        TypeInfo::Array(a) => todo!(),
+        TypeInfo::Map(m) => todo!(),
+        TypeInfo::Enum(e) => todo!(),
+        TypeInfo::Value(v) => {
+            return bevy_reflect::ReflectOwned::Value(
+                jesoon_object
+                    .get("0")
+                    .unwrap()
+                    .to_reflect(Some(field_path), type_registry),
+            );
+        }
+    }
+
+    todo!()
+}
+
 /// Downcasts an int to the expected type
 fn downcast_int(expected_type: Option<&str>, int: i64) -> Box<dyn Reflect> {
     match expected_type {
@@ -341,23 +424,40 @@ impl SerializedSceneData {
 
                     continue;
                 }
-                if let TypeInfo::TupleStruct(_ts_info) = type_info {
+                if let TypeInfo::TupleStruct(ts_info) = type_info {
                     let mut component_patch = DynamicTupleStruct::default();
 
                     component_patch.set_represented_type(Some(type_info));
 
+                    if ts_info.field_len() == 1 {
+                        let value = convert_newtype_tuple_struct(
+                            &component_data,
+                            Some(ts_info.type_path()),
+                            type_registry,
+                        );
+
+                        component_patch.insert_boxed(match value {
+                            bevy_reflect::ReflectOwned::Struct(e) => e.into_reflect(),
+                            bevy_reflect::ReflectOwned::TupleStruct(ts) => ts.into_reflect(),
+                            bevy_reflect::ReflectOwned::Tuple(t) => t.into_reflect(),
+                            bevy_reflect::ReflectOwned::List(l) => l.into_reflect(),
+                            bevy_reflect::ReflectOwned::Array(a) => a.into_reflect(),
+                            bevy_reflect::ReflectOwned::Map(m) => m.into_reflect(),
+                            bevy_reflect::ReflectOwned::Enum(en) => en.into_reflect(),
+                            bevy_reflect::ReflectOwned::Value(e) => e,
+                        });
+                        continue;
+                    }
                     for (index, value) in component_data {
                         let index = index.parse::<usize>().unwrap();
 
-                        let expected_type_path = _ts_info.field_at(index).unwrap().type_path();
+                        let expected_type_path = ts_info.field_at(index).unwrap().type_path();
 
                         component_patch.insert_boxed(
                             value.to_reflect(Some(expected_type_path), type_registry),
                         );
                     }
-
                     reflect_component.apply_or_insert(&mut entity, &component_patch, type_registry);
-
                     continue;
                 } //TODO: Implement more structure types
 

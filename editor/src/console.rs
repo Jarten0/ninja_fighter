@@ -51,14 +51,14 @@ fn commands() -> &'static Vec<DebugCommand> {
 }
 
 pub fn check_for_debug(input: Res<Input>, mut engine: ResMut<engine::GgezInterface>) {
-    if let Some(action) = input.get_action(crate::DEBUG_ACTION_NAME) {
+    if let Some(action) = input.get_action("debugconsole") {
         if action.status().is_just_pressed() {
-            engine.debug_mode = !engine.debug_mode;
+            debug_cli(unsafe { &mut *SECRET_ROOT_PTR })
         }
     }
 }
 
-/// This is to be used purely by the panic handler, as an escape mechanism to save your data before it is lost.
+/// This is to be used purely by the panic handler and debug console, as an escape mechanism to save your data before it is lost.
 /// Do not use this under any other circumstances, doing so will result in behaviour that I don't care to define.
 static mut SECRET_ROOT_PTR: *mut GameRoot = std::ptr::null_mut();
 pub fn hook_emergency_panic_handler(root: &mut GameRoot) {
@@ -132,7 +132,8 @@ pub fn panic_debug_cli(root: &mut GameRoot, panic_info: &PanicInfo) {
 
         if (&user_input == "exit") || (&user_input == "") {
             break;
-        } else if &user_input == "logbacktrace" {
+        }
+        if &user_input == "logbacktrace" {
             let var = std::env::var("RUST_BACKTRACE");
             if var == Ok("1".to_owned()) {
                 log::trace!("{}", std::backtrace::Backtrace::capture());

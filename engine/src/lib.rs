@@ -91,6 +91,25 @@ pub enum EngineConfigError {
     MissingSchedule,
 }
 
+impl ToString for EngineConfigError {
+    fn to_string(&self) -> String {
+        match self {
+            EngineConfigError::NoScenePaths => {
+                "No scene paths were given in the engine config".to_string()
+            }
+            EngineConfigError::InvalidScenePath(path) => {
+                format!("An invalid scene path was given: {}", path)
+            }
+            EngineConfigError::InvalidTicksPerSecond => {
+                "The given ticks per second value is invalid".to_string()
+            }
+            EngineConfigError::MissingSchedule => {
+                "A schedule required for operation is missing".to_string()
+            }
+        }
+    }
+}
+
 pub enum SomeError {
     Scene(crate::scene::SceneError),
     Ggez(ggez::GameError),
@@ -101,7 +120,13 @@ pub enum SomeError {
 
 impl ToString for SomeError {
     fn to_string(&self) -> String {
-        todo!()
+        match self {
+            SomeError::Scene(scene) => scene.to_string(),
+            SomeError::Ggez(game) => game.to_string(),
+            SomeError::IO(io) => io.to_string(),
+            SomeError::Misc(misc) => misc.to_string(),
+            SomeError::EngineConfig(engine_config) => engine_config.to_string(),
+        }
     }
 }
 

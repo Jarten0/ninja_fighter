@@ -12,7 +12,10 @@ use super::TabResponse;
 use super::InspectorWindow;
 
 #[derive(Debug, Default)]
-pub struct EntityViewState {}
+pub struct EntityViewState {
+    /// Used when renaming an entity manually, since changes are not applied until the text edit loses focus
+    cached_entity_name: String,
+}
 
 pub(super) fn draw_entities(
     state: &mut InspectorWindow,
@@ -58,13 +61,28 @@ pub(super) fn draw_entities(
 
         response.context_menu(|ui: &mut egui::Ui| {
             ui.add(egui::Label::new("Name"));
-            ui.text_edit_singleline(
-                &mut state
+            let name_edit = ui.add(
+                egui::TextEdit::singleline(&mut state.entity_state.cached_entity_name)
+                    .char_limit(60)
+                    .clip_text(false)
+                    .hint_text("(Set entity name)"),
+            );
+            if name_edit.gained_focus() {
+                state.entity_state.cached_entity_name = state
                     .world_mut()
                     .get_mut::<SceneData>(entity)
                     .unwrap()
-                    .object_name,
-            );
+                    .object_name
+                    .clone()
+            }
+            if name_edit.lost_focus() {
+                state
+                    .world_mut()
+                    .get_mut::<SceneData>(entity)
+                    .unwrap()
+                    .object_name = state.entity_state.cached_entity_name.clone();
+                state.entity_state.cached_entity_name = String::new();
+            }
         });
     }
 

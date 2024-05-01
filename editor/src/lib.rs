@@ -16,7 +16,7 @@ use log::trace;
 use crate::inspector::EditorInterface;
 use engine::editor::InspectableAsField;
 
-static DEBUG_ACTION_NAME: &str = "debugconsole";
+static DEBUG_ACTION_NAME: &str = "enabledebugmode";
 
 pub static EDITOR_ENGINE_CONFIG: EngineConfig = EngineConfig {
     scene_paths: &[game::INITIAL_SCENE],
@@ -82,8 +82,7 @@ pub(crate) fn debug_tick_schedule() -> Schedule {
     sched
         .set_build_settings(DEBUG_SETTINGS.clone())
         .set_executor_kind(ExecutorKind::Simple)
-        // .add_systems((inspector::update_inspector).chain())
-        ;
+        .add_systems((console::check_for_debug).chain());
 
     // Systems block
 

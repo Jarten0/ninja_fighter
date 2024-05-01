@@ -7,6 +7,7 @@
 use crate::assets::AssetManager;
 use crate::input::KeycodeType;
 use crate::logging;
+use crate::scene::SceneError;
 use crate::scene::SceneManager;
 use crate::schedule::ScheduleTag;
 use crate::space::Vector2;
@@ -113,9 +114,7 @@ impl GameRoot {
 
         root.world
             .resource_scope(
-                |world,
-                 mut res: Mut<SceneManager>|
-                 -> Result<bevy_ecs::entity::Entity, SomeError> {
+                |world, mut res: Mut<SceneManager>| -> Result<(), SomeError> {
                     let path_str = config
                         .scene_paths
                         .get(0)
@@ -123,8 +122,23 @@ impl GameRoot {
 
                     let path: PathBuf = path_str.into();
 
-                    res.load_scene(world, path)
+                    if let Err(err) = res
+                        .load_scene(world, path)
                         .map_err(|err| SomeError::Scene(err))
+                    {
+                        // a file not being found is okay, just cancel the load and print an error message.
+                        #[cfg(feature = "editor_features")]
+                        {
+                            return Ok(());
+                        }
+
+                        #[cfg(not(feature = "editor_features"))]
+                        {
+                            return Err(err);
+                        }
+                    };
+
+                    Ok(())
                 },
             )
             .map_err(|err| err.to_string())?;
@@ -161,7 +175,10 @@ impl EventHandler for GameRoot {
             debug!("Lag spike of 5+ frames [{:?}]", remaining_update_time);
 
             if remaining_update_time > Duration::from_millis(10000) {
-                log::debug!("Remaining update time is over 10,000 milliseconds! {}", remaining_update_time.as_millis());
+                log::debug!(
+                    "Remaining update time is over 10,000 milliseconds! {}",
+                    remaining_update_time.as_millis()
+                );
             }
             while ctx.time.remaining_update_time() > Duration::from_millis(16) {
                 ctx.time.check_update_time(self.ticks_per_second);
@@ -175,10 +192,11 @@ impl EventHandler for GameRoot {
         self.world.resource_mut::<Input>().process_key_queue();
 
         // while ctx.time.check_update_time(self.ticks_per_second) {
-        if let Some(action) = self.world.resource::<Input>().get_action("debugconsole") {
+        if let Some(action) = self.world.resource::<Input>().get_action("enabledebugmode") {
             if action.status().is_just_pressed() {
-                let mut engine = self.world.resource_mut::<GgezInterface>();
+                let mut engine = self.engine_mut();
                 engine.debug_mode = !engine.debug_mode;
+                debug!("Pressed debug button {}", engine.debug_mode);
             }
         }
 
