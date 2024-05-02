@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use bevy_ecs::component::Component;
 
+use bevy_ecs::reflect::ReflectComponent;
 use bevy_ecs::system::{Query, Res, ResMut};
 use bevy_reflect::Reflect;
 use engine::scene::ObjectID;
@@ -95,6 +96,7 @@ pub fn draw(
 ///
 /// ...which has yet to be coded in. //TODO: Do that
 #[derive(Debug, Component, Clone, Default, Reflect)]
+#[reflect(Component)]
 pub struct MeshRenderer {
     /// The default draw parameters for every mesh. To override this on a per-mesh basis, add a mesh overrider.
     ///
@@ -104,22 +106,6 @@ pub struct MeshRenderer {
 
     #[reflect(ignore)]
     pub(crate) mesh_overrides: HashMap<ObjectID, MeshOverride>,
-}
-
-impl Serialize for MeshRenderer {
-    fn serialize<S>(&self, _serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        // use serde::ser::SerializeStruct;
-        // let s = serializer.serialize_struct("MeshRenderer", 2)?;
-
-        // let drawparams = s.serialize_field("DrawParam", &self.draw_param)?;
-
-        // drawparams.
-
-        todo!()
-    }
 }
 
 impl MeshRenderer {

@@ -32,6 +32,8 @@ pub fn init_components(world: &mut World) -> () {
         // register_custom_serialize::<render::Renderer>(world, register);
 
         register_component::<collider::Collider>(world, register);
+        register_component::<collider::mesh_renderer::MeshRenderer>(world, register);
+
         register_component::<collider::GravitySettings>(world, register);
         register_component::<protag::Protag>(world, register);
         register_component::<protag::ProtagController>(world, register);
