@@ -16,8 +16,8 @@ dev.debug = "full"
 
 [workspace.dependencies]
 ggez = "0.9.3"
-bevy_ecs = { version = "0.13.1", features = ["bevy_reflect"] }
-bevy_reflect = "0.13.1"
+bevy_ecs = { version = "0.13.2", features = ["bevy_reflect"] }
+bevy_reflect = {version = "0.13.2", features = ["documentation"]}
 bevy-trait-query = "0.5.1"
 serde = { version = "1.0.189", features = ["derive"] }
 erased-serde = "0.4.0"

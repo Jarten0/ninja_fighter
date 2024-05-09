@@ -40,9 +40,13 @@ impl Transform {
     }
 }
 
-pub fn update(mut query: Query<(&mut Position, &Velocity, &TransformSettings)>) {
+pub fn update(mut query: Query<(&mut Position, &Velocity, Option<&TransformSettings>)>) {
     for (mut position, velocity, transform_settings) in query.iter_mut() {
-        if transform_settings.auto_update {
+        if let Some(transform_settings) = transform_settings {
+            if transform_settings.auto_update {
+                position.translate(velocity);
+            }
+        } else {
             position.translate(velocity);
         }
     }

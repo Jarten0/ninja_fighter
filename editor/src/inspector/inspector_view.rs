@@ -33,7 +33,7 @@ use engine::scene::ReflectTestSuperTrait;
 use engine::scene::SceneManager;
 use log::*;
 
-use super::InspectorWindow;
+use super::WindowState;
 use super::TabResponse;
 
 #[derive(Debug, Default)]
@@ -42,9 +42,9 @@ pub struct InspectorViewState {
 }
 
 pub(super) fn draw_inspector(
-    state: &mut InspectorWindow,
+    state: &mut WindowState,
     ui: &mut egui::Ui,
-    tab: &mut <InspectorWindow as egui_dock::TabViewer>::Tab,
+    tab: &mut <WindowState as egui_dock::TabViewer>::Tab,
 ) -> Option<TabResponse> {
     if state.focused_entity.is_none() {
         ui.label("No entity in focus");
@@ -181,7 +181,7 @@ pub(super) fn draw_inspector(
         let world = state.world_mut(); // pulled out into variable so that formatter wouldnt add an extra tab of indentation for no reason like why is it so much
         world.resource_scope(|world: &mut World, res: Mut<SceneManager>| {
             for module in modules {
-                ui.collapsing(module.0.clone(), |ui| {
+                let response = ui.collapsing(module.0.clone(), |ui| {
                     for (component, type_) in module.1 {
                         if let Some(c_id) = world.components().get_id(type_.type_id()) {
                             if component_ids.contains(&c_id) {
@@ -198,7 +198,13 @@ pub(super) fn draw_inspector(
                             },
                         };
 
-                        if ui.button(display_path).clicked() {
+                        let mut button = ui.button(display_path);
+                        
+                        if let Some(component_docs) = type_.type_info().docs() {
+                            button = button.on_hover_text(component_docs);
+                        }
+                        
+                        if button.clicked() {
                             trace!("Clicked on component add button");
 
                             let reflect_component = match type_.data::<ReflectComponent>() {
@@ -273,7 +279,11 @@ pub(super) fn draw_inspector(
                             );
                         }
                     }
+
+
                 });
+                
+                
             }
         });
     });
@@ -325,7 +335,11 @@ fn draw_struct_in_inspector(
             if let Some(type_data) =
                 type_registry.get_type_data::<InspectableAsField>(field.as_reflect().type_id())
             {
-                ui.label(display_name);
+                let response = ui.add(egui::Label::new(display_name));
+                if let Some(field_docs) = struct_info.field(&field_name).unwrap().docs() {
+                    response.on_hover_text(field_docs);
+                }
+
                 ui.scope(|ui: &mut egui::Ui| {
                     type_data.show(ui, field);
                 });
@@ -349,7 +363,10 @@ fn draw_struct_in_inspector(
                         draw_enum_in_inspector(e, ui, type_registry, debug_mode);
                     }
                     bevy_reflect::ReflectMut::Value(v) => {
-                        ui.label(display_name);
+                        let response = ui.add(egui::Label::new(display_name));
+                        if let Some(field_docs) = struct_info.field(&field_name).unwrap().docs() {
+                            response.on_hover_text(field_docs);
+                        }
 
                         ui.label(format!(
                             "(No inspector implementation for {})",

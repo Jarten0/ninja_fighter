@@ -13,7 +13,7 @@ use engine::{EngineConfig, Input};
 use input_debugger::InputDebugger;
 use log::trace;
 
-use crate::inspector::EditorInterface;
+use crate::inspector::EditorGUI;
 use engine::editor::InspectableAsField;
 
 static DEBUG_ACTION_NAME: &str = "enabledebugmode";
@@ -37,7 +37,7 @@ pub fn init_editor_schedules(world: &mut World) {
 
     let editor_interface =
         world.resource_scope(|world: &mut World, mut engine: Mut<GgezInterface>| {
-            EditorInterface::new(engine.get_context_mut(), world)
+            EditorGUI::new(engine.get_context_mut(), world)
         });
     world.insert_resource(editor_interface);
 
@@ -55,7 +55,7 @@ pub(crate) fn debug_gui_schedule() -> Schedule {
     sched
         .set_build_settings(DEBUG_SETTINGS.clone())
         .set_executor_kind(ExecutorKind::Simple)
-        .add_systems(inspector::update_inspector);
+        .add_systems(inspector::update_windows);
 
     // Systems block
 

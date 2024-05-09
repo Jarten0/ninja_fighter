@@ -1,1 +1,1 @@
-{"name":"test_scene","entity_data":{"Protag":{},"MeshEntity":{"components::collider::Collider":{}}}}
+{"name":"test_scene","entity_data":{"MeshEntity":{"components::collider::mesh_renderer::MeshRenderer":{},"components::collider::Collider":{}},"Protag":{}}}

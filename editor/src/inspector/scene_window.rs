@@ -1,10 +1,10 @@
 use bevy_ecs::world::{Mut, World};
 use engine::scene::{Scene, SceneManager};
 
-use super::{InspectorWindow, TabResponse};
+use super::{TabResponse, WindowState};
 
 pub fn draw_scene_window(
-    state: &mut InspectorWindow,
+    state: &mut WindowState,
     ui: &mut egui::Ui,
     tab: &mut String,
 ) -> Option<TabResponse> {

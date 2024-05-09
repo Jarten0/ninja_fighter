@@ -23,13 +23,10 @@ pub mod render;
 pub fn init_components(world: &mut World) -> () {
     world.insert_resource(MeshEditor::default());
 
-    // world.bundles().
-
     world.resource_scope(|world: &mut World, mut manager: Mut<SceneManager>| {
         let register = &mut manager.type_registry;
         register_component::<render::Renderer>(world, register);
         register_custom_inspection::<render::Renderer>(world, register);
-        // register_custom_serialize::<render::Renderer>(world, register);
 
         register_component::<collider::Collider>(world, register);
         register_component::<collider::mesh_renderer::MeshRenderer>(world, register);
