@@ -100,6 +100,7 @@ pub(crate) fn debug_frame_schedule() -> Schedule {
     sched.add_systems(
         (
             input_debugger::draw_debug_information,
+            inspector::game_view::draw_game_view,
             inspector::draw_editor_gui,
         )
             .chain(),

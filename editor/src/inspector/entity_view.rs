@@ -16,7 +16,7 @@ pub struct EntityHeirarchyTab {
 }
 
 impl EditorTab for EntityHeirarchyTab {
-    fn draw(&mut self, window_state: &mut WindowState, ui: &mut egui::Ui) -> Option<TabResponse> {
+    fn ui(&mut self, window_state: &mut WindowState, ui: &mut egui::Ui) -> Option<TabResponse> {
         let mut new_entities = HashMap::new();
 
         for (entity, scene_data) in window_state
@@ -25,7 +25,7 @@ impl EditorTab for EntityHeirarchyTab {
             .iter(&window_state.world_ref())
         {
             if !window_state.entities.contains(&entity) {
-                new_entities.insert(entity, scene_data.object_name.clone());
+                new_entities.insert(entity, scene_data.entity_name.clone());
             }
         }
         for entity in new_entities {
@@ -40,7 +40,7 @@ impl EditorTab for EntityHeirarchyTab {
 
         for entity in window_state.entities.clone() {
             let name = match query.get(window_state.world_ref(), entity) {
-                Ok(ok) => &ok.object_name,
+                Ok(ok) => &ok.entity_name,
                 Err(err) => {
                     log::error!("{}", err.to_string());
                     continue;
@@ -68,7 +68,7 @@ impl EditorTab for EntityHeirarchyTab {
                         .world_mut()
                         .get_mut::<SceneData>(entity)
                         .unwrap()
-                        .object_name
+                        .entity_name
                         .clone()
                 }
                 if name_edit.lost_focus() {
@@ -76,7 +76,7 @@ impl EditorTab for EntityHeirarchyTab {
                         .world_mut()
                         .get_mut::<SceneData>(entity)
                         .unwrap()
-                        .object_name = self.cached_entity_name.clone();
+                        .entity_name = self.cached_entity_name.clone();
                     self.cached_entity_name = String::new();
                 }
             });
@@ -98,23 +98,14 @@ impl EditorTab for EntityHeirarchyTab {
         None
     }
 
-    fn default_boxed() -> Box<Self>
+    fn name() -> &'static str
     where
         Self: Sized,
     {
-        Box::new(Self {
-            cached_entity_name: String::new(),
-        })
-    }
-
-    fn name() -> String
-    where
-        Self: Sized,
-    {
-        "Entity Heirarchy".to_string()
+        "Entity Heirarchy"
     }
 
     fn display_name(&self) -> String {
-        Self::name()
+        Self::name().to_string()
     }
 }

@@ -10,7 +10,8 @@ use engine::{Camera, GgezInterface};
 use ggez::graphics::{self, *};
 use serde::{Deserialize, Serialize};
 
-use super::{Collider, SuperMesh};
+use super::traits::RenderableMesh;
+use super::{convex_mesh, Collider, SuperMesh};
 
 // TODO: Rewrite functionality when meshes are stored in global resources
 // pub fn update(
@@ -73,7 +74,11 @@ pub fn draw(
         let final_param = initial_param.clone();
 
         for (mesh_id, mesh) in &collider.meshes {
-            let drawable = mesh.drawable(&engine.get_context().gfx);
+            let drawable = match mesh {
+                super::MeshType::Convex(convex_mesh) => {
+                    convex_mesh.into_graphics_mesh(&engine.get_context().gfx)
+                }
+            };
 
             if let Some(ovrd) = renderer.get_override(*mesh_id) {
                 engine

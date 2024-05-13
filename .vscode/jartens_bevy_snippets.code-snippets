@@ -73,5 +73,64 @@
         "description": "Imports a bunch of generally useful crates and objects",
         "prefix": "import_useful",
         "scope": "rust"
+    },
+    "editor tab": {
+        "body": [
+"#[derive(Debug, Default)]",
+"pub struct ${1:NewTab} {}",
+"",
+"impl engine::editor::EditorTab for ${1:NewTab} {",
+"    fn name() -> &'static str",
+"    where",
+"        Self: Sized,",
+"    {",
+"        \"${1:NewTab}\"",
+"    }",
+"",
+"    fn display_name(&self) -> String {",
+"        \"${1:New Tab}\".to_string()",
+"    }",
+"",
+"    fn ui(",
+"        &mut self,",
+"        window_state: &mut engine::editor::WindowState,",
+"        ui: &mut egui::Ui,",
+"    ) -> Option<engine::editor::TabResponse> {",
+"        ${0:ui.label(\"Basic snippet implementation of editor tab\");}",
+"",
+"        None",
+"    }",
+"}",
+"",            
+        ],
+        "description": "Pastes in a basic frame for creating a new editor tab.",
+        "prefix": "editor_tab",
+        "scope": "rust"
+    },
+    "Mutable world query": {
+        "body": [
+"for (${3:component}) in ${1:world}",
+"    .query::<(&mut ${2:Component})>()",
+"    .iter_mut(${1:world})",
+"{",
+"    $0",
+"}",
+"",        ],
+        "description": "Creates a mutable query and iterates over each component obtained from it.",
+        "prefix": "world_query_mut",
+        "scope": "rust"
+    },
+    "Immutable world query": {
+        "body": [
+"for (${3:component}) in ${1:world}",
+"    .query::<(&${2:Component})>()",
+"    .iter(${1:world})",
+"{",
+"    $0",
+"}",
+"",        ],
+        "description": "Creates an immutable query and iterates over each component obtained from it. (Remember that creating a query requires world mutability, regardless of how you iterate over it.)",
+        "prefix": "world_query_ref",
+        "scope": "rust"
     }
 }

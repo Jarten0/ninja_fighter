@@ -1,3 +1,5 @@
+use super::traits::Identifiable;
+use super::traits::RenderableMesh;
 use bevy_reflect::Reflect;
 use engine::scene::ObjectID;
 use engine::space;
@@ -8,11 +10,7 @@ use ggez::graphics::MeshData;
 use serde::ser::SerializeStruct;
 use serde::Deserialize;
 use serde::Serialize;
-
 use std::ops::Deref;
-
-use super::traits::CertifiableMesh;
-use super::traits::Identifiable;
 
 /// A mesh that works for collision.
 ///
@@ -87,7 +85,7 @@ impl Identifiable for ConvexMesh {
     }
 }
 
-impl CertifiableMesh for ConvexMesh {
+impl RenderableMesh for ConvexMesh {
     fn verify_vertices(&self) -> Result<(), String> {
         let vec = &self.vertices;
         let len = vec.len();
@@ -218,6 +216,12 @@ impl<'md> From<graphics::MeshData<'md>> for ConvexMesh {
             vertices: vec,
             mesh_id: ObjectID::new(engine::scene::CounterType::Global),
         }
+    }
+}
+
+impl Into<graphics::Mesh> for ConvexMesh {
+    fn into(self) -> graphics::Mesh {
+        todo!()
     }
 }
 

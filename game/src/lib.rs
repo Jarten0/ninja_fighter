@@ -33,7 +33,7 @@ pub fn tick_schedule() -> Schedule {
         .set_executor_kind(ExecutorKind::MultiThreaded)
         .add_systems(
             (
-                components::collider::mesh_editor::update_editor,
+                // components::collider::mesh_editor::update_editor,
                 protag::update,
                 engine::space::update,
                 collider::update,
@@ -53,7 +53,7 @@ pub fn freeze_tick_schedule() -> Schedule {
         .add_systems((
             collider::update,
             protag::update,
-            components::collider::mesh_editor::update_editor,
+            // components::collider::mesh_editor::update_editor,
         ));
 
     sched
@@ -70,7 +70,7 @@ pub fn frame_schedule() -> Schedule {
             // insert draw systems here
             render::draw,
             components::collider::mesh_renderer::draw,
-            components::collider::mesh_editor::draw_editor_interface,
+            // components::collider::mesh_editor::draw_editor_interface,
         )
             .chain(),
     );

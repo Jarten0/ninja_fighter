@@ -405,7 +405,7 @@ fn list_entities(root: &mut GameRoot) -> Result<(), String> {
                     }
                 };
 
-                println!("{}", scene_data.object_name);
+                println!("{}", scene_data.entity_name);
             }
 
             Ok(())
@@ -466,7 +466,7 @@ fn add_component(root: &mut GameRoot) -> Result<(), String> {
                     .ok_or(SceneError::NoSceneComponent)?
                     .get_entities()
                     .iter()
-                    .map(|entity| world.get::<SceneData>(*entity).unwrap().object_name.clone())
+                    .map(|entity| world.get::<SceneData>(*entity).unwrap().entity_name.clone())
                     .collect::<Vec<String>>();
 
                 if entity_names.len() == 0 {
@@ -586,7 +586,7 @@ fn list_components(root: &mut GameRoot) -> Result<(), String> {
                         if !(scene_data.scene_id.unwrap() == object_id) {
                             continue;
                         }
-                        println!("{}", scene_data.object_name)
+                        println!("{}", scene_data.entity_name)
                     }
                     None => continue,
                 }

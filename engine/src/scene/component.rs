@@ -127,7 +127,7 @@ impl Scene {
 
     pub fn get_entity(&self, world: &World, name: String) -> Option<Entity> {
         for entity in &self.entities {
-            if world.get::<SceneData>(*entity).unwrap().object_name == name {
+            if world.get::<SceneData>(*entity).unwrap().entity_name == name {
                 return Some(*entity);
             }
         }
@@ -177,6 +177,8 @@ pub fn save_scene(
         Ok(ok) => ok,
         Err(err) => err?,
     };
+
+    trace!("Checking file extension");
 
     if !(path.extension().unwrap_or(OsStr::new("none")) == "json") {
         return Err(SceneError::SerializeFailure(format!(
@@ -303,7 +305,7 @@ pub fn add_entity_to_scene<'a>(
         {
             continue;
         }
-        entity_names.push(component.object_name.to_owned());
+        entity_names.push(component.entity_name.to_owned());
     }
 
     if let None = world.get::<SceneData>(entity_to_add) {
@@ -342,7 +344,7 @@ pub fn add_entity_to_scene<'a>(
         world
             .entity_mut(entity_to_add)
             .insert(object_data::SceneData {
-                object_name,
+                entity_name: object_name,
                 scene_id: Some(scene_id),
                 component_paths,
                 component_ids,
@@ -355,7 +357,7 @@ pub fn add_entity_to_scene<'a>(
         &mut world
             .get_mut::<SceneData>(entity_to_add)
             .ok_or(SceneError::NoSceneDataComponent)?
-            .object_name,
+            .entity_name,
     );
 
     let mut scene_entity = World::entity_mut(world, scene_entity);
@@ -430,7 +432,7 @@ pub fn to_serializable_scene_data<'a>(
             continue;
         }
 
-        let entities_name = world.get::<SceneData>(entity).unwrap().object_name.clone();
+        let entities_name = world.get::<SceneData>(entity).unwrap().entity_name.clone();
 
         trace!("  - Serializing {}'s components", entities_name);
 
@@ -523,7 +525,12 @@ pub fn to_serializable_scene_data<'a>(
                         }
                         .unwrap();
 
-                        for field in serialized.as_object().unwrap() {
+                        if !serialized.is_object() {}
+
+                        for field in serialized
+                            .as_object()
+                            .expect(format!("{} to be a JSON object", serialized).as_str())
+                        {
                             serialized_values.insert(field.0.to_string(), field.1.clone());
                         }
                     } else {
@@ -570,7 +577,7 @@ pub fn to_serializable_scene_data<'a>(
                 entities_name
             );
         }
-        let k = world.get::<SceneData>(entity).unwrap().object_name.clone();
+        let k = world.get::<SceneData>(entity).unwrap().entity_name.clone();
 
         entity_data.insert(k, entity_hashmap);
     }
@@ -582,7 +589,7 @@ pub fn to_serializable_scene_data<'a>(
             let object_name = &world
                 .get::<SceneData>(entity)
                 .ok_or(SceneError::NoSceneDataComponent)?
-                .object_name;
+                .entity_name;
 
             if !entity_data.contains_key(object_name) {
                 entity_data.insert(object_name.to_owned(), HashMap::new());

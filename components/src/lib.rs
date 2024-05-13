@@ -17,6 +17,7 @@ use engine::{register_custom_inspection, register_custom_serialize};
 
 // #[allow(unused)]
 pub mod collider;
+pub mod editor_windows;
 pub mod protag;
 pub mod render;
 

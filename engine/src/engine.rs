@@ -52,10 +52,21 @@ impl GgezInterface {
     pub fn get_canvas_mut(&mut self) -> Option<&mut Canvas> {
         self.current_canvas.as_mut()
     }
-    pub(crate) fn set_canvas(&mut self, canvas: Canvas) {
+    /// This can be used to set a canvas outside of a frame schedule, to enable a frame schedule to be ran whenever.
+    ///
+    /// Fair warning that this can mess things up dramatically if misused, so don't touch unless you're sure it won't mess with other rendering systems.
+    ///
+    /// This will override any canvas currently set, so use with caution.
+    pub fn set_canvas(&mut self, canvas: Canvas) {
         self.current_canvas = Some(canvas);
     }
-    pub(crate) fn take_canvas(&mut self) -> Option<Canvas> {
+    /// Removes the canvas and hands it back, which is usually done after all rendering logic is complete.
+    ///
+    /// Don't take it during a rendering system unless you put it back using [`set_canvas`](GgezInterface::set_canvas),
+    /// otherwise other rendering logic will likely crash and the engine won't be able to submit rendering calls.
+    ///
+    /// This will return [`None`] if no canvas is currently set.
+    pub fn take_canvas(&mut self) -> Option<Canvas> {
         self.current_canvas.take()
     }
 

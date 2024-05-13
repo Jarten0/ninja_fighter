@@ -160,8 +160,7 @@ impl GameRoot {
 impl EventHandler for GameRoot {
     /// Passes guard clauses depending on the TPS, checks for debug logic, updates resources then runs [`ScheduleTag::Tick`]
     fn update(&mut self, ctx: &mut Context) -> GameResult {
-        // trace!("Called update");
-
+        #[cfg(feature = "editor_features")]
         if self.engine().debug_mode {
             self.world.run_schedule(ScheduleTag::DebugGUI)
         }
@@ -185,13 +184,11 @@ impl EventHandler for GameRoot {
             }
         }
 
-        // trace!("Actually passed into update");
-
         self.update_context(ctx);
 
         self.world.resource_mut::<Input>().process_key_queue();
 
-        // while ctx.time.check_update_time(self.ticks_per_second) {
+        #[cfg(feature = "editor_features")]
         if let Some(action) = self.world.resource::<Input>().get_action("enabledebugmode") {
             if action.status().is_just_pressed() {
                 let mut engine = self.engine_mut();
@@ -200,47 +197,40 @@ impl EventHandler for GameRoot {
             }
         }
 
-        // Runs the tick schedule
-
         if self.engine().is_freeze_frame() {
             self.world.run_schedule(ScheduleTag::FreezeTick)
         } else {
             self.world.run_schedule(ScheduleTag::Tick)
         }
 
-        // println!("Ran tick schedule once");
-
-        // Debug console: if `debug_mode` is enabled, it will open the console and pause ticks until it is closed
+        #[cfg(feature = "editor_features")]
         if self.engine().debug_mode {
-            // Debug schedule is optional
             self.world.run_schedule(ScheduleTag::DebugTick)
         }
-        // }
 
         Ok(())
     }
 
     /// Creates a new [`Canvas`](graphics::Canvas) and calls the [`ScheduleTag::Frame`] schedule as often as possible
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
-        // trace!("Called draw");
-
         self.engine_mut().set_canvas(graphics::Canvas::from_frame(
             ctx,
             Color {
-                r: 0.1,
-                g: 0.1,
-                b: 0.1,
-                a: 0.1,
+                r: 0.0,
+                g: 0.0,
+                b: 0.0,
+                a: 0.0,
             },
         ));
 
         self.update_context(ctx);
 
-        let debug_mode = self.engine().debug_mode;
-
         self.world.run_schedule(ScheduleTag::Frame);
 
-        if debug_mode {
+        #[cfg(feature = "editor_features")]
+        if self.engine().debug_mode {
+            // self.world.run_schedule(ScheduleTag::Gizmos);
+
             self.world.run_schedule(ScheduleTag::DebugFrame);
         }
 

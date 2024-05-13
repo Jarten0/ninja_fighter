@@ -8,7 +8,7 @@ use bevy_ecs::system::Resource;
 pub struct Camera {
     pub position: space::Position,
     pub velocity: space::Velocity,
-    pub zoom: f32, // 1zm = 1cm/px or 1m/100px
+    pub zoom: f32, // %100 or 1.0 zoom = 1cm/px or 1m/100px
 }
 
 impl Default for Camera {

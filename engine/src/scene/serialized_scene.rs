@@ -377,14 +377,14 @@ impl SerializedSceneData {
                 .last();
 
             let bundle = SceneData {
-                object_name: entity_name,
+                entity_name,
                 scene_id: Some(scene.scene_id),
                 component_paths,
                 component_ids,
                 hide_in_inspector: true,
             };
 
-            let entity_name_debug = bundle.object_name.clone();
+            let entity_name_debug = bundle.entity_name.clone();
 
             let mut entity = world.spawn(bundle);
 

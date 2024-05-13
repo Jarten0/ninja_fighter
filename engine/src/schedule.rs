@@ -44,17 +44,35 @@ pub enum ScheduleTag {
     ///
     /// See also [`ScheduleTag::FreezeTick`] and [`crate::freeze::FreezeType`], or [`ScheduleTag::Frame`] for rendering
     Tick,
+
     /// Most game logic is paused at the moment, but some functionality can still run to maintain presentation.
     FreezeTick,
+
     /// The game is using the current stored state and rendering to the screen.
     Frame,
+
     /// The game has just been started, and is initializing state.
     /// This schedule is run only once, after resources and schedules have been created and inserted.
     Init,
+
+    /// This handles debug logic
+    #[cfg(feature = "editor_features")]
     DebugTick,
+
+    /// This handles debug renderers
+    #[cfg(feature = "editor_features")]
     DebugFrame,
+
+    /// Editor tools displayed in the game world, toggleable at any moment. Can alter game and rendering logic.
+    #[cfg(feature = "editor_features")]
+    Gizmos,
+
     /// Is run every time a draw call will be made, regardless of whether the tick should be updating or not.
     /// Also runs regardless of freeze frames, since, well, I'd best hope you have access to your GUI when your game is deadlocked in a freeze loop.
+    #[cfg(feature = "editor_features")]
     DebugGUI,
+
+    /// Is run at the start of the program to handle editor state initialization.
+    #[cfg(feature = "editor_features")]
     DebugInit,
 }

@@ -32,19 +32,33 @@ use engine::editor::InspectableAsField;
 use engine::scene::ReflectTestSuperTrait;
 use engine::scene::SceneManager;
 use log::*;
-
-use super::WindowState;
-use super::TabResponse;
+use engine::editor::*;
 
 #[derive(Debug, Default)]
-pub struct InspectorViewState {
+pub struct InspectorTab {
     adding_component: bool,
 }
 
+impl super::EditorTab for InspectorTab {
+    fn name() -> &'static str
+    where
+        Self: Sized {
+        "Inspector"
+    }
+
+    fn display_name(&self) -> String {
+        "Inspector".to_string()
+    }
+
+    fn ui(&mut self, window_state: &mut WindowState, ui: &mut egui::Ui) -> Option<TabResponse> {
+        draw_inspector(self, window_state, ui)
+    }
+}
+
 pub(super) fn draw_inspector(
+    tab: &mut InspectorTab,
     state: &mut WindowState,
     ui: &mut egui::Ui,
-    tab: &mut <WindowState as egui_dock::TabViewer>::Tab,
 ) -> Option<TabResponse> {
     if state.focused_entity.is_none() {
         ui.label("No entity in focus");

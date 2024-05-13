@@ -19,7 +19,7 @@ pub struct SceneData {
     /// Describes the name of the entity that this component belongs to.
     ///
     /// Is used for serialization, so using this is quite important.
-    pub object_name: String,
+    pub entity_name: String,
     /// The ID of the current scene that the component holder belongs to.
     pub scene_id: Option<ObjectID>,
     /// Contains the component path of every component that is reflectable.
