@@ -266,6 +266,12 @@ impl From<(f32, f32)> for Vector2 {
     }
 }
 
+impl From<(i32, i32)> for Vector2 {
+    fn from((x, y): (i32, i32)) -> Self {
+        Vector2::new(x as f32, y as f32)
+    }
+}
+
 impl From<Point2<f32>> for Vector2 {
     fn from(value: Point2<f32>) -> Self {
         Vector2::new(value.x, value.y)

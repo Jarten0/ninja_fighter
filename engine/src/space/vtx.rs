@@ -7,10 +7,24 @@ use ggez::graphics::Vertex as DrawVertex;
 use serde::Deserialize;
 use serde::Serialize;
 
+use crate::editor::FieldWidget;
+
 use super::Vector2;
 
 #[derive(Debug, Default, Clone, Copy, Serialize, Deserialize, Reflect)]
 pub struct Vertex(Vector2);
+
+impl FieldWidget for Vertex {
+    fn ui(value: &mut dyn Reflect, ui: &mut egui::Ui) {
+        let value = value.downcast_mut::<Self>().unwrap(); //you can use this if your type implements reflect
+
+        ui.horizontal(|ui| {
+            ui.add(egui::DragValue::new(&mut value.0.x));
+            ui.add(egui::DragValue::new(&mut value.0.y));
+        });
+        // ui.label("Default implementation of widget for ".to_owned() + value.reflect_type_path());
+    }
+}
 
 impl Deref for Vertex {
     type Target = Vector2;
@@ -29,6 +43,18 @@ impl DerefMut for Vertex {
 impl From<Vector2> for Vertex {
     fn from(value: Vector2) -> Self {
         Self { 0: value }
+    }
+}
+
+impl From<(f32, f32)> for Vertex {
+    fn from(value: (f32, f32)) -> Self {
+        Self { 0: value.into() }
+    }
+}
+
+impl From<(i32, i32)> for Vertex {
+    fn from(value: (i32, i32)) -> Self {
+        Self { 0: value.into() }
     }
 }
 

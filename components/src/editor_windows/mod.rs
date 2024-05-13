@@ -1,9 +1,10 @@
 use bevy_ecs::entity::Entity;
 use engine::scene::{ObjectID, SceneData};
+use engine::space::Vertex;
 use engine::GgezInterface;
 
 use crate::collider::mesh_renderer::MeshOverride;
-use crate::collider::Collider;
+use crate::collider::{Collider, ConvexMesh, MeshType};
 
 #[derive(Debug, Default)]
 pub struct MeshEditorTab {
@@ -18,9 +19,11 @@ enum MeshEditorFocusState {
     },
     Entity {
         entity: Entity,
+        entity_name: String,
     },
     Mesh {
         entity: Entity,
+        entity_name: String,
         mesh_id: ObjectID,
     },
 }
@@ -63,7 +66,10 @@ impl engine::editor::EditorTab for MeshEditorTab {
                             .on_hover_text(format!("Mesh count: {}", mesh_count));
 
                         if small_button.clicked() {
-                            self.focus_state = MeshEditorFocusState::Entity { entity: *entity };
+                            self.focus_state = MeshEditorFocusState::Entity {
+                                entity: *entity,
+                                entity_name: name.to_owned(),
+                            };
                             return None;
                         }
                     }
@@ -83,30 +89,81 @@ impl engine::editor::EditorTab for MeshEditorTab {
                     }
                 }
             }
-            MeshEditorFocusState::Entity { entity } => {
-                let Ok(collider) = window_state
+            MeshEditorFocusState::Entity {
+                entity,
+                entity_name,
+            } => {
+                let Ok(mut collider) = window_state
                     .world_mut()
                     .query::<&mut Collider>()
-                    .get(window_state.world_mut(), *entity)
+                    .get_mut(window_state.world_mut(), *entity)
                 else {
                     ui.label("No collider component found on this entity");
+                    return None;
                 };
 
-                for (id, mesh) in &mut collider.meshes {
+                ui.label("Listing meshes belonging to ".to_string() + entity_name);
+
+                for (id, mesh) in &collider.meshes {
                     match mesh {
-                        crate::collider::MeshType::Convex(mesh) => {
-                            ui.label(
-                                mesh.vertices
-                                    .iter()
-                                    .map(|vertex| vertex.to_string())
-                                    .fold(String::new(), |value| todo!())
-                                    .collect::<Vec<String>>(),
-                            );
+                        MeshType::Convex(mesh) => {
+                            if ui.button("Convex mesh").clicked() {
+                                self.focus_state = MeshEditorFocusState::Mesh {
+                                    entity: *entity,
+                                    mesh_id: mesh.mesh_id,
+                                    entity_name: entity_name.to_string(),
+                                };
+                                return None;
+                            }
+                            let text = mesh
+                                .vertices
+                                .iter()
+                                .map(|vertex| vertex.to_string())
+                                .fold(String::new(), |acc, value| acc + value.as_str() + ", ");
+
+                            ui.label(text);
                         }
                     }
                 }
+                ui.menu_button("Add mesh", |ui| {
+                    if ui.button("Add convex mesh").clicked() {
+                        let mesh = ConvexMesh::new(vec![
+                            (0.0, 0.0),
+                            (20.0, 0.0),
+                            (20.0, 20.0),
+                            (0.0, 20.0),
+                        ]);
+                        collider.meshes.insert(mesh.mesh_id, MeshType::Convex(mesh));
+                    }
+                });
             }
-            MeshEditorFocusState::Mesh { entity, mesh_id } => todo!(),
+            MeshEditorFocusState::Mesh {
+                entity,
+                mesh_id,
+                entity_name,
+            } => {
+                let Some(mut collider) = window_state.world_mut().get_mut::<Collider>(*entity)
+                else {
+                    ui.label("Could not find collider");
+                    return None;
+                };
+
+                let Some(mesh) = collider.get_mesh_mut(mesh_id) else {
+                    ui.label("Could not find mesh");
+                    return None;
+                };
+
+                ui.label(format!(
+                    "Editing mesh {} on entity {}",
+                    mesh_id, entity_name
+                ));
+
+                match mesh {
+                    MeshType::Convex(mesh) => for vertex in &mut mesh.vertices {},
+                }
+
+                ui.label("Missing implementation of mesh editor");
+            }
         }
 
         None

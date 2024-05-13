@@ -28,7 +28,12 @@ pub struct ConvexMesh {
 }
 
 impl ConvexMesh {
-    pub fn new(vertices: Vec<space::Vertex>) -> Self {
+    pub fn new(mut vertices: Vec<impl Into<space::Vertex>>) -> Self {
+        let vertices = vertices
+            .drain(..)
+            .map(|into| into.into())
+            .collect::<Vec<space::Vertex>>();
+
         let convex_mesh = Self {
             vertices,
             position: Position::default(),

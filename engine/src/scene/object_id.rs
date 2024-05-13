@@ -62,6 +62,12 @@ impl PartialEq for ObjectID {
         self.id == other.id && self.counter == other.counter
     }
 }
+impl core::fmt::Display for ObjectID {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.id.to_string())?;
+        Ok(())
+    }
+}
 
 impl Hash for ObjectID {
     fn hash<H: Hasher>(&self, state: &mut H) {

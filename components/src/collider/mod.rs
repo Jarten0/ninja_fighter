@@ -5,7 +5,7 @@ pub mod mesh_editor;
 pub mod mesh_renderer;
 mod traits;
 
-use bevy_ecs::reflect::ReflectComponent;
+use bevy_ecs::reflect::{self, ReflectComponent, ReflectFromWorld};
 pub use box_collider::BoxCollider;
 pub use convex_mesh::ConvexMesh;
 
@@ -15,18 +15,18 @@ pub use gravity_settings::GravitySettings;
 
 use bevy_ecs::component::Component;
 use bevy_ecs::system::Query;
-use bevy_reflect::Reflect;
+use bevy_reflect::{FromReflect, Reflect, ReflectSerialize};
 use engine::space::Position;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt::Debug;
 use traits::SuperMesh;
 
 /// A container for a set of meshes that are responsible for collision handling.
 #[derive(Debug, Component, Default, Reflect)]
+#[reflect(FromWorld)]
 #[reflect(Component)]
 pub struct Collider {
-    #[reflect(ignore)]
     pub meshes: HashMap<ObjectID, MeshType>,
 }
 
@@ -56,7 +56,8 @@ pub fn update(mut query: Query<(&mut Collider, &Position)>) {
     }
 }
 
-#[derive(Debug, Clone, Reflect)]
+#[derive(Debug, Clone, Reflect, Serialize, Deserialize)]
+#[reflect(Serialize)]
 pub enum MeshType {
     Convex(ConvexMesh),
 }

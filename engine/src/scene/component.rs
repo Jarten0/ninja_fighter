@@ -486,7 +486,10 @@ pub fn to_serializable_scene_data<'a>(
                         let Some(type_data) =
                             registry.get_type_data::<ReflectSerialize>(field.type_id())
                         else {
-                            error!("Could not find serialzie type data for {}", field.name());
+                            error!(
+                                "Could not find serialization type data for {}",
+                                field.name()
+                            );
                             continue;
                         };
 
@@ -525,11 +528,14 @@ pub fn to_serializable_scene_data<'a>(
                         }
                         .unwrap();
 
-                        if !serialized.is_object() {}
+                        if !serialized.is_object() {
+                            serialized_values.insert(field.index().to_string(), serialized);
+                            continue;
+                        }
 
                         for field in serialized
                             .as_object()
-                            .expect(format!("{} to be a JSON object", serialized).as_str())
+                            .expect(format!("expected {} to be a JSON object", serialized).as_str())
                         {
                             serialized_values.insert(field.0.to_string(), field.1.clone());
                         }
