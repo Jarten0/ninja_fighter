@@ -7,6 +7,7 @@ use crate::scene::Counter;
 use crate::scene::IDCounter;
 use crate::scene::SceneManager;
 use crate::space::Vector2;
+use crate::GgezInterface;
 use bevy_ecs::component::ComponentId;
 use bevy_ecs::prelude::*;
 use bevy_reflect::{FromType, Reflect};
@@ -126,7 +127,7 @@ where
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum TabResponse {
     SwitchToTab(egui::Id),
     RemoveComponent(Entity, ComponentId),
@@ -165,7 +166,7 @@ where
         }
     }
 
-    fn draw(&self, canvas: &mut ggez::graphics::Canvas) {}
+    fn draw(&self, window_state: &crate::editor::WindowState, engine: &mut GgezInterface) {}
 }
 
 static mut WORLD_REF: Option<*mut World> = None;
@@ -189,9 +190,9 @@ where
 {
     pub entities: Vec<Entity>,
     pub components: HashMap<Entity, Vec<ComponentId>>,
-    pub current_response: Option<TabResponse>,
     pub tab_info: TabInfo,
     pub z: graphics::ZIndex,
+    pub tab_responses: Vec<(TabResponse, String, egui::Id)>,
 
     /// (`ID`, `Name`)
     ///
@@ -285,7 +286,7 @@ impl WindowState {
         Self {
             entities,
             components,
-            current_response: None,
+            tab_responses: Vec::new(),
 
             focused_entity: None,
             focused_component: None,
@@ -331,7 +332,10 @@ impl egui_dock::TabViewer for WindowState {
             self.components.insert(focused_entity.0, v);
         }
 
-        self.current_response = current_tab.state.ui(self, ui);
+        if let Some(response) = current_tab.state.ui(self, ui) {
+            self.tab_responses
+                .push((response, current_tab.name.clone(), current_tab.id.clone()));
+        }
     }
 
     fn id(&mut self, tab: &mut Self::Tab) -> egui::Id {
@@ -349,6 +353,9 @@ impl egui_dock::TabViewer for WindowState {
         surface: SurfaceIndex,
         node: egui_dock::NodeIndex,
     ) {
+        ui.label(&tab.name);
+        ui.label(format!("{:?}", tab.id));
+
         if ui.label("Refresh").clicked() {
             log::info!("Clicked refresh")
         }
@@ -447,186 +454,5 @@ impl TabInfo {
         self.tab_ids.remove(&tab_id)
             | self.recent_tabs.remove(tab_name).is_some()
             | self.tab_types.remove(&tab_id).is_some()
-    }
-}
-
-/// Container for all of the state relating to the [`egui`] GUI.
-#[derive(Resource)]
-pub struct EditorGUI
-where
-    Self: 'static,
-    Self: Send,
-    Self: Sync,
-{
-    gui: ggegui::Gui,
-    dock_state: egui_dock::DockState<EditorTabState>,
-
-    pub entities: Vec<Entity>,
-    pub components: HashMap<Entity, Vec<ComponentId>>,
-
-    pub tab_info: TabInfo,
-    pub z: ggez::graphics::ZIndex,
-
-    /// (`ID`, `Name`)
-    ///
-    /// `String` = scene name
-    pub focused_entity: Option<(Entity, String)>,
-    pub focused_component: Option<ComponentId>,
-    pub component_modules: HashMap<String, Vec<((String, String), bevy_reflect::TypeRegistration)>>,
-
-    pub debug_mode: bool,
-}
-
-impl EditorGUI {
-    pub(crate) fn new(ctx: &mut ggez::Context, world: &mut World) -> Self {
-        let mut entities = Vec::new();
-        let mut components = HashMap::new();
-
-        for (entity, scene_data) in world
-            .query::<(Entity, &crate::scene::SceneData)>()
-            .iter(&world)
-        {
-            entities.push(entity);
-        }
-
-        for (entity, dyn_components) in world
-            .query::<(Entity, &dyn crate::scene::TestSuperTrait)>()
-            .iter(&world)
-        {
-            components.insert(
-                entity,
-                dyn_components
-                    .iter()
-                    .map(|component| {
-                        world
-                            .components()
-                            .get_id(component.as_reflect().type_id())
-                            .unwrap()
-                    })
-                    .collect::<Vec<ComponentId>>(),
-            );
-        }
-
-        let types = world
-            .resource::<SceneManager>()
-            .type_registry
-            .iter()
-            .filter(|i| i.data::<crate::scene::ReflectTestSuperTrait>().is_some());
-
-        let mut modules: HashMap<String, Vec<((String, String), bevy_reflect::TypeRegistration)>> =
-            HashMap::new();
-
-        for type_ in types {
-            let full_path = type_.type_info().type_path().to_string();
-
-            if let Some(index) = full_path.find("::") {
-                let split = (
-                    full_path.split_at(index).0.to_owned(), // the module name
-                    full_path
-                        .split_at(index)
-                        .1
-                        .strip_prefix("::")
-                        .unwrap()
-                        .to_owned(), // the other part of the component path, including the name
-                );
-
-                if (&modules.get_mut(&split.0)).is_some() {
-                    modules
-                        .get_mut(&split.0)
-                        .unwrap()
-                        .push(((full_path, split.1), type_.clone()));
-                } else {
-                    modules.insert(split.0, vec![((full_path, split.1), type_.clone())]);
-                };
-            }
-        }
-
-        Self {
-            entities,
-            components,
-
-            focused_entity: None,
-            focused_component: None,
-            component_modules: modules,
-
-            debug_mode: false,
-            tab_info: TabInfo::default(),
-            z: 1000,
-            gui: ggegui::Gui::new(ctx),
-            dock_state: DockState::new(vec![]),
-        }
-
-        // Self {
-
-        //     entities: Vec::new(),
-        //     components: HashMap::new(),
-
-        //     tab_info: TabInfo::default(),
-
-        //     z: 0,
-        //     focused_entity: None,
-        //     focused_component: None,
-        //     component_modules: HashMap::new(),
-        //     debug_mode: false,
-        // }
-    }
-
-    fn switch_to_tab(&mut self, tab_id: egui::Id) {
-        let mut tab_index = None;
-
-        for (_, tab) in self.dock_state.iter_all_tabs() {
-            if tab.id == tab_id {
-                tab_index = self.dock_state.find_tab(tab);
-            }
-        }
-
-        if let None = tab_index {
-            log::error!("Tab {:?} could not be switched to", tab_id);
-            return;
-        };
-
-        self.dock_state.set_active_tab(tab_index.unwrap());
-    }
-}
-
-impl egui_dock::TabViewer for EditorGUI {
-    type Tab = EditorTabState;
-
-    fn title(&mut self, tab: &mut Self::Tab) -> egui::WidgetText {
-        todo!()
-    }
-
-    fn ui(&mut self, ui: &mut Ui, tab: &mut Self::Tab) {
-        // if let Some(focused_entity) = self.focused_entity.clone() {
-        //     let mut v: Vec<std::any::TypeId> = Vec::new();
-        //     for (entity, read) in self
-        //         .world_mut()
-        //         .query::<(Entity, &dyn crate::scene::TestSuperTrait)>()
-        //         .iter(self.world_mut())
-        //     {
-        //         if !(entity == focused_entity.0) {
-        //             continue;
-        //         }
-
-        //         v = read
-        //             .iter()
-        //             .map(|component| component.as_reflect().type_id())
-        //             .collect();
-        //     }
-
-        //     let v = v
-        //         .iter()
-        //         .map(|component| self.world_mut().components().get_id(*component).unwrap())
-        //         .collect();
-
-        //     self.components.insert(focused_entity.0, v);
-        // }
-
-        if let Some(response) = tab.state.ui(self, ui) {
-            match response {
-                TabResponse::SwitchToTab(tab_id) => self.switch_to_tab(tab_id),
-                TabResponse::RemoveComponent(_, _) => todo!(),
-            }
-        }
     }
 }

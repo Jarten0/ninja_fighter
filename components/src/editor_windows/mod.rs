@@ -2,6 +2,8 @@ use bevy_ecs::entity::Entity;
 use engine::scene::{ObjectID, SceneData};
 use engine::space::Vertex;
 use engine::GgezInterface;
+use ggez::graphics::{self, DrawParam, Drawable};
+use log::trace;
 
 use crate::collider::mesh_renderer::MeshOverride;
 use crate::collider::{Collider, ConvexMesh, MeshType};
@@ -10,6 +12,7 @@ use crate::collider::{Collider, ConvexMesh, MeshType};
 pub struct MeshEditorTab {
     focus_state: MeshEditorFocusState,
     entity_list: Option<Vec<Entity>>,
+    vertex_mesh: Option<graphics::Mesh>,
 }
 
 #[derive(Debug, Clone)]
@@ -53,6 +56,32 @@ impl engine::editor::EditorTab for MeshEditorTab {
         window_state: &mut engine::editor::WindowState,
         ui: &mut egui::Ui,
     ) -> Option<engine::editor::TabResponse> {
+        if self.vertex_mesh.is_none() {
+            self.vertex_mesh = Some({
+                // the mesh builder for the vertex renderer
+                let mut mesh_builder = graphics::MeshBuilder::new();
+                mesh_builder
+                    .rectangle(
+                        graphics::DrawMode::stroke(10.0),
+                        graphics::Rect {
+                            x: 0.0,
+                            y: 0.0,
+                            w: 20.0,
+                            h: 20.0,
+                        },
+                        graphics::Color::RED,
+                    )
+                    .unwrap();
+                graphics::Mesh::from_data(
+                    window_state
+                        .world_ref()
+                        .resource::<GgezInterface>()
+                        .get_context(),
+                    mesh_builder.build(),
+                )
+            })
+        };
+
         match &mut self.focus_state {
             MeshEditorFocusState::None { entity_list } => {
                 ui.label("No focused entity");
@@ -129,9 +158,9 @@ impl engine::editor::EditorTab for MeshEditorTab {
                     if ui.button("Add convex mesh").clicked() {
                         let mesh = ConvexMesh::new(vec![
                             (0.0, 0.0),
-                            (20.0, 0.0),
-                            (20.0, 20.0),
-                            (0.0, 20.0),
+                            (200.0, 0.0),
+                            (200.0, 200.0),
+                            (0.0, 200.0),
                         ]);
                         collider.meshes.insert(mesh.mesh_id, MeshType::Convex(mesh));
                     }
@@ -159,7 +188,12 @@ impl engine::editor::EditorTab for MeshEditorTab {
                 ));
 
                 match mesh {
-                    MeshType::Convex(mesh) => for vertex in &mut mesh.vertices {},
+                    MeshType::Convex(mesh) => {
+                        for vertex in &mut mesh.vertices {
+                            ui.add(egui::DragValue::new(&mut vertex.x));
+                            ui.add(egui::DragValue::new(&mut vertex.y));
+                        }
+                    }
                 }
 
                 ui.label("Missing implementation of mesh editor");
@@ -169,5 +203,51 @@ impl engine::editor::EditorTab for MeshEditorTab {
         None
     }
 
-    fn draw(&self, canvas: &mut ggez::graphics::Canvas) {}
+    fn draw(&self, window_state: &engine::editor::WindowState, engine: &mut GgezInterface) {
+        let MeshEditorFocusState::Mesh {
+            entity,
+            entity_name,
+            mesh_id,
+        } = &self.focus_state
+        else {
+            return;
+        };
+
+        trace!("am drawing");
+        let Some(collider) = window_state.world_ref().get::<Collider>(*entity) else {
+            return;
+        };
+        trace!("found collider");
+
+        let mesh = collider.meshes.get(mesh_id).unwrap();
+
+        #[allow(irrefutable_let_patterns)]
+        // this exists so that refactors with different mesh types don't break it.
+        if let MeshType::Convex(mesh) = mesh {
+            graphics::Mesh::from_data(
+                &engine.get_context().gfx,
+                graphics::MeshBuilder::new()
+                    .polygon(
+                        graphics::DrawMode::stroke(5.0),
+                        &mesh
+                            .vertices
+                            .iter()
+                            .map(|vertex: &Vertex| (*vertex).into())
+                            .collect::<Vec<mint::Point2<f32>>>(),
+                        graphics::Color::RED,
+                    )
+                    .unwrap()
+                    .build(),
+            )
+            .draw(engine.get_canvas_mut().unwrap(), DrawParam::default());
+            for vertex in &mesh.vertices {
+                self.vertex_mesh.as_ref().inspect(|vertex_mesh| {
+                    engine.get_canvas_mut().unwrap().draw(
+                        *vertex_mesh,
+                        DrawParam::default().dest(mint::Point2::from([vertex.x, vertex.y])),
+                    )
+                });
+            }
+        }
+    }
 }

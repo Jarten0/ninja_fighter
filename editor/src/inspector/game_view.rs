@@ -1,7 +1,8 @@
 use std::any::{Any, TypeId};
+use std::ops::{Deref, DerefMut};
 
 use bevy_ecs::system::{Res, ResMut};
-use bevy_ecs::world::Mut;
+use bevy_ecs::world::{Mut, World};
 use bevy_reflect::TypePath;
 use engine::schedule::ScheduleTag;
 use engine::GgezInterface;
@@ -117,10 +118,10 @@ impl super::EditorTab for GameView {
         None
     }
 
-    fn draw(&self, canvas: &mut graphics::Canvas) {
+    fn draw(&self, window_state: &WindowState, engine: &mut GgezInterface) {
         if let Some(image) = &self.current_image {
             trace!("aha");
-            canvas.draw(
+            engine.get_canvas_mut().unwrap().draw(
                 image,
                 DrawParam::default().z(150000).color(graphics::Color {
                     r: 1.0,
@@ -144,14 +145,17 @@ impl super::EditorTab for GameView {
 /// What should not be drawn in the game view:
 /// * Any of the editor GUI
 /// * The game view window
-pub fn draw_game_view(editor_gui: Res<EditorGUI>, mut engine: ResMut<GgezInterface>) {
-    for ((surface, node), game_view_tab) in editor_gui.dock_state.iter_all_tabs() {
-        if game_view_tab.state.display_name().as_str() != "Game View" {
-            continue;
-        };
-
-        let canvas = engine.get_canvas_mut().unwrap();
-
-        game_view_tab.state.draw(canvas);
-    }
+pub fn draw_editor_views(world: &mut World) {
+    unsafe { engine::editor::set_world_raw_pointer(Some(world)) };
+    world.resource_scope(|world: &mut World, editor_gui: Mut<EditorGUI>| {
+        world.resource_scope(|world: &mut World, mut engine: Mut<GgezInterface>| {
+            let editor_gui = editor_gui.deref();
+            for ((surface, node), game_view_tab) in editor_gui.dock_state.iter_all_tabs() {
+                game_view_tab
+                    .state
+                    .draw(&editor_gui.window_state, engine.deref_mut());
+            }
+        });
+    });
+    unsafe { engine::editor::set_world_raw_pointer(None) };
 }

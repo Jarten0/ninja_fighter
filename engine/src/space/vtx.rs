@@ -68,6 +68,15 @@ impl Into<DrawVertex> for Vertex {
     }
 }
 
+impl Into<mint::Point2<f32>> for Vertex {
+    fn into(self) -> mint::Point2<f32> {
+        mint::Point2 {
+            x: self.x,
+            y: self.y,
+        }
+    }
+}
+
 impl From<DrawVertex> for Vertex {
     fn from(value: DrawVertex) -> Self {
         Self(Vector2 {

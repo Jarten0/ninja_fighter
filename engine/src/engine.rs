@@ -116,9 +116,11 @@ impl GgezInterface {
                 true => {
                     panic!("`MainCanvas.context_ptr` is null! `context_ptr` should never be null!")
                 }
-                false => return self.context_ptr.as_mut().expect(
-                    "`MainCanvas.context_ptr` is invalid! Something fundamental has gone wrong!",
-                ),
+                false => {
+                    return self.context_ptr.as_mut().expect(
+                                    "`MainCanvas.context_ptr` is invalid! Something fundamental has gone wrong!",
+                                );
+                }
             }
         }
     }

@@ -4,6 +4,7 @@ use self::inspector_view::InspectorTab;
 use bevy_ecs::component::ComponentId;
 use bevy_ecs::prelude::*;
 use bevy_reflect::{reflect_trait, Reflect, TypeRegistry};
+use bevy_utils::tracing::trace;
 use egui::{Pos2, Ui};
 use egui_dock::{DockArea, DockState, Style, SurfaceIndex};
 use engine::editor::*;
@@ -22,6 +23,8 @@ pub mod game_view;
 pub mod inspector_view;
 pub mod scene_window;
 
+type TabResponseTuple = (TabResponse, String, egui::Id);
+
 /// Container for all of the state relating to the [`egui`] GUI.
 #[derive(Resource)]
 pub struct EditorGUI
@@ -32,119 +35,22 @@ where
 {
     gui: ggegui::Gui,
     dock_state: egui_dock::DockState<EditorTabState>,
-
-    pub entities: Vec<Entity>,
-    pub components: HashMap<Entity, Vec<ComponentId>>,
-
-    pub tab_info: TabInfo,
-    pub z: ggez::graphics::ZIndex,
-
-    /// (`ID`, `Name`)
-    ///
-    /// `String` = scene name
-    pub focused_entity: Option<(Entity, String)>,
-    pub focused_component: Option<ComponentId>,
-    pub component_modules: HashMap<String, Vec<((String, String), bevy_reflect::TypeRegistration)>>,
-
-    pub debug_mode: bool,
+    window_state: WindowState,
 }
 
 impl EditorGUI {
     pub(crate) fn new(ctx: &mut ggez::Context, world: &mut World) -> Self {
-        let mut entities = Vec::new();
-        let mut components = HashMap::new();
-
-        for (entity, scene_data) in world
-            .query::<(Entity, &crate::scene::SceneData)>()
-            .iter(&world)
-        {
-            entities.push(entity);
-        }
-
-        for (entity, dyn_components) in world
-            .query::<(Entity, &dyn crate::scene::TestSuperTrait)>()
-            .iter(&world)
-        {
-            components.insert(
-                entity,
-                dyn_components
-                    .iter()
-                    .map(|component| {
-                        world
-                            .components()
-                            .get_id(component.as_reflect().type_id())
-                            .unwrap()
-                    })
-                    .collect::<Vec<ComponentId>>(),
-            );
-        }
-
-        let types = world
-            .resource::<SceneManager>()
-            .type_registry
-            .iter()
-            .filter(|i| i.data::<crate::scene::ReflectTestSuperTrait>().is_some());
-
-        let mut modules: HashMap<String, Vec<((String, String), bevy_reflect::TypeRegistration)>> =
-            HashMap::new();
-
-        for type_ in types {
-            let full_path = type_.type_info().type_path().to_string();
-
-            if let Some(index) = full_path.find("::") {
-                let split = (
-                    full_path.split_at(index).0.to_owned(), // the module name
-                    full_path
-                        .split_at(index)
-                        .1
-                        .strip_prefix("::")
-                        .unwrap()
-                        .to_owned(), // the other part of the component path, including the name
-                );
-
-                if (&modules.get_mut(&split.0)).is_some() {
-                    modules
-                        .get_mut(&split.0)
-                        .unwrap()
-                        .push(((full_path, split.1), type_.clone()));
-                } else {
-                    modules.insert(split.0, vec![((full_path, split.1), type_.clone())]);
-                };
-            }
-        }
-
         Self {
-            entities,
-            components,
-
-            focused_entity: None,
-            focused_component: None,
-            component_modules: modules,
-
-            debug_mode: false,
-            tab_info: TabInfo::default(),
-            z: 1000,
             gui: ggegui::Gui::new(ctx),
             dock_state: DockState::new(vec![]),
+            window_state: WindowState::new(world),
         }
-
-        // Self {
-
-        //     entities: Vec::new(),
-        //     components: HashMap::new(),
-
-        //     tab_info: TabInfo::default(),
-
-        //     z: 0,
-        //     focused_entity: None,
-        //     focused_component: None,
-        //     component_modules: HashMap::new(),
-        //     debug_mode: false,
-        // }
     }
 
     fn switch_to_tab(&mut self, tab_id: egui::Id) {
         let mut tab_index = None;
+
+        log::trace!("Switching to {:?}", tab_id);
 
         for (_, tab) in self.dock_state.iter_all_tabs() {
             if tab.id == tab_id {
@@ -152,54 +58,14 @@ impl EditorGUI {
             }
         }
 
-        if let None = tab_index {
+        let Some(tab_index) = tab_index else {
             log::error!("Tab {:?} could not be switched to", tab_id);
             return;
         };
 
-        self.dock_state.set_active_tab(tab_index.unwrap());
-    }
-}
-
-impl egui_dock::TabViewer for EditorGUI {
-    type Tab = EditorTabState;
-
-    fn title(&mut self, tab: &mut Self::Tab) -> egui::WidgetText {
-        todo!()
-    }
-
-    fn ui(&mut self, ui: &mut Ui, tab: &mut Self::Tab) {
-        // if let Some(focused_entity) = self.focused_entity.clone() {
-        //     let mut v: Vec<std::any::TypeId> = Vec::new();
-        //     for (entity, read) in self
-        //         .world_mut()
-        //         .query::<(Entity, &dyn crate::scene::TestSuperTrait)>()
-        //         .iter(self.world_mut())
-        //     {
-        //         if !(entity == focused_entity.0) {
-        //             continue;
-        //         }
-
-        //         v = read
-        //             .iter()
-        //             .map(|component| component.as_reflect().type_id())
-        //             .collect();
-        //     }
-
-        //     let v = v
-        //         .iter()
-        //         .map(|component| self.world_mut().components().get_id(*component).unwrap())
-        //         .collect();
-
-        //     self.components.insert(focused_entity.0, v);
-        // }
-
-        if let Some(response) = tab.state.ui(self, ui) {
-            match response {
-                TabResponse::SwitchToTab(tab_id) => self.switch_to_tab(tab_id),
-                TabResponse::RemoveComponent(_, _) => todo!(),
-            }
-        }
+        self.dock_state
+            .set_focused_node_and_surface((tab_index.0, tab_index.1));
+        self.dock_state.set_active_tab(tab_index);
     }
 }
 
@@ -232,9 +98,9 @@ pub fn update_windows<'a>(world: &mut World) {
                 egui::menu::menu_button(ui, "File", |ui| file_managment_ui(ui));
                 egui::menu::menu_button(ui, "Window", |ui| window_managment_ui(ui, &mut editor_ui));
 
-                ui.checkbox(&mut editor_ui.window.debug_mode, "Debug mode");
+                ui.checkbox(&mut editor_ui.window_state.debug_mode, "Debug mode");
 
-                ui.add(egui::DragValue::new(&mut editor_ui.window.z));
+                ui.add(egui::DragValue::new(&mut editor_ui.window_state.z));
             });
         });
 
@@ -245,7 +111,21 @@ pub fn update_windows<'a>(world: &mut World) {
 
         DockArea::new(&mut deref_mut.dock_state)
             .window_bounds(ctx.screen_rect())
-            .show(&ctx, &mut deref_mut.window);
+            .show(&ctx, &mut deref_mut.window_state);
+
+        for response in editor_ui
+            .window_state
+            .tab_responses
+            .drain(..)
+            .collect::<Vec<TabResponseTuple>>()
+            .into_iter()
+        {
+            trace!("{} tabResponse: {:?}", response.1, response);
+            match response.0 {
+                TabResponse::SwitchToTab(tab_id) => editor_ui.switch_to_tab(tab_id),
+                TabResponse::RemoveComponent(_, _) => todo!(),
+            }
+        }
 
         ggegui::Gui::update(
             &mut editor_ui.gui,
@@ -285,7 +165,7 @@ fn add_tab_label_ui<T: EditorTab>(label_ui: &mut Ui, editor_resource: &mut Mut<E
         editor_resource.dock_state.add_window(vec![tab]);
 
         editor_resource
-            .window
+            .window_state
             .tab_info
             .tab_focused(T::name().to_owned(), tab_id);
 
@@ -296,6 +176,8 @@ fn add_tab_label_ui<T: EditorTab>(label_ui: &mut Ui, editor_resource: &mut Mut<E
 pub fn draw_editor_gui(editor: Res<EditorGUI>, mut engine: ResMut<GgezInterface>) {
     engine.get_canvas_mut().unwrap().draw(
         &editor.gui,
-        DrawParam::default().dest([0.0, 0.0]).z(editor.window.z),
+        DrawParam::default()
+            .dest([0.0, 0.0])
+            .z(editor.window_state.z),
     );
 }
