@@ -12,8 +12,10 @@ use bevy_ecs::prelude::*;
 use bevy_reflect::{FromType, Reflect};
 use egui::{Ui, Widget};
 use egui_dock::SurfaceIndex;
+use ggez::graphics;
 use std::any::Any;
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::ops::{Deref, DerefMut};
 
 /// A simple supertrait for `egui::Widget` that requires the type to implement `Sync` and `Send` (also `Debug`)
@@ -126,7 +128,7 @@ where
 
 #[derive(Debug)]
 pub enum TabResponse {
-    SwitchToTab(String),
+    SwitchToTab(egui::Id),
     RemoveComponent(Entity, ComponentId),
 }
 
@@ -188,6 +190,8 @@ where
     pub entities: Vec<Entity>,
     pub components: HashMap<Entity, Vec<ComponentId>>,
     pub current_response: Option<TabResponse>,
+    pub tab_info: TabInfo,
+    pub z: graphics::ZIndex,
 
     /// (`ID`, `Name`)
     ///
@@ -288,6 +292,8 @@ impl WindowState {
             component_modules: modules,
 
             debug_mode: false,
+            tab_info: TabInfo::default(),
+            z: 1000,
         }
     }
 }
@@ -363,7 +369,7 @@ where
     /// The name of the tab. This is not used for identification, but rather just displaying.
     pub name: String,
     /// The unique ID of the tab, used to differentiate it from others.
-    id: egui::Id,
+    pub id: egui::Id,
 }
 
 impl PartialEq for EditorTabState {
@@ -385,5 +391,242 @@ impl IDCounter for TabID {
 impl Into<egui::Id> for TabID {
     fn into(self) -> egui::Id {
         egui::Id::new(self.0)
+    }
+}
+
+/// A lightweight resource for retrieving the [`egui::Id`]'s of tabs based on their type without having to manually bother the main dock state yourself.
+///
+/// Completely type erased functions are coming later.
+#[derive(Debug, Default, Resource)]
+pub struct TabInfo {
+    pub tab_ids: HashSet<egui::Id>,
+    /// Stores one [`egui::Id`] of each type of tab, based on whichever one has been focused most recently.
+    pub recent_tabs: HashMap<String, egui::Id>,
+    pub tab_types: HashMap<egui::Id, String>,
+}
+
+impl TabInfo {
+    /// Gets the [`egui::Id`] for a tab via its type.
+    ///
+    /// If multiple exist, the id of the most recently focused tab is returned.
+    ///
+    /// If no tabs of this type exist, returns [`None`].
+    pub fn get_tab<T: EditorTab>(&self) -> Option<egui::Id> {
+        self.recent_tabs.get(T::name()).copied()
+    }
+
+    /// Returns a [`Vec`] of [`egui::Id`]'s that are of the given type, returning an empty [`Vec`] if none exist.
+    pub fn get_tabs<T: EditorTab>(&self) -> Vec<egui::Id> {
+        let name = T::name();
+        let mut vec = vec![];
+        for tab_id in &self.tab_ids {
+            let Some(tab_type) = self.tab_types.get(tab_id) else {
+                log::error!(
+                    "Tab {:?} doesn't have an associated type! (Was it closed?)",
+                    tab_id
+                );
+                continue;
+            };
+
+            if tab_type == name {
+                vec.push(*tab_id);
+            }
+        }
+        vec
+    }
+
+    /// Updates state if the tab is focused
+    pub fn tab_focused(&mut self, tab_name: String, tab_id: egui::Id) {
+        self.tab_ids.insert(tab_id);
+        self.recent_tabs.insert(tab_name.clone(), tab_id); // overwrites whatever tab is of the same type, and has not been focused.
+        self.tab_types.insert(tab_id, tab_name);
+    }
+
+    /// Removes the given tab. Returns `true` if removed successfully, re
+    pub fn remove_tab(&mut self, tab_name: &str, tab_id: egui::Id) -> bool {
+        self.tab_ids.remove(&tab_id)
+            | self.recent_tabs.remove(tab_name).is_some()
+            | self.tab_types.remove(&tab_id).is_some()
+    }
+}
+
+/// Container for all of the state relating to the [`egui`] GUI.
+#[derive(Resource)]
+pub struct EditorGUI
+where
+    Self: 'static,
+    Self: Send,
+    Self: Sync,
+{
+    gui: ggegui::Gui,
+    dock_state: egui_dock::DockState<EditorTabState>,
+
+    pub entities: Vec<Entity>,
+    pub components: HashMap<Entity, Vec<ComponentId>>,
+
+    pub tab_info: TabInfo,
+    pub z: ggez::graphics::ZIndex,
+
+    /// (`ID`, `Name`)
+    ///
+    /// `String` = scene name
+    pub focused_entity: Option<(Entity, String)>,
+    pub focused_component: Option<ComponentId>,
+    pub component_modules: HashMap<String, Vec<((String, String), bevy_reflect::TypeRegistration)>>,
+
+    pub debug_mode: bool,
+}
+
+impl EditorGUI {
+    pub(crate) fn new(ctx: &mut ggez::Context, world: &mut World) -> Self {
+        let mut entities = Vec::new();
+        let mut components = HashMap::new();
+
+        for (entity, scene_data) in world
+            .query::<(Entity, &crate::scene::SceneData)>()
+            .iter(&world)
+        {
+            entities.push(entity);
+        }
+
+        for (entity, dyn_components) in world
+            .query::<(Entity, &dyn crate::scene::TestSuperTrait)>()
+            .iter(&world)
+        {
+            components.insert(
+                entity,
+                dyn_components
+                    .iter()
+                    .map(|component| {
+                        world
+                            .components()
+                            .get_id(component.as_reflect().type_id())
+                            .unwrap()
+                    })
+                    .collect::<Vec<ComponentId>>(),
+            );
+        }
+
+        let types = world
+            .resource::<SceneManager>()
+            .type_registry
+            .iter()
+            .filter(|i| i.data::<crate::scene::ReflectTestSuperTrait>().is_some());
+
+        let mut modules: HashMap<String, Vec<((String, String), bevy_reflect::TypeRegistration)>> =
+            HashMap::new();
+
+        for type_ in types {
+            let full_path = type_.type_info().type_path().to_string();
+
+            if let Some(index) = full_path.find("::") {
+                let split = (
+                    full_path.split_at(index).0.to_owned(), // the module name
+                    full_path
+                        .split_at(index)
+                        .1
+                        .strip_prefix("::")
+                        .unwrap()
+                        .to_owned(), // the other part of the component path, including the name
+                );
+
+                if (&modules.get_mut(&split.0)).is_some() {
+                    modules
+                        .get_mut(&split.0)
+                        .unwrap()
+                        .push(((full_path, split.1), type_.clone()));
+                } else {
+                    modules.insert(split.0, vec![((full_path, split.1), type_.clone())]);
+                };
+            }
+        }
+
+        Self {
+            entities,
+            components,
+
+            focused_entity: None,
+            focused_component: None,
+            component_modules: modules,
+
+            debug_mode: false,
+            tab_info: TabInfo::default(),
+            z: 1000,
+            gui: ggegui::Gui::new(ctx),
+            dock_state: DockState::new(vec![]),
+        }
+
+        // Self {
+
+        //     entities: Vec::new(),
+        //     components: HashMap::new(),
+
+        //     tab_info: TabInfo::default(),
+
+        //     z: 0,
+        //     focused_entity: None,
+        //     focused_component: None,
+        //     component_modules: HashMap::new(),
+        //     debug_mode: false,
+        // }
+    }
+
+    fn switch_to_tab(&mut self, tab_id: egui::Id) {
+        let mut tab_index = None;
+
+        for (_, tab) in self.dock_state.iter_all_tabs() {
+            if tab.id == tab_id {
+                tab_index = self.dock_state.find_tab(tab);
+            }
+        }
+
+        if let None = tab_index {
+            log::error!("Tab {:?} could not be switched to", tab_id);
+            return;
+        };
+
+        self.dock_state.set_active_tab(tab_index.unwrap());
+    }
+}
+
+impl egui_dock::TabViewer for EditorGUI {
+    type Tab = EditorTabState;
+
+    fn title(&mut self, tab: &mut Self::Tab) -> egui::WidgetText {
+        todo!()
+    }
+
+    fn ui(&mut self, ui: &mut Ui, tab: &mut Self::Tab) {
+        // if let Some(focused_entity) = self.focused_entity.clone() {
+        //     let mut v: Vec<std::any::TypeId> = Vec::new();
+        //     for (entity, read) in self
+        //         .world_mut()
+        //         .query::<(Entity, &dyn crate::scene::TestSuperTrait)>()
+        //         .iter(self.world_mut())
+        //     {
+        //         if !(entity == focused_entity.0) {
+        //             continue;
+        //         }
+
+        //         v = read
+        //             .iter()
+        //             .map(|component| component.as_reflect().type_id())
+        //             .collect();
+        //     }
+
+        //     let v = v
+        //         .iter()
+        //         .map(|component| self.world_mut().components().get_id(*component).unwrap())
+        //         .collect();
+
+        //     self.components.insert(focused_entity.0, v);
+        // }
+
+        if let Some(response) = tab.state.ui(self, ui) {
+            match response {
+                TabResponse::SwitchToTab(tab_id) => self.switch_to_tab(tab_id),
+                TabResponse::RemoveComponent(_, _) => todo!(),
+            }
+        }
     }
 }

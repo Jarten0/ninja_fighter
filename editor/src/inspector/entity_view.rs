@@ -1,3 +1,5 @@
+use crate::inspector::inspector_view::InspectorTab;
+
 use super::EditorTab;
 use super::TabResponse;
 use super::WindowState;
@@ -52,7 +54,13 @@ impl EditorTab for EntityHeirarchyTab {
             if response.clicked() {
                 trace!("Clicked on entity [{}]", name);
                 window_state.focused_entity = Some((entity, name.to_owned()));
-                return Some(TabResponse::SwitchToTab("Inspector".to_owned()));
+
+                let Some(get_tab) = window_state.tab_info.get_tab::<InspectorTab>() else {
+                    log::info!("Inspector tab not found!");
+                    continue;
+                };
+
+                return Some(TabResponse::SwitchToTab(get_tab));
             }
 
             response.context_menu(|ui: &mut egui::Ui| {

@@ -12,7 +12,7 @@ use engine::scene::{ReflectTestSuperTrait, SceneData, SceneManager, TestSuperTra
 use engine::{GgezInterface, Input};
 use ggez::graphics::{Canvas, DrawParam};
 use std::any::{Any, TypeId};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt::Debug;
 use std::ops::DerefMut;
 
@@ -32,58 +32,174 @@ where
 {
     gui: ggegui::Gui,
     dock_state: egui_dock::DockState<EditorTabState>,
-    current_response: Option<TabResponse>,
-    window: WindowState,
-    /// These aren't displayed or updated, but will be used to clone and instantiate new windows
-    registered_window_types: Vec<Box<dyn EditorTab>>,
+
+    pub entities: Vec<Entity>,
+    pub components: HashMap<Entity, Vec<ComponentId>>,
+
+    pub tab_info: TabInfo,
+    pub z: ggez::graphics::ZIndex,
+
+    /// (`ID`, `Name`)
+    ///
+    /// `String` = scene name
+    pub focused_entity: Option<(Entity, String)>,
+    pub focused_component: Option<ComponentId>,
+    pub component_modules: HashMap<String, Vec<((String, String), bevy_reflect::TypeRegistration)>>,
+
+    pub debug_mode: bool,
 }
 
 impl EditorGUI {
     pub(crate) fn new(ctx: &mut ggez::Context, world: &mut World) -> Self {
-        Self {
-            gui: ggegui::Gui::new(ctx),
-            dock_state: DockState::new(vec![EntityHeirarchyTab::create_tab()]),
-            current_response: None,
-            window: WindowState::new(world),
-            registered_window_types: Vec::new(),
+        let mut entities = Vec::new();
+        let mut components = HashMap::new();
+
+        for (entity, scene_data) in world
+            .query::<(Entity, &crate::scene::SceneData)>()
+            .iter(&world)
+        {
+            entities.push(entity);
         }
-    }
 
-    pub fn register_window<T: EditorTab>(&mut self) {
-        self.registered_window_types.push(T::default_boxed());
-    }
+        for (entity, dyn_components) in world
+            .query::<(Entity, &dyn crate::scene::TestSuperTrait)>()
+            .iter(&world)
+        {
+            components.insert(
+                entity,
+                dyn_components
+                    .iter()
+                    .map(|component| {
+                        world
+                            .components()
+                            .get_id(component.as_reflect().type_id())
+                            .unwrap()
+                    })
+                    .collect::<Vec<ComponentId>>(),
+            );
+        }
 
-    fn inspector_dock_ui<'a>(&mut self, ui: &mut Ui, world: &'a mut World) {
-        DockArea::new(&mut self.dock_state)
-            .style(Style::from_egui(ui.style().as_ref()))
-            .show_inside(ui, &mut self.window);
+        let types = world
+            .resource::<SceneManager>()
+            .type_registry
+            .iter()
+            .filter(|i| i.data::<crate::scene::ReflectTestSuperTrait>().is_some());
 
-        if let Some(response) = &self.current_response {
-            match response {
-                TabResponse::SwitchToTab(new_tab) => {
-                    todo!()
-                    // let node = self
-                    //     .dock_state
-                    //     .get_surface(SurfaceIndex::main())
-                    //     .unwrap()
-                    //     .node_tree()
-                    //     .unwrap()
-                    //     .find_tab(&new_tab)
-                    //     .unwrap();
+        let mut modules: HashMap<String, Vec<((String, String), bevy_reflect::TypeRegistration)>> =
+            HashMap::new();
 
-                    // self.dock_state
-                    //     .set_active_tab((SurfaceIndex::main(), node.0, node.1));
-                }
-                // TabResponse::RemoveComponent(entity, component_id) => {
-                //     world.
-                // }
-                #[allow(unreachable_patterns)]
-                // so that if there is a new tab response, I don't have to deal with this right away. Let it fail I say.
-                // TODO: Remove if this project gains significance lol
-                _ => unimplemented!(),
+        for type_ in types {
+            let full_path = type_.type_info().type_path().to_string();
+
+            if let Some(index) = full_path.find("::") {
+                let split = (
+                    full_path.split_at(index).0.to_owned(), // the module name
+                    full_path
+                        .split_at(index)
+                        .1
+                        .strip_prefix("::")
+                        .unwrap()
+                        .to_owned(), // the other part of the component path, including the name
+                );
+
+                if (&modules.get_mut(&split.0)).is_some() {
+                    modules
+                        .get_mut(&split.0)
+                        .unwrap()
+                        .push(((full_path, split.1), type_.clone()));
+                } else {
+                    modules.insert(split.0, vec![((full_path, split.1), type_.clone())]);
+                };
             }
         }
-        self.current_response = self.window.current_response.take();
+
+        Self {
+            entities,
+            components,
+
+            focused_entity: None,
+            focused_component: None,
+            component_modules: modules,
+
+            debug_mode: false,
+            tab_info: TabInfo::default(),
+            z: 1000,
+            gui: ggegui::Gui::new(ctx),
+            dock_state: DockState::new(vec![]),
+        }
+
+        // Self {
+
+        //     entities: Vec::new(),
+        //     components: HashMap::new(),
+
+        //     tab_info: TabInfo::default(),
+
+        //     z: 0,
+        //     focused_entity: None,
+        //     focused_component: None,
+        //     component_modules: HashMap::new(),
+        //     debug_mode: false,
+        // }
+    }
+
+    fn switch_to_tab(&mut self, tab_id: egui::Id) {
+        let mut tab_index = None;
+
+        for (_, tab) in self.dock_state.iter_all_tabs() {
+            if tab.id == tab_id {
+                tab_index = self.dock_state.find_tab(tab);
+            }
+        }
+
+        if let None = tab_index {
+            log::error!("Tab {:?} could not be switched to", tab_id);
+            return;
+        };
+
+        self.dock_state.set_active_tab(tab_index.unwrap());
+    }
+}
+
+impl egui_dock::TabViewer for EditorGUI {
+    type Tab = EditorTabState;
+
+    fn title(&mut self, tab: &mut Self::Tab) -> egui::WidgetText {
+        todo!()
+    }
+
+    fn ui(&mut self, ui: &mut Ui, tab: &mut Self::Tab) {
+        // if let Some(focused_entity) = self.focused_entity.clone() {
+        //     let mut v: Vec<std::any::TypeId> = Vec::new();
+        //     for (entity, read) in self
+        //         .world_mut()
+        //         .query::<(Entity, &dyn crate::scene::TestSuperTrait)>()
+        //         .iter(self.world_mut())
+        //     {
+        //         if !(entity == focused_entity.0) {
+        //             continue;
+        //         }
+
+        //         v = read
+        //             .iter()
+        //             .map(|component| component.as_reflect().type_id())
+        //             .collect();
+        //     }
+
+        //     let v = v
+        //         .iter()
+        //         .map(|component| self.world_mut().components().get_id(*component).unwrap())
+        //         .collect();
+
+        //     self.components.insert(focused_entity.0, v);
+        // }
+
+        if let Some(response) = tab.state.ui(self, ui) {
+            match response {
+                TabResponse::SwitchToTab(tab_id) => self.switch_to_tab(tab_id),
+                TabResponse::RemoveComponent(_, _) => todo!(),
+            }
+        }
     }
 }
 
@@ -117,6 +233,8 @@ pub fn update_windows<'a>(world: &mut World) {
                 egui::menu::menu_button(ui, "Window", |ui| window_managment_ui(ui, &mut editor_ui));
 
                 ui.checkbox(&mut editor_ui.window.debug_mode, "Debug mode");
+
+                ui.add(egui::DragValue::new(&mut editor_ui.window.z));
             });
         });
 
@@ -160,15 +278,24 @@ fn add_tab_label_ui<T: EditorTab>(label_ui: &mut Ui, editor_resource: &mut Mut<E
     let selectable_label = label_ui.button(T::name());
 
     if selectable_label.clicked() {
-        editor_resource.dock_state.add_window(vec![T::create_tab()]);
+        let tab = T::create_tab();
+
+        let tab_id = tab.id.clone();
+
+        editor_resource.dock_state.add_window(vec![tab]);
+
+        editor_resource
+            .window
+            .tab_info
+            .tab_focused(T::name().to_owned(), tab_id);
 
         label_ui.close_menu();
     }
 }
 
 pub fn draw_editor_gui(editor: Res<EditorGUI>, mut engine: ResMut<GgezInterface>) {
-    engine
-        .get_canvas_mut()
-        .unwrap()
-        .draw(&editor.gui, DrawParam::default().dest([0.0, 0.0]).z(1000));
+    engine.get_canvas_mut().unwrap().draw(
+        &editor.gui,
+        DrawParam::default().dest([0.0, 0.0]).z(editor.window.z),
+    );
 }
