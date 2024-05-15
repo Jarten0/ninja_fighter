@@ -2,7 +2,11 @@ use crate::scene::Counter;
 use crate::scene::IDCounter;
 use crate::scene::Scene;
 use bevy_ecs::system::Resource;
+use bevy_reflect::serde::ReflectSerializer;
 use bevy_reflect::Reflect;
+use bevy_reflect::ReflectSerialize;
+use bevy_reflect::TypeData;
+use bevy_reflect::TypeRegistry;
 use serde::Deserialize;
 use serde::Serialize;
 use std::collections::HashMap;
@@ -49,8 +53,7 @@ impl IDCounter for AssetID {
 /// Note that this is not the serialized form itself, instead it's really just metadata for assets about to be saved or initialized.
 ///
 /// This lives for at least as long as the asset itself does. It dies whenever control of the asset is handed back to the user.
-#[derive(Debug)]
-pub struct SerializableAsset<'asset, T> {
+pub struct SerializableAsset<'asset, 'registry, T> {
     /// Controls how the asset will be saved
     pub storage: AssetStorage,
     /// The name of the asset, which it or a hashed version is used to identify the asset.
@@ -59,15 +62,21 @@ pub struct SerializableAsset<'asset, T> {
     pub asset_data_type: Option<String>, //the module path of the asset data type
     /// The actual asset data itself that will be stored, without any type information here. (That's what `asset_data_type` is for!)
     pub asset_data: &'asset T,
+    /// The actual asset data itself that will be stored, without any type information here. (That's what `asset_data_type` is for!)
+    pub type_registry: &'registry TypeRegistry,
 }
 
-impl<'a> SerializableAsset<'a, Box<dyn Reflect>> {
-    pub fn from_reflect_asset(asset: &'a Asset<Box<dyn Reflect>>) -> Self {
+impl<'asset, 'registry> SerializableAsset<'asset, 'registry, Box<dyn Reflect>> {
+    pub fn from_reflect_asset(
+        asset: &'asset Asset<Box<dyn Reflect>>,
+        type_registry: &'registry TypeRegistry,
+    ) -> Self {
         Self {
             asset_name: String::new(),
             asset_data: &asset.asset_data,
             asset_data_type: Some(asset.asset_data.reflect_type_path().to_string()),
             storage: asset.storage.clone(),
+            type_registry,
         }
     }
 }
@@ -86,23 +95,29 @@ impl<'a> SerializableAsset<'a, Box<dyn Reflect>> {
 //     }
 // }
 
-impl<'asset> Serialize for SerializableAsset<'asset, Box<dyn Reflect>> {
+impl<'asset, 'registry> Serialize for SerializableAsset<'asset, 'registry, Box<dyn Reflect>> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
     {
         use serde::ser::SerializeStruct;
         let mut s = serializer.serialize_struct("SerializableAsset", 3)?;
-        match self.asset_data.serializable().unwrap() {
-            bevy_reflect::serde::Serializable::Owned(owned) => {
-                s.serialize_field("asset_data", &owned);
-            }
-            bevy_reflect::serde::Serializable::Borrowed(borrowed) => {
-                s.serialize_field("asset_data", borrowed);
-            }
-        }
-        s.serialize_field("asset_name", &self.asset_name);
-        s.serialize_field("asset_data_type", &self.asset_data_type);
+        let serialize_type_data = self
+            .type_registry
+            .get_type_data::<ReflectSerialize>(self.asset_data.type_id())
+            .ok_or(<S::Error as serde::ser::Error>::custom(
+                format!(
+                    "Could not find ReflectSerialize type data for asset {}",
+                    self.asset_name
+                )
+                .as_str(),
+            ))?;
+        let serializer = ReflectSerializer::new(self.asset_data.as_ref(), self.type_registry);
+
+        s.serialize_field("asset_data", serde_json::ser::tos)?;
+
+        s.serialize_field("asset_name", &self.asset_name)?;
+        s.serialize_field("asset_data_type", &self.asset_data_type)?;
         s.end()
     }
 }
@@ -124,7 +139,7 @@ pub type SerializedAsset = HashMap<&'static str, String>;
 pub struct SceneAssetID(pub(crate) usize);
 
 impl SceneAssetID {
-    pub(crate) fn get(asset_name: &str) -> Self {
+    pub fn get(asset_name: &str) -> Self {
         let mut hasher = std::hash::DefaultHasher::new();
         asset_name.hash(&mut hasher);
         SceneAssetID(hasher.finish().try_into().unwrap())

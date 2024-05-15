@@ -133,7 +133,7 @@ impl ToString for SomeError {
 pub fn register_scene_types(world: &mut bevy_ecs::world::World) {
     world.init_resource::<SceneManager>();
     world.resource_scope(|world, mut res: Mut<SceneManager>| {
-        let mut registry = &mut res.type_registry;
+        let mut type_registry = &mut res.type_registry;
 
         // #[cfg(features = "editor_features")]
         {
@@ -149,17 +149,18 @@ pub fn register_scene_types(world: &mut bevy_ecs::world::World) {
             // register_value::<u64>(registry);
             // register_value::<u128>(registry);
             // register_value::<isize>(registry);
-            register_primitive_value::<f32>(registry);
-            register_primitive_value::<f64>(registry);
-            register_primitive_value::<bool>(registry);
-            register_primitive_value::<String>(registry);
-            register_primitive_value::<space::Vector2>(registry);
+            register_primitive_value::<f32>(type_registry);
+            register_primitive_value::<f64>(type_registry);
+            register_primitive_value::<bool>(type_registry);
+            register_primitive_value::<String>(type_registry);
+            register_primitive_value::<space::Vector2>(type_registry);
         }
-        register_component::<space::Position>(world, registry);
-        register_component::<space::Rotation>(world, registry);
-        register_component::<space::Scale>(world, registry);
-        register_component::<space::TransformSettings>(world, registry);
-        register_component::<space::Velocity>(world, registry);
+        register_tuple_struct::<assets::SceneAssetID>(type_registry);
+        register_component::<space::Position>(world, type_registry);
+        register_component::<space::Rotation>(world, type_registry);
+        register_component::<space::Scale>(world, type_registry);
+        register_component::<space::TransformSettings>(world, type_registry);
+        register_component::<space::Velocity>(world, type_registry);
     });
 }
 
@@ -221,8 +222,8 @@ where
         + bevy_reflect::GetTypeRegistration
         + bevy_reflect::FromReflect
         + bevy_reflect::TypePath
-        + Default
-        + FromWorld
+        // + Default
+        // + FromWorld
         + serde::Serialize
         + for<'b> serde::Deserialize<'b>,
 {
@@ -231,7 +232,7 @@ where
         "Registered value type {:?}\n",
         type_registry.get_type_info(std::any::TypeId::of::<T>())
     );
-    type_registry.register_type_data::<T, ReflectFromWorld>();
+    // type_registry.register_type_data::<T, ReflectFromWorld>();
     type_registry.register_type_data::<T, ReflectSerialize>();
     type_registry.register_type_data::<T, ReflectDeserialize>();
 }

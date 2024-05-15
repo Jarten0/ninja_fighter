@@ -246,19 +246,20 @@ pub(super) fn draw_inspector(
 
                                     bundle.set_represented_type(Some(type_.type_info()));
 
-                                    log::trace!("Iterating over fields to ensure field types have type info stored");
-                                    for field in s.iter() {
-                                        let value =
-                                            res.type_registry.get_type_info(field.type_id());
+                                    // log::trace!("Iterating over fields to ensure field types have type info stored");
+                                    // for field in s.iter() {
+                                    //     let type_info =
+                                    //         res.type_registry.get_type_info(field.type_id());
 
-                                        if value.is_none() {
-                                            log::error!(
-                                                "{} has no obtainable type info in the registry!",
-                                                field.name()
-                                            );
-                                            return;
-                                        }
-                                    }
+                                    //     if type_info.is_none() {
+                                    //         log::error!(
+                                    //             "type {} has no obtainable type info in the registry! [Field: {}]",
+                                    //             field.type_path(),
+                                    //             field.name()
+                                    //         );
+                                    //         return;
+                                    //     }
+                                    // }
 
                                     // for field in bundle.iter_fields() {
                                     //     println!("{:#?}", field);

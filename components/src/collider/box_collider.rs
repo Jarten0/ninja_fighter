@@ -5,6 +5,7 @@ use crate::collider::mesh_renderer::MeshRenderer;
 use crate::collider::traits::SuperMesh;
 use crate::collider::{Collider, MeshType};
 use bevy_ecs::bundle::Bundle;
+use engine::scene::Scene;
 use engine::space;
 use engine::space::Vector2;
 use ggez::graphics;
@@ -18,7 +19,7 @@ pub struct BoxCollider {
 }
 
 impl BoxCollider {
-    pub fn new(scale: Vector2) -> Self {
+    pub fn new(scene: &mut Scene, scale: Vector2) -> Self {
         let bounds = graphics::Rect {
             x: 0.0,
             y: 0.0,
@@ -40,13 +41,7 @@ impl BoxCollider {
             }),
         ];
 
-        let mesh = ConvexMesh::new(vertices);
-
-        let mut meshes = HashMap::new();
-
-        meshes.insert(mesh.mesh_id, MeshType::Convex(mesh));
-
-        let collider = Collider::new(meshes);
+        let collider = Collider::new(scene, vec![MeshType::Convex(ConvexMesh::new(vertices))]);
 
         let mesh_renderer = MeshRenderer::new_with_param(graphics::DrawParam {
             src: bounds,

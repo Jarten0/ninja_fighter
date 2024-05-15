@@ -4,6 +4,7 @@ use bevy_ecs::prelude::*;
 use bevy_ecs::reflect::ReflectComponent;
 use bevy_reflect::Reflect;
 
+use engine::scene::Scene;
 use engine::space::{Position, Transform, TransformSettings, Velocity};
 use engine::GgezInterface;
 use engine::{space, Input};
@@ -111,7 +112,7 @@ fn is_moving(direction: WASD, input: &Input) -> bool {
 }
 
 impl ProtagBundle {
-    pub fn new(engine: &GgezInterface) -> Self {
+    pub fn new(engine: &GgezInterface, scene: &mut Scene) -> Self {
         let protag = Protag {};
 
         let transform = Transform {
@@ -142,7 +143,7 @@ impl ProtagBundle {
             space::Vector2::new(10.0, 0.0),
         );
 
-        let mut bundle = BoxCollider::new(space::ONE);
+        let mut bundle = BoxCollider::new(scene, space::ONE);
 
         bundle.renderer.draw_param = Some(DrawParam {
             src: Rect::default(),

@@ -27,13 +27,24 @@ use traits::SuperMesh;
 #[derive(Debug, Component, Default, Reflect)]
 #[reflect(FromWorld)]
 #[reflect(Component)]
-pub struct Collider {
+pub struct Collider
+where
+    Self: Sync + Send,
+{
     pub meshes: HashMap<SceneAssetID, MeshType>,
 }
 
 impl Collider {
-    pub fn new(meshes: HashMap<SceneAssetID, MeshType>) -> Self {
-        Self { meshes }
+    pub fn new(scene: &mut Scene, meshes: Vec<MeshType>) -> Self {
+        let mut collider = Self {
+            ..Default::default()
+        };
+
+        for mesh in meshes {
+            collider.initialize_mesh(scene, mesh);
+        }
+
+        collider
     }
 
     pub fn empty() -> Self {
@@ -55,11 +66,14 @@ impl Collider {
         let asset = scene.get_asset(&asset_scene_id).unwrap();
         let mesh = asset
             .asset_data
-            .downcast_mut::<MeshType>()
+            .downcast_ref::<MeshType>()
             .cloned()
             .unwrap();
 
-        self.meshes.insert(asset.asset_name, MeshType::Convex(mesh));
+        self.meshes.insert(
+            scene.get_scene_id_from_name(asset.asset_name.as_str()),
+            mesh,
+        );
     }
 
     /// Takes in mesh data, stores it as an asset and adds it to the collider
@@ -77,7 +91,10 @@ pub fn update(mut query: Query<(&mut Collider, &Position)>) {
 
 #[derive(Debug, Clone, Reflect, Serialize, Deserialize)]
 #[reflect(Serialize)]
-pub enum MeshType {
+pub enum MeshType
+where
+    Self: Send + Sync,
+{
     Convex(ConvexMesh),
 }
 

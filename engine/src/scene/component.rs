@@ -190,12 +190,13 @@ impl Scene {
     }
 
     /// Gets the serialization info for an asset for saving and loading data.
-    pub(crate) fn get_asset_with_serialize_info(
-        &mut self,
+    pub(crate) fn get_asset_with_serialize_info<'asset, 'registry>(
+        &'asset mut self, // the asset lives for as long as the scene does
+        type_registry: &'registry TypeRegistry,
         asset_id: SceneAssetID,
-    ) -> Option<SerializableAsset<Box<dyn Reflect>>> {
+    ) -> Option<SerializableAsset<'asset, 'registry, Box<dyn Reflect>>> {
         let asset = self.assets.get(&asset_id)?;
-        Some(SerializableAsset::from_reflect_asset(asset))
+        Some(SerializableAsset::from_reflect_asset(asset, type_registry))
     }
 
     pub(crate) fn initialize_asset(&mut self, asset_data: serde_json::Value) {
@@ -474,7 +475,7 @@ pub fn validate_name(names: &mut dyn Iterator<Item = &String>, name_to_check: &m
 /// Creates a [`SerializableScene`] using the scene's component data
 pub fn create_serializable_scene_data<'a>(
     world: &'a mut World,
-    registry: &TypeRegistry,
+    type_registry: &TypeRegistry,
     scene_entity: Entity,
 ) -> Result<serialized_scene::SerializedSceneData, SceneError> {
     let scene = world
@@ -516,7 +517,7 @@ pub fn create_serializable_scene_data<'a>(
             //     SceneError::NoSerializationImplementation(component_type_path.to_owned()),
             // )?;
 
-            if let Some(some) = registry
+            if let Some(some) = type_registry
                 .get_with_type_path(component_type_path)
                 .unwrap()
                 .data::<super::CustomSerializationData>()
@@ -532,7 +533,7 @@ pub fn create_serializable_scene_data<'a>(
                 continue;
             }
 
-            let serialized_values = match registry
+            let serialized_values = match type_registry
                 .get_type_info(reflected_component.type_id())
                 .unwrap()
             {
@@ -552,7 +553,7 @@ pub fn create_serializable_scene_data<'a>(
                     for field in s.iter() {
                         trace!("         - Serializing field {}", field.name());
                         let Some(type_data) =
-                            registry.get_type_data::<ReflectSerialize>(field.type_id())
+                            type_registry.get_type_data::<ReflectSerialize>(field.type_id())
                         else {
                             error!(
                                 "Could not find serialization type data for {}",
@@ -586,7 +587,7 @@ pub fn create_serializable_scene_data<'a>(
 
                     if ts.field_len() == 1 {
                         let field = ts.field_at(0).unwrap();
-                        let type_info = registry
+                        let type_info = type_registry
                             .get_type_data::<ReflectSerialize>(field.type_id())
                             .unwrap();
 
@@ -613,7 +614,7 @@ pub fn create_serializable_scene_data<'a>(
 
                             trace!("         - Serializing field {}", index);
                             let Some(type_data) =
-                                registry.get_type_data::<ReflectSerialize>(field.type_id())
+                                type_registry.get_type_data::<ReflectSerialize>(field.type_id())
                             else {
                                 error!(
                                     "Could not find serialzie type data for field at index {}",
@@ -689,8 +690,9 @@ pub fn create_serializable_scene_data<'a>(
         .ok_or(SceneError::NoSceneComponent)?;
 
     for (_, asset) in &scene.assets {
+        trace!("Serializing {}", &asset.asset_name);
         let name = asset.asset_name.clone();
-        let serializable = SerializableAsset::from_reflect_asset(asset);
+        let serializable = SerializableAsset::from_reflect_asset(asset, &type_registry); // type registry here is borrowed for as long as `seriailzable` exists
         let serialized = serde_json::to_value(serializable).unwrap();
         asset_data.insert(name, serialized);
     }

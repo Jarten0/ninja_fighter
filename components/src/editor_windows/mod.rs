@@ -1,5 +1,6 @@
 use bevy_ecs::entity::Entity;
-use engine::scene::{ObjectID, SceneData};
+use engine::assets::SceneAssetID;
+use engine::scene::{ObjectID, Scene, SceneData, SceneManager};
 use engine::space::Vertex;
 use engine::GgezInterface;
 use ggez::graphics::{self, DrawParam, Drawable};
@@ -23,11 +24,13 @@ enum MeshEditorFocusState {
     Entity {
         entity: Entity,
         entity_name: String,
+        creating_asset_name: String,
     },
     Mesh {
         entity: Entity,
         entity_name: String,
-        mesh_id: ObjectID,
+
+        mesh_id: SceneAssetID,
     },
 }
 
@@ -98,6 +101,7 @@ impl engine::editor::EditorTab for MeshEditorTab {
                             self.focus_state = MeshEditorFocusState::Entity {
                                 entity: *entity,
                                 entity_name: name.to_owned(),
+                                creating_asset_name: String::new(),
                             };
                             return None;
                         }
@@ -121,6 +125,7 @@ impl engine::editor::EditorTab for MeshEditorTab {
             MeshEditorFocusState::Entity {
                 entity,
                 entity_name,
+                creating_asset_name,
             } => {
                 let Ok(mut collider) = window_state
                     .world_mut()
@@ -139,7 +144,7 @@ impl engine::editor::EditorTab for MeshEditorTab {
                             if ui.button("Convex mesh").clicked() {
                                 self.focus_state = MeshEditorFocusState::Mesh {
                                     entity: *entity,
-                                    mesh_id: mesh.mesh_id,
+                                    mesh_id: *id,
                                     entity_name: entity_name.to_string(),
                                 };
                                 return None;
@@ -155,6 +160,7 @@ impl engine::editor::EditorTab for MeshEditorTab {
                     }
                 }
                 ui.menu_button("Add mesh", |ui| {
+                    ui.text_edit_singleline(creating_asset_name);
                     if ui.button("Add convex mesh").clicked() {
                         let mesh = ConvexMesh::new(vec![
                             (0.0, 0.0),
@@ -162,7 +168,40 @@ impl engine::editor::EditorTab for MeshEditorTab {
                             (200.0, 200.0),
                             (0.0, 200.0),
                         ]);
-                        collider.meshes.insert(mesh.mesh_id, MeshType::Convex(mesh));
+
+                        let Some(target_scene) = window_state
+                            .world_ref()
+                            .resource::<SceneManager>()
+                            .target_scene
+                        else {
+                            log::error!("No target scene found to add asset to");
+                            return;
+                        };
+
+                        let Some(mut scene) =
+                            window_state.world_mut().get_mut::<Scene>(target_scene)
+                        else {
+                            log::error!("Target scene set to entity without scene component!");
+                            return;
+                        };
+
+                        scene.create_asset(
+                            creating_asset_name.to_owned(),
+                            Box::new(MeshType::Convex(mesh.clone())),
+                        );
+
+                        let id = scene.get_scene_id_from_name(creating_asset_name.as_str());
+
+                        let Ok(mut collider) = window_state
+                            .world_mut()
+                            .query::<&mut Collider>()
+                            .get_mut(window_state.world_mut(), *entity)
+                        else {
+                            ui.label("No collider component found on this entity");
+                            return;
+                        };
+
+                        collider.meshes.insert(id, MeshType::Convex(mesh));
                     }
                 });
             }
@@ -183,7 +222,7 @@ impl engine::editor::EditorTab for MeshEditorTab {
                 };
 
                 ui.label(format!(
-                    "Editing mesh {} on entity {}",
+                    "Editing mesh {:?} on entity {}",
                     mesh_id, entity_name
                 ));
 

@@ -80,17 +80,17 @@ pub fn draw(
                 }
             };
 
-            if let Some(ovrd) = renderer.get_override(*mesh_id) {
-                engine
-                    .get_canvas_mut()
-                    .expect("ColliderMesh should only be called in a draw schedule")
-                    .draw(&drawable, ovrd.draw_param.unwrap());
-            } else {
-                engine
-                    .get_canvas_mut()
-                    .expect("ColliderMesh should only be called in a draw schedule")
-                    .draw(&drawable, final_param);
-            }
+            // if let Some(ovrd) = renderer.get_override(*mesh_id) {
+            //     engine
+            //         .get_canvas_mut()
+            //         .expect("ColliderMesh should only be called in a draw schedule")
+            //         .draw(&drawable, ovrd.draw_param.unwrap());
+            // } else {
+            engine
+                .get_canvas_mut()
+                .expect("ColliderMesh should only be called in a draw schedule")
+                .draw(&drawable, final_param);
+            // }
         }
     }
 }
