@@ -12,8 +12,11 @@
 
 use bevy_ecs::prelude::*;
 use collider::mesh_editor::MeshEditor;
+use collider::MeshType;
 use engine::{register_component, scene::SceneManager};
-use engine::{register_custom_inspection, register_custom_serialize};
+use engine::{
+    register_custom_inspection, register_custom_serialize, register_enum, register_primitive_value,
+};
 
 // #[allow(unused)]
 pub mod collider;
@@ -35,5 +38,7 @@ pub fn init_components(world: &mut World) -> () {
         register_component::<collider::GravitySettings>(world, register);
         register_component::<protag::Protag>(world, register);
         register_component::<protag::ProtagController>(world, register);
+
+        register_enum::<MeshType>(register);
     });
 }

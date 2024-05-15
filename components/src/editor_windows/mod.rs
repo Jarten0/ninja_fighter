@@ -189,10 +189,7 @@ impl engine::editor::EditorTab for MeshEditorTab {
 
                 match mesh {
                     MeshType::Convex(mesh) => {
-                        for vertex in &mut mesh.vertices {
-                            ui.add(egui::DragValue::new(&mut vertex.x));
-                            ui.add(egui::DragValue::new(&mut vertex.y));
-                        }
+                        convex_vertices_ui(mesh, ui);
                     }
                 }
 
@@ -213,11 +210,9 @@ impl engine::editor::EditorTab for MeshEditorTab {
             return;
         };
 
-        trace!("am drawing");
         let Some(collider) = window_state.world_ref().get::<Collider>(*entity) else {
             return;
         };
-        trace!("found collider");
 
         let mesh = collider.meshes.get(mesh_id).unwrap();
 
@@ -249,5 +244,67 @@ impl engine::editor::EditorTab for MeshEditorTab {
                 });
             }
         }
+    }
+}
+
+fn convex_vertices_ui(mesh: &mut ConvexMesh, ui: &mut egui::Ui) {
+    let mut from = None;
+    let mut to = None;
+    for (vertex_index, vertex) in mesh.vertices.iter_mut().enumerate() {
+        let response = ui.horizontal(|ui| {
+            let response =
+                ui.dnd_drop_zone::<usize>(egui::Frame::default().inner_margin(8.0), |ui| {
+                    let response = ui
+                        .dnd_drag_source(
+                            egui::Id::new((
+                                "convex_vertices_mesh_editor_ui",
+                                mesh.mesh_id,
+                                vertex_index,
+                            )),
+                            (vertex_index),
+                            |ui| {
+                                ui.label(vertex_index.to_string());
+                            },
+                        )
+                        .response;
+
+                    if let (Some(pointer), Some(hovered_payload)) = (
+                        ui.input(|i| i.pointer.interact_pos()),
+                        response.dnd_hover_payload::<usize>(),
+                    ) {
+                        // let rect = response.rect;
+
+                        // Preview insertion:
+                        // let stroke = egui::Stroke::new(1.0, Color32::WHITE);
+                        // let insert_row_idx = if *hovered_payload == item_location {
+                        //     // We are dragged onto ourselves
+                        //     ui.painter().hline(rect.x_range(), rect.center().y, stroke);
+                        //     row_idx
+                        // } else if pointer.y < rect.center().y {
+                        //     // Above us
+                        //     ui.painter().hline(rect.x_range(), rect.top(), stroke);
+                        //     row_idx
+                        // } else {
+                        //     // Below us
+                        //     ui.painter().hline(rect.x_range(), rect.bottom(), stroke);
+                        //     row_idx + 1
+                        // };
+
+                        if let Some(dragged_payload) = response.dnd_release_payload() {
+                            // The user dropped onto this item.
+                            from = Some(dragged_payload);
+                            to = Some(vertex_index);
+                        }
+                    }
+                });
+            ui.label("x");
+            ui.add(egui::DragValue::new(&mut vertex.x));
+            ui.label("y");
+            ui.add(egui::DragValue::new(&mut vertex.y));
+            response
+        });
+    }
+    if let (Some(from), Some(mut to)) = (from, to) {
+        mesh.vertices.swap(*from, to);
     }
 }

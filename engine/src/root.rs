@@ -4,7 +4,6 @@
 
 // Hi! If your reading this, welcome to my fun little project. Some shenanigans are afoot!
 
-use crate::assets::AssetManager;
 use crate::input::KeycodeType;
 use crate::logging;
 use crate::scene::SceneError;
@@ -88,9 +87,6 @@ impl GameRoot {
 
         let input = Input::load();
         World::insert_resource(&mut world, input);
-
-        let assets = AssetManager::new();
-        World::insert_resource(&mut world, assets);
 
         let scene_manager = SceneManager::default();
         World::insert_resource(&mut world, scene_manager);
@@ -370,6 +366,9 @@ impl EventHandler for GameRoot {
 
     fn quit_event(&mut self, _ctx: &mut Context) -> Result<bool, ggez::GameError> {
         debug!("quit_event() callback called, quitting...");
+        self.world.resource_scope::<SceneManager, ()>(|world, res| {
+            res.save_scene(world);
+        });
         Ok(false)
     }
 

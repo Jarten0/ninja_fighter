@@ -1,3 +1,5 @@
+use crate::assets::SerializableAsset;
+use crate::assets::SerializedAsset;
 use crate::scene::object_id::ComponentInstanceID;
 use crate::scene::IDCounter;
 
@@ -54,8 +56,213 @@ pub trait ToReflect {
 pub struct SerializedSceneData {
     pub name: String,
     pub entity_data: DataHashmap,
+    pub asset_data: HashMap<String, serde_json::Value>,
 }
 
+impl SerializedSceneData {
+    /// Turns the [`SerializedSceneData`] into a [`Scene`], initializing every component and entity, and putting them into the world.
+    ///
+    /// Can throw a [`SceneError`] if no type registry for a type is found. Make sure to call `type_registry.register::<T>()` on your types.
+    ///
+    /// NOTE: If it doesn't state that your component was serialized, its because the functionality likely has yet to be implemented for the data structure type you're using.
+    pub fn initialize(
+        self,
+        world: &mut World,
+        type_registry: &TypeRegistry,
+    ) -> Result<Entity, SceneError> {
+        debug!("Initializing new scene ({})...", self.name);
+
+        let scene = component::Scene::new(self.name.to_owned());
+
+        let mut entities: Vec<Entity> = Vec::new();
+
+        for (entity_name, component_data_hashmap) in self.entity_data {
+            debug!("Initializing new entity ({})", &entity_name);
+            trace!("Component list: {:?}", component_data_hashmap);
+
+            let mut component_paths = HashMap::new();
+            let mut component_ids = HashMap::new();
+            component_data_hashmap
+                .keys()
+                .inspect(|path| {
+                    trace!("Inserted new component path [{}]", path);
+                    let k = ComponentInstanceID::get_new();
+                    component_paths.insert(k, (*path).to_owned());
+                    component_ids.insert((*path).to_owned(), k);
+                })
+                .last();
+
+            let bundle = SceneData {
+                entity_name,
+                scene_id: Some(scene.scene_id),
+                component_paths,
+                component_ids,
+                hide_in_inspector: true,
+            };
+
+            let entity_name_debug = bundle.entity_name.clone();
+
+            let mut entity = world.spawn(bundle);
+
+            trace!("Spawned {} with SceneData component", entity_name_debug);
+
+            for (component_path, component_data) in component_data_hashmap {
+                trace!("Initializing component {}", component_path);
+
+                let component_registration: &bevy_reflect::TypeRegistration = type_registry
+                    .get_with_type_path(&component_path)
+                    .ok_or(SceneError::MissingTypeRegistry(component_path.to_owned()))?;
+
+                let reflect_component = component_registration.data::<ReflectComponent>().ok_or(
+                    SceneError::MissingTypeRegistry(format!(
+                        "The {} component is missing a #[reflect(Component)] helper",
+                        component_path
+                    )),
+                )?;
+
+                let type_info = component_registration.type_info();
+
+                if let TypeInfo::Struct(_s_info) = type_info {
+                    let mut component_patch = DynamicStruct::default();
+
+                    component_patch.set_represented_type(Some(type_info));
+
+                    for (field_name, value) in component_data {
+                        let expected_type_path = _s_info.field(&field_name).unwrap().type_path();
+
+                        component_patch.insert_boxed(
+                            field_name,
+                            value.to_reflect(Some(expected_type_path), type_registry),
+                        );
+                    }
+
+                    reflect_component.apply_or_insert(&mut entity, &component_patch, type_registry);
+
+                    continue;
+                }
+                if let TypeInfo::TupleStruct(ts_info) = type_info {
+                    let mut component_patch = DynamicTupleStruct::default();
+
+                    component_patch.set_represented_type(Some(type_info));
+
+                    if ts_info.field_len() == 1 {
+                        let value = convert_newtype_tuple_struct(
+                            &component_data,
+                            Some(ts_info.type_path()),
+                            type_registry,
+                        );
+
+                        component_patch.insert_boxed(match value {
+                            bevy_reflect::ReflectOwned::Struct(e) => e.into_reflect(),
+                            bevy_reflect::ReflectOwned::TupleStruct(ts) => ts.into_reflect(),
+                            bevy_reflect::ReflectOwned::Tuple(t) => t.into_reflect(),
+                            bevy_reflect::ReflectOwned::List(l) => l.into_reflect(),
+                            bevy_reflect::ReflectOwned::Array(a) => a.into_reflect(),
+                            bevy_reflect::ReflectOwned::Map(m) => m.into_reflect(),
+                            bevy_reflect::ReflectOwned::Enum(en) => en.into_reflect(),
+                            bevy_reflect::ReflectOwned::Value(e) => e,
+                        });
+                        continue;
+                    }
+                    for (index, value) in component_data {
+                        let index = index.parse::<usize>().unwrap();
+
+                        let expected_type_path = ts_info.field_at(index).unwrap().type_path();
+
+                        component_patch.insert_boxed(
+                            value.to_reflect(Some(expected_type_path), type_registry),
+                        );
+                    }
+                    reflect_component.apply_or_insert(&mut entity, &component_patch, type_registry);
+                    continue;
+                } //TODO: Implement more structure types
+
+                unimplemented!() //You used an unimplemented structure type
+            }
+            entities.push(entity.id());
+        }
+
+        for (asset_name, serialized_asset_data) in self.asset_data {
+            trace!("Skipped {}. {:?}", asset_name, serialized_asset_data);
+        }
+
+        let scene_entity = world.spawn(scene).id();
+
+        // We have to wait until after the scene entity is spawned before we can start adding entities to the scene component
+        for entity in entities {
+            let _ = add_entity_to_scene(world, scene_entity, entity, None);
+        }
+        Ok(scene_entity)
+    }
+}
+
+impl Serialize for SerializedSceneData {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut serialize_struct = serializer.serialize_struct("SerializedScene", 2)?;
+
+        let _ = serialize_struct.serialize_field("name", &self.name);
+        let _ = serialize_struct.serialize_field("entity_data", &self.entity_data);
+        let _ = serialize_struct.serialize_field("asset_data", &self.asset_data);
+        serialize_struct.end()
+    }
+}
+
+impl<'de> Deserialize<'de> for SerializedSceneData {
+    /// Takes in a [`SerializedScene`] struct made from [`Scene`]`::serialize()` and turns it back into a scene
+    ///
+    /// Call [`SerializedScene`]::initialize() to turn it back into a useable [`Scene`]
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        deserializer.deserialize_struct(
+            "SerializedScene",
+            &["name", "entity_data", "asset_data"],
+            SceneVisitor,
+        )
+    }
+}
+
+/// Simple [`Visitor`] for deserializing [`SerializedScene`]'s from `Jesoon` (or whatever serializer is used) into a proper Rust data type
+pub(crate) struct SceneVisitor;
+
+impl<'de> Visitor<'de> for SceneVisitor {
+    type Value = SerializedSceneData;
+
+    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(formatter, "a serialized scene with an entities field")
+    }
+
+    fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+    where
+        A: serde::de::MapAccess<'de>,
+    {
+        let mut serialized_scene = SerializedSceneData {
+            name: String::new(),
+            entity_data: HashMap::new(),
+            asset_data: HashMap::new(),
+        };
+
+        // This at one point was like 20 lines long
+        while let Some(key) = map.next_key::<String>()? {
+            match key.as_str() {
+                "name" => serialized_scene.name = map.next_value()?,
+                "entity_data" => serialized_scene.entity_data = map.next_value()?,
+                "asset_data" => serialized_scene.entity_data = map.next_value()?,
+                _ => (),
+            };
+        }
+
+        Ok(serialized_scene)
+    }
+}
+
+//
+
+// TODO: Pull this out and move it to it's own module in [`scene`]
 impl ToReflect for serde_json::Value {
     fn to_reflect(
         &self,
@@ -341,194 +548,5 @@ fn downcast_float(float: f64) -> Box<dyn Reflect> {
         Box::new(float)
     } else {
         Box::new(float as f32)
-    }
-}
-
-impl SerializedSceneData {
-    /// Turns the [`SerializedSceneData`] into a [`Scene`], initializing every component and entity, and putting them into the world.
-    ///
-    /// Can throw a [`SceneError`] if no type registry for a type is found. Make sure to call `type_registry.register::<T>()` on your types.
-    ///
-    /// NOTE: If it doesn't state that your component was serialized, its because the functionality likely has yet to be implemented for the data structure type you're using.
-    pub fn initialize(
-        self,
-        world: &mut World,
-        type_registry: &TypeRegistry,
-    ) -> Result<Entity, SceneError> {
-        debug!("Initializing new scene ({})...", self.name);
-
-        let scene = component::Scene::new(self.name.to_owned());
-
-        let mut entities: Vec<Entity> = Vec::new();
-        for (entity_name, component_data_hashmap) in self.entity_data {
-            debug!("Initializing new entity ({})", &entity_name);
-            trace!("Component list: {:?}", component_data_hashmap);
-
-            let mut component_paths = HashMap::new();
-            let mut component_ids = HashMap::new();
-            component_data_hashmap
-                .keys()
-                .inspect(|path| {
-                    trace!("Inserted new component path [{}]", path);
-                    let k = ComponentInstanceID::get_new();
-                    component_paths.insert(k, (*path).to_owned());
-                    component_ids.insert((*path).to_owned(), k);
-                })
-                .last();
-
-            let bundle = SceneData {
-                entity_name,
-                scene_id: Some(scene.scene_id),
-                component_paths,
-                component_ids,
-                hide_in_inspector: true,
-            };
-
-            let entity_name_debug = bundle.entity_name.clone();
-
-            let mut entity = world.spawn(bundle);
-
-            trace!("Spawned {} with SceneData component", entity_name_debug);
-
-            for (component_path, component_data) in component_data_hashmap {
-                trace!("Initializing component {}", component_path);
-
-                let component_registration: &bevy_reflect::TypeRegistration = type_registry
-                    .get_with_type_path(&component_path)
-                    .ok_or(SceneError::MissingTypeRegistry(component_path.to_owned()))?;
-
-                let reflect_component = component_registration.data::<ReflectComponent>().ok_or(
-                    SceneError::MissingTypeRegistry(format!(
-                        "The {} component is missing a #[reflect(Component)] helper",
-                        component_path
-                    )),
-                )?;
-
-                let type_info = component_registration.type_info();
-
-                if let TypeInfo::Struct(_s_info) = type_info {
-                    let mut component_patch = DynamicStruct::default();
-
-                    component_patch.set_represented_type(Some(type_info));
-
-                    for (field_name, value) in component_data {
-                        let expected_type_path = _s_info.field(&field_name).unwrap().type_path();
-
-                        component_patch.insert_boxed(
-                            field_name,
-                            value.to_reflect(Some(expected_type_path), type_registry),
-                        );
-                    }
-
-                    reflect_component.apply_or_insert(&mut entity, &component_patch, type_registry);
-
-                    continue;
-                }
-                if let TypeInfo::TupleStruct(ts_info) = type_info {
-                    let mut component_patch = DynamicTupleStruct::default();
-
-                    component_patch.set_represented_type(Some(type_info));
-
-                    if ts_info.field_len() == 1 {
-                        let value = convert_newtype_tuple_struct(
-                            &component_data,
-                            Some(ts_info.type_path()),
-                            type_registry,
-                        );
-
-                        component_patch.insert_boxed(match value {
-                            bevy_reflect::ReflectOwned::Struct(e) => e.into_reflect(),
-                            bevy_reflect::ReflectOwned::TupleStruct(ts) => ts.into_reflect(),
-                            bevy_reflect::ReflectOwned::Tuple(t) => t.into_reflect(),
-                            bevy_reflect::ReflectOwned::List(l) => l.into_reflect(),
-                            bevy_reflect::ReflectOwned::Array(a) => a.into_reflect(),
-                            bevy_reflect::ReflectOwned::Map(m) => m.into_reflect(),
-                            bevy_reflect::ReflectOwned::Enum(en) => en.into_reflect(),
-                            bevy_reflect::ReflectOwned::Value(e) => e,
-                        });
-                        continue;
-                    }
-                    for (index, value) in component_data {
-                        let index = index.parse::<usize>().unwrap();
-
-                        let expected_type_path = ts_info.field_at(index).unwrap().type_path();
-
-                        component_patch.insert_boxed(
-                            value.to_reflect(Some(expected_type_path), type_registry),
-                        );
-                    }
-                    reflect_component.apply_or_insert(&mut entity, &component_patch, type_registry);
-                    continue;
-                } //TODO: Implement more structure types
-
-                unimplemented!() //You used an unimplemented structure type
-            }
-            entities.push(entity.id());
-        }
-
-        let scene_entity = world.spawn(scene).id();
-
-        // We have to wait until after the scene entity is spawned before we can start adding entities to the scene component
-        for entity in entities {
-            let _ = add_entity_to_scene(world, scene_entity, entity, None);
-        }
-        Ok(scene_entity)
-    }
-}
-
-impl Serialize for SerializedSceneData {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        let mut serialize_struct = serializer.serialize_struct("SerializedScene", 2)?;
-
-        let _ = serialize_struct.serialize_field("name", &self.name);
-        let _ = serialize_struct.serialize_field("entity_data", &self.entity_data);
-        serialize_struct.end()
-    }
-}
-
-impl<'de> Deserialize<'de> for SerializedSceneData {
-    /// Takes in a [`SerializedScene`] struct made from [`Scene`]`::serialize()` and turns it back into a scene
-    ///
-    /// Call [`SerializedScene`]::initialize() to turn it back into a useable [`Scene`]
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        deserializer.deserialize_struct("SerializedScene", &["name", "entity_data"], SceneVisitor)
-    }
-}
-
-/// Simple [`Visitor`] for deserializing [`SerializedScene`]'s from `Jesoon` (or whatever serializer is used) into a proper Rust data type
-pub(crate) struct SceneVisitor;
-
-impl<'de> Visitor<'de> for SceneVisitor {
-    type Value = SerializedSceneData;
-
-    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(formatter, "a serialized scene with an entities field")
-    }
-
-    fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
-    where
-        A: serde::de::MapAccess<'de>,
-    {
-        let mut serialized_scene = SerializedSceneData {
-            name: String::new(),
-            entity_data: HashMap::new(),
-        };
-
-        // This at one point was like 20 lines long
-        while let Some(key) = map.next_key::<String>()? {
-            match key.as_str() {
-                "name" => serialized_scene.name = map.next_value()?,
-                "entity_data" => serialized_scene.entity_data = map.next_value()?,
-                _ => (),
-            };
-        }
-
-        Ok(serialized_scene)
     }
 }

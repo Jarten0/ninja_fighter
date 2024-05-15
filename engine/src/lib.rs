@@ -149,11 +149,11 @@ pub fn register_scene_types(world: &mut bevy_ecs::world::World) {
             // register_value::<u64>(registry);
             // register_value::<u128>(registry);
             // register_value::<isize>(registry);
-            register_value::<f32>(registry);
-            register_value::<f64>(registry);
-            register_value::<bool>(registry);
-            register_value::<String>(registry);
-            register_value::<space::Vector2>(registry);
+            register_primitive_value::<f32>(registry);
+            register_primitive_value::<f64>(registry);
+            register_primitive_value::<bool>(registry);
+            register_primitive_value::<String>(registry);
+            register_primitive_value::<space::Vector2>(registry);
         }
         register_component::<space::Position>(world, registry);
         register_component::<space::Rotation>(world, registry);
@@ -165,7 +165,7 @@ pub fn register_scene_types(world: &mut bevy_ecs::world::World) {
 
 /// Registers the value into the type registry with inspector type data
 // #[cfg(features = "editor_features")]
-pub fn register_value<T>(type_registry: &mut bevy_reflect::TypeRegistry)
+pub fn register_primitive_value<T>(type_registry: &mut bevy_reflect::TypeRegistry)
 where
     T: bevy_reflect::Reflect
         + bevy_reflect::GetTypeRegistration
@@ -184,6 +184,78 @@ where
     );
     type_registry.register_type_data::<T, ReflectFromWorld>();
     type_registry.register_type_data::<T, InspectableAsField>();
+    type_registry.register_type_data::<T, ReflectSerialize>();
+    type_registry.register_type_data::<T, ReflectDeserialize>();
+}
+
+/// Registers the value into the type registry with inspector type data
+// #[cfg(features = "editor_features")]
+pub fn register_struct<T>(type_registry: &mut bevy_reflect::TypeRegistry)
+where
+    T: bevy_reflect::Reflect
+        + bevy_reflect::Struct
+        + bevy_reflect::GetTypeRegistration
+        + bevy_reflect::FromReflect
+        + bevy_reflect::TypePath
+        + Default
+        + FromWorld
+        + serde::Serialize
+        + for<'b> serde::Deserialize<'b>,
+{
+    type_registry.register::<T>();
+    log::trace!(
+        "Registered value type {:?}\n",
+        type_registry.get_type_info(std::any::TypeId::of::<T>())
+    );
+    type_registry.register_type_data::<T, ReflectFromWorld>();
+    type_registry.register_type_data::<T, ReflectSerialize>();
+    type_registry.register_type_data::<T, ReflectDeserialize>();
+}
+
+/// Registers the value into the type registry with inspector type data
+// #[cfg(features = "editor_features")]
+pub fn register_tuple_struct<T>(type_registry: &mut bevy_reflect::TypeRegistry)
+where
+    T: bevy_reflect::Reflect
+        + bevy_reflect::TupleStruct
+        + bevy_reflect::GetTypeRegistration
+        + bevy_reflect::FromReflect
+        + bevy_reflect::TypePath
+        + Default
+        + FromWorld
+        + serde::Serialize
+        + for<'b> serde::Deserialize<'b>,
+{
+    type_registry.register::<T>();
+    log::trace!(
+        "Registered value type {:?}\n",
+        type_registry.get_type_info(std::any::TypeId::of::<T>())
+    );
+    type_registry.register_type_data::<T, ReflectFromWorld>();
+    type_registry.register_type_data::<T, ReflectSerialize>();
+    type_registry.register_type_data::<T, ReflectDeserialize>();
+}
+
+/// Registers the value into the type registry with inspector type data
+// #[cfg(features = "editor_features")]
+pub fn register_enum<T>(type_registry: &mut bevy_reflect::TypeRegistry)
+where
+    T: bevy_reflect::Reflect
+        + bevy_reflect::Enum
+        + bevy_reflect::GetTypeRegistration
+        + bevy_reflect::FromReflect
+        + bevy_reflect::TypePath
+        + Default
+        + FromWorld
+        + serde::Serialize
+        + for<'b> serde::Deserialize<'b>,
+{
+    type_registry.register::<T>();
+    log::trace!(
+        "Registered value type {:?}\n",
+        type_registry.get_type_info(std::any::TypeId::of::<T>())
+    );
+    type_registry.register_type_data::<T, ReflectFromWorld>();
     type_registry.register_type_data::<T, ReflectSerialize>();
     type_registry.register_type_data::<T, ReflectDeserialize>();
 }

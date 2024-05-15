@@ -20,7 +20,7 @@ use crate::editor::{FieldWidget, InspectableAsField};
 use crate::space::{self, Vector2};
 pub use component::Scene;
 pub use component::{
-    add_entity_to_scene, load_scene, new_scene, save_scene, to_serializable_scene_data,
+    add_entity_to_scene, create_serializable_scene_data, load_scene, new_scene, save_scene,
     unload_scene, validate_name,
 };
 pub use converter::*;

@@ -1,1 +1,38 @@
-{"name":"test_scene","entity_data":{"Protag":{"components::protag::Protag":{},"components::collider::mesh_renderer::MeshRenderer":{},"components::protag::ProtagController":{"acc":1.600000023841858,"decel":0.20000000298023224,"fall_acc":1.2000000476837158,"jump_power":20.0,"max_fall_speed":18.0,"speed_cap":16.0},"components::render::Renderer":{"offset":{"x":0.0,"y":0.0}},"engine::space::transform::TransformSettings":{"auto_update":true},"components::collider::gravity_settings::GravitySettings":{"force":{"x":0.0,"y":0.0},"force_cap":0.0}},"MeshEntity":{"components::collider::mesh_renderer::MeshRenderer":{},"components::collider::Collider":{}}}}
+{
+    "name": "test_scene",
+    "entity_data": {
+        "Protag": {
+            "components::render::Renderer": {
+                "offset": {
+                    "x": 0.0,
+                    "y": 0.0
+                }
+            },
+            "components::protag::Protag": {},
+            "components::collider::gravity_settings::GravitySettings": {
+                "force": {
+                    "x": 0.0,
+                    "y": 0.0
+                },
+                "force_cap": 0.0
+            },
+            "engine::space::transform::TransformSettings": {
+                "auto_update": true
+            },
+            "components::collider::mesh_renderer::MeshRenderer": {},
+            "components::protag::ProtagController": {
+                "acc": 1.600000023841858,
+                "decel": 0.20000000298023224,
+                "fall_acc": 1.2000000476837158,
+                "jump_power": 20.0,
+                "max_fall_speed": 18.0,
+                "speed_cap": 16.0
+            }
+        },
+        "MeshEntity": {
+            "components::collider::mesh_renderer::MeshRenderer": {},
+            "components::collider::Collider": {}
+        }
+    },
+    "asset_data": {}
+}

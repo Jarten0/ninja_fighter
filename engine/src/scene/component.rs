@@ -1,6 +1,12 @@
 //! The [`Scene`] component, which allows managment of loading and unloading entities and components dynamically.
 //! It can also serialize and deserialize component data and instantiate entities using it to provide full building functionality.
 
+use crate::assets::Asset;
+use crate::assets::AssetID;
+use crate::assets::AssetStorage;
+use crate::assets::SceneAssetID;
+use crate::assets::SerializableAsset;
+use crate::assets::SerializedAsset;
 use crate::scene::object_data::SceneData;
 use crate::scene::serialized_scene::ComponentData;
 use crate::scene::serialized_scene::SerializedSceneData;
@@ -26,6 +32,7 @@ use bevy_ecs::world::World;
 
 use bevy_reflect::serde::Serializable;
 use bevy_reflect::GetTupleStructField;
+use bevy_reflect::Reflect;
 use bevy_reflect::ReflectRef;
 use bevy_reflect::ReflectSerialize;
 use bevy_reflect::TypeRegistry;
@@ -38,6 +45,8 @@ use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::fs::File;
 use std::fs::OpenOptions;
+use std::hash::Hash;
+use std::hash::Hasher;
 use std::path::PathBuf;
 
 /// Entity managment for loading and unloading in batches rather than having everything loaded at once.
@@ -51,7 +60,7 @@ use std::path::PathBuf;
 ///
 /// The comparison operator (`==`) is supported, but because comparing entities requires a [`World`] to obtain component data, using it only compares the names.
 /// If you want a true eq operation that checks if the entities match, use [`Scene`]`::entity_eq()`. This does require [`World`] access though.
-#[derive(Debug, Component, Clone)]
+#[derive(Debug, Component)]
 pub struct Scene {
     /// The name of the scene
     ///
@@ -70,19 +79,43 @@ pub struct Scene {
     pub(crate) save_data_path: Option<PathBuf>,
 
     pub scene_id: ObjectID,
+
+    pub(crate) assets: HashMap<SceneAssetID, Asset<Box<dyn Reflect>>>,
+}
+
+impl Clone for Scene {
+    fn clone(&self) -> Self {
+        let assets = {
+            let mut assets = HashMap::new();
+            for (id, asset) in self.assets.iter() {
+                let new_asset = Asset::new(
+                    asset.asset_name.clone(),
+                    asset.asset_data.clone_value(),
+                    asset.storage.clone(),
+                );
+                assets.insert(SceneAssetID::get(new_asset.asset_name.as_str()), new_asset);
+            }
+            assets
+        };
+        Self {
+            name: self.name.clone(),
+            entities: self.entities.clone(),
+            save_data_path: self.save_data_path.clone(),
+            scene_id: self.scene_id.clone(),
+            assets,
+        }
+    }
 }
 
 impl Scene {
     /// Creates a new blank [`Scene`] using the provided name.
-    ///
-    /// Does not contain any [`Entity`]'s and does not load any. To do that, wait until its ready.
-    /// // TODO: When done, update these docs
     pub fn new(name: String) -> Self {
         Self {
             name,
             entities: Vec::new(),
             save_data_path: None,
             scene_id: ObjectID::new(CounterType::Scenes),
+            assets: HashMap::new(),
         }
     }
 
@@ -140,6 +173,41 @@ impl Scene {
 
     pub fn save_data_path(&self) -> Option<&PathBuf> {
         self.save_data_path.as_ref()
+    }
+
+    pub fn get_asset(&self, id: &SceneAssetID) -> Option<&Asset<Box<dyn Reflect>>> {
+        self.assets.get(id)
+    }
+
+    /// Stores a reflectable asset inside of the scene.
+    ///
+    /// If you want an asset to be stored somewhere else, use the corresponding function.
+    pub fn create_asset(&mut self, asset_name: String, asset_data: Box<dyn Reflect>) {
+        let storage = AssetStorage::Scene(self.get_scene_id_from_name(asset_name.as_str()));
+        let asset = Asset::new(asset_name, asset_data, storage);
+        self.assets
+            .insert(SceneAssetID::get(asset.asset_name.as_str()), asset);
+    }
+
+    /// Gets the serialization info for an asset for saving and loading data.
+    pub(crate) fn get_asset_with_serialize_info(
+        &mut self,
+        asset_id: SceneAssetID,
+    ) -> Option<SerializableAsset<Box<dyn Reflect>>> {
+        let asset = self.assets.get(&asset_id)?;
+        Some(SerializableAsset::from_reflect_asset(asset))
+    }
+
+    pub(crate) fn initialize_asset(&mut self, asset_data: serde_json::Value) {
+        // let asset = Asset::new(asset_data);
+        todo!(); // TODO
+                 // self.assets.insert(asset.id, asset);
+    }
+
+    pub fn get_scene_id_from_name(&self, asset_name: &str) -> SceneAssetID {
+        let mut hasher = std::hash::DefaultHasher::new();
+        asset_name.hash(&mut hasher);
+        SceneAssetID(hasher.finish().try_into().unwrap())
     }
 }
 
@@ -208,7 +276,7 @@ pub fn save_scene(
         }
     };
 
-    let value = to_serializable_scene_data(world, registry, entity)
+    let value = create_serializable_scene_data(world, registry, entity)
         .map_err(|err| SceneError::SerializeFailure(err.to_string()))?;
 
     trace!("Writing saved data to disk");
@@ -404,7 +472,7 @@ pub fn validate_name(names: &mut dyn Iterator<Item = &String>, name_to_check: &m
 
 // TODO: Create better documentation, this is one of the most important functions to do so for
 /// Creates a [`SerializableScene`] using the scene's component data
-pub fn to_serializable_scene_data<'a>(
+pub fn create_serializable_scene_data<'a>(
     world: &'a mut World,
     registry: &TypeRegistry,
     scene_entity: Entity,
@@ -609,11 +677,32 @@ pub fn to_serializable_scene_data<'a>(
         }
     }
 
-    trace!("Serialized scene {} successfully", scene_name);
+    trace!("Serialized entities successfully.");
+
+    trace!("Serializing assets...");
+
+    let mut asset_data = HashMap::new();
+
+    let scene = world
+        .entity(scene_entity)
+        .get::<Scene>()
+        .ok_or(SceneError::NoSceneComponent)?;
+
+    for (_, asset) in &scene.assets {
+        let name = asset.asset_name.clone();
+        let serializable = SerializableAsset::from_reflect_asset(asset);
+        let serialized = serde_json::to_value(serializable).unwrap();
+        asset_data.insert(name, serialized);
+    }
+
+    trace!("Serialized assets successfully.");
+
+    trace!("Serialized scene {} successfully.", scene_name);
 
     Ok(serialized_scene::SerializedSceneData {
         name: scene_name,
         entity_data,
+        asset_data,
     })
 }
 
