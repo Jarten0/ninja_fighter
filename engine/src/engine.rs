@@ -124,4 +124,8 @@ impl GgezInterface {
             }
         }
     }
+
+    pub fn get_engine_config(&self) -> &EngineConfig {
+        &self.engine_config
+    }
 }

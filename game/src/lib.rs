@@ -3,10 +3,12 @@ use components::*;
 use engine::{schedule::ScheduleTag, EngineConfig};
 use log::*;
 
-pub static INITIAL_SCENE: &str = "game/assets/scenes/test_scene.json";
+pub static INITIAL_SCENE: &str = "game/assets/scenes/woahah new scene .json";
+pub static SCENE_FOLDER: &str = "game/assets/scenes/";
 
 pub static ENGINE_CONFIG: EngineConfig = EngineConfig {
     scene_paths: &[INITIAL_SCENE],
+    scenes_folder: Some(SCENE_FOLDER),
     world_init: init_components_and_resources,
     ticks_per_second: 60,
     freeze_on_unfocus: false,

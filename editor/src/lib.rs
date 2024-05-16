@@ -20,6 +20,7 @@ static DEBUG_ACTION_NAME: &str = "enabledebugmode";
 
 pub static EDITOR_ENGINE_CONFIG: EngineConfig = EngineConfig {
     scene_paths: &[game::INITIAL_SCENE],
+    scenes_folder: Some(game::SCENE_FOLDER),
     world_init: init_editor_schedules,
     ticks_per_second: game::ENGINE_CONFIG.ticks_per_second,
     freeze_on_unfocus: false,

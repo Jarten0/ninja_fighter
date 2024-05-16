@@ -10,6 +10,7 @@ use crate::assets::SerializedAsset;
 use crate::scene::object_data::SceneData;
 use crate::scene::serialized_scene::ComponentData;
 use crate::scene::serialized_scene::SerializedSceneData;
+use crate::GgezInterface;
 
 use super::error;
 use super::object_data;
@@ -194,7 +195,7 @@ impl Scene {
         &'asset mut self, // the asset lives for as long as the scene does
         type_registry: &'registry TypeRegistry,
         asset_id: SceneAssetID,
-    ) -> Option<SerializableAsset<'asset, 'registry, Box<dyn Reflect>>> {
+    ) -> Option<SerializableAsset<'asset, 'registry>> {
         let asset = self.assets.get(&asset_id)?;
         Some(SerializableAsset::from_reflect_asset(asset, type_registry))
     }
@@ -228,21 +229,29 @@ pub fn save_scene(
     registry: &TypeRegistry,
 ) -> Result<(), error::SceneError> {
     trace!("Saving scene to file");
+
+    let scene = world
+        .get::<Scene>(entity)
+        .ok_or(SceneError::NoSceneComponent)?;
+
+    let scene_name = scene.name.clone();
+
     let f = || -> Result<PathBuf, SceneError> {
-        Text::new("Save data path? >")
-            .prompt()
-            .map(|ok| PathBuf::from(ok))
-            .map_err(|err| SceneError::InputError(err.to_string()))
+        let value = world
+            .resource::<GgezInterface>()
+            .get_engine_config()
+            .scenes_folder
+            .or_else(|| todo!())
+            .ok_or(SceneError::NoEntitiesAvailable)?; // todo pick better error
+
+        let mut from = PathBuf::from(value);
+
+        from.push(scene_name + ".json");
+
+        Ok(from)
     };
 
-    let path_result = world
-        .get::<Scene>(entity)
-        .ok_or(SceneError::NoSceneComponent)?
-        .save_data_path
-        .clone()
-        .ok_or_else(f);
-
-    let path = match path_result {
+    let path = match scene.save_data_path.clone().ok_or_else(f) {
         Ok(ok) => ok,
         Err(err) => err?,
     };

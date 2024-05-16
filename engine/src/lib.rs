@@ -49,6 +49,11 @@ pub struct EngineConfig {
     /// and others will automatically be added to the list of immediately accessable scenes.  
     // TODO: Update when I redo the scene loading system to replace JSON with ron and when this gets replaced with a file path leading to a file containing a list of scenes.
     pub scene_paths: &'static [&'static str],
+    /// A path to a given directory that stores scenes to automatically load, and where new scenes are stored.
+    ///
+    /// If given an empty or invalid string, the engine will instead manually prompt the user to where a scene
+    /// is stored via the CLI. For best convenience, do pick a location to store new scenes.
+    pub scenes_folder: Option<&'static str>,
     /// An initiation function that should be run on the world to register/add components, custom resources, and schedules.
     ///
     /// You are required to add at least 2 schedules, that being [`ScheduleTag::Tick`](crate::schedule::ScheduleTag::Tick) and
