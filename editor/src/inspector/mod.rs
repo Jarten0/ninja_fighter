@@ -17,6 +17,7 @@ use std::collections::{HashMap, HashSet};
 use std::fmt::Debug;
 use std::ops::DerefMut;
 
+pub mod asset_window;
 pub mod entity_view;
 pub mod field_view;
 pub mod game_view;
@@ -148,6 +149,7 @@ fn window_managment_ui(ui: &mut Ui, editor_resource: &mut Mut<EditorGUI>) {
     add_tab_label_ui::<field_view::FieldInspectTab>(ui, editor_resource);
     // add_tab_label_ui::<game_view::GameView>(ui, editor_resource); // on hold until I can fix it later
     add_tab_label_ui::<scene_window::SceneEditorTab>(ui, editor_resource);
+    add_tab_label_ui::<asset_window::AssetViewTab>(ui, editor_resource);
     add_tab_label_ui::<components::editor_windows::MeshEditorTab>(ui, editor_resource);
     // ui.menu_button("Components", |ui| {
     // });

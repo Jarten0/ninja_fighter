@@ -20,7 +20,7 @@ pub fn init(mut commands: Commands, _engine: Res<GgezInterface>) {
     //     });
 }
 
-#[derive(Default, Component, Reflect, Clone, Debug)]
+#[derive(Default, Component, Reflect, Clone, Debug, Serialize, Deserialize)]
 #[reflect(Component)]
 pub struct Protag;
 
@@ -145,7 +145,7 @@ impl ProtagBundle {
 
         let mut bundle = BoxCollider::new(scene, space::ONE);
 
-        bundle.renderer.draw_param = Some(DrawParam {
+        bundle.renderer.draw_param = DrawParam {
             src: Rect::default(),
             color: Color::CYAN,
             transform: graphics::Transform::Values {
@@ -155,7 +155,7 @@ impl ProtagBundle {
                 offset: mint::Point2 { x: 5.0, y: 0.0 },
             },
             z: 1,
-        });
+        };
 
         let controller = ProtagController {
             acc: 0.5,

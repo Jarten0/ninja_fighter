@@ -69,7 +69,7 @@ impl GameRoot {
     /// Loads and initialized essential data, and calls the [`ScheduleTag::Init`] systems
     ///
     /// To pass in a `config`, create a static [`EngineConfig`] and pass in a reference
-    pub fn new(context: &mut Context, config: &'static EngineConfig) -> Result<Self, String> {
+    pub fn new(context: &mut Context, config: &'static EngineConfig) -> Result<Self, SomeError> {
         let mut world = World::new();
 
         if let Err(err) = log::set_logger(&logging::LOGGER) {
@@ -109,35 +109,31 @@ impl GameRoot {
         trace!("Initialized world and created game root");
 
         root.world
-            .resource_scope(
-                |world, mut res: Mut<SceneManager>| -> Result<(), SomeError> {
-                    let path_str = config
-                        .scene_paths
-                        .get(0)
-                        .ok_or(SomeError::EngineConfig(EngineConfigError::NoScenePaths))?;
+            .resource_scope::<SceneManager, Result<(), SomeError>>(|world, mut res| {
+                let path_str = config
+                    .scene_paths
+                    .get(0)
+                    .ok_or(SomeError::EngineConfig(EngineConfigError::NoScenePaths))?;
 
-                    let path: PathBuf = path_str.into();
+                let path: PathBuf = path_str.into();
 
-                    if let Err(err) = res
-                        .load_scene(world, path)
-                        .map_err(|err| SomeError::Scene(err))
+                if let Err(err) = res.load_scene(world, path) {
+                    // a file not being found is okay, just cancel the load and print an error message.
+                    #[cfg(feature = "editor_features")]
                     {
-                        // a file not being found is okay, just cancel the load and print an error message.
-                        #[cfg(feature = "editor_features")]
-                        {
-                            return Ok(());
-                        }
+                        log::error!("Load failed! {}", err.to_string());
+                        return Ok(());
+                    }
 
-                        #[cfg(not(feature = "editor_features"))]
-                        {
-                            return Err(err);
-                        }
-                    };
+                    #[cfg(not(feature = "editor_features"))]
+                    {
+                        log::error!("Load failed! {}", err.to_string());
+                        return Err(err);
+                    }
+                };
 
-                    Ok(())
-                },
-            )
-            .map_err(|err| err.to_string())?;
+                Ok(())
+            })?;
 
         trace!("Loaded default scene from EngineConfig");
 
@@ -367,7 +363,7 @@ impl EventHandler for GameRoot {
     fn quit_event(&mut self, _ctx: &mut Context) -> Result<bool, ggez::GameError> {
         debug!("quit_event() callback called, quitting...");
         self.world.resource_scope::<SceneManager, ()>(|world, res| {
-            res.save_scene(world);
+            // res.save_scene(world);
         });
         Ok(false)
     }

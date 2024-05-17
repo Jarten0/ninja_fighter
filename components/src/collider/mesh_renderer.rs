@@ -65,10 +65,7 @@ pub fn draw(
 ) {
     for (renderer, collider) in query.iter() {
         // initial param before applying camera offset, and maybe shaders later
-        let initial_param = match &renderer.draw_param {
-            Some(param) => param,
-            None => continue,
-        };
+        let initial_param = &renderer.draw_param;
 
         // dont worry about it for now, just take those initial parameters
         let final_param = initial_param.clone();
@@ -100,16 +97,19 @@ pub fn draw(
 /// If you want to override this functionality, add in a mesh overrider
 ///
 /// ...which has yet to be coded in. //TODO: Do that
-#[derive(Debug, Component, Clone, Default, Reflect)]
+#[derive(Debug, Component, Clone, Default, Reflect, Serialize, Deserialize)]
 #[reflect(Component)]
 pub struct MeshRenderer {
     /// The default draw parameters for every mesh. To override this on a per-mesh basis, add a mesh overrider.
     ///
     /// Or just move the mesh to a new entity.
     #[reflect(ignore)]
-    pub(crate) draw_param: Option<DrawParam>,
+    #[serde(serialize_with = "engine::render::serialize_draw_param")]
+    #[serde(deserialize_with = "engine::render::deserialize_draw_param")]
+    pub draw_param: ggez::graphics::DrawParam,
 
     #[reflect(ignore)]
+    #[serde(skip)]
     pub(crate) mesh_overrides: HashMap<ObjectID, MeshOverride>,
 }
 
@@ -118,14 +118,14 @@ impl MeshRenderer {
         let draw_param = DrawParam::new().color(Color::MAGENTA);
 
         Self {
-            draw_param: Some(draw_param),
+            draw_param: draw_param,
             mesh_overrides: HashMap::new(),
         }
     }
 
     pub fn new_with_param(param: DrawParam) -> MeshRenderer {
         Self {
-            draw_param: Some(param),
+            draw_param: param,
             mesh_overrides: HashMap::new(),
         }
     }

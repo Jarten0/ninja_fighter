@@ -24,7 +24,7 @@ use std::fmt::Debug;
 use traits::SuperMesh;
 
 /// A container for a set of meshes that are responsible for collision handling.
-#[derive(Debug, Component, Default, Reflect)]
+#[derive(Debug, Component, Default, Reflect, Serialize, Deserialize)]
 #[reflect(FromWorld)]
 #[reflect(Component)]
 pub struct Collider

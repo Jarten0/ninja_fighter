@@ -11,11 +11,13 @@ use bevy_ecs::entity::Entity;
 use bevy_ecs::reflect::ReflectComponent;
 use bevy_ecs::world::World;
 use bevy_reflect::DynamicList;
+use bevy_reflect::DynamicMap;
 use bevy_reflect::DynamicStruct;
 use bevy_reflect::DynamicTuple;
 use bevy_reflect::DynamicTupleStruct;
 use bevy_reflect::List;
 use bevy_reflect::Reflect;
+use bevy_reflect::ReflectDeserialize;
 use bevy_reflect::ReflectOwned;
 use bevy_reflect::Struct;
 use bevy_reflect::TypeInfo;
@@ -70,14 +72,14 @@ impl SerializedSceneData {
         world: &mut World,
         type_registry: &TypeRegistry,
     ) -> Result<Entity, SceneError> {
-        debug!("Initializing new scene ({})...", self.name);
+        trace!("Initializing new scene ({})...", self.name);
 
         let scene = component::Scene::new(self.name.to_owned());
 
         let mut entities: Vec<Entity> = Vec::new();
 
         for (entity_name, component_data_hashmap) in self.entity_data {
-            debug!("Initializing new entity ({})", &entity_name);
+            trace!("Initializing new entity ({})", &entity_name);
             trace!("Component list: {:?}", component_data_hashmap);
 
             let mut component_paths = HashMap::new();
@@ -251,7 +253,7 @@ impl<'de> Visitor<'de> for SceneVisitor {
             match key.as_str() {
                 "name" => serialized_scene.name = map.next_value()?,
                 "entity_data" => serialized_scene.entity_data = map.next_value()?,
-                "asset_data" => serialized_scene.entity_data = map.next_value()?,
+                "asset_data" => serialized_scene.asset_data = map.next_value()?,
                 _ => (),
             };
         }
@@ -269,6 +271,19 @@ impl ToReflect for serde_json::Value {
         expected_type: Option<&str>,
         type_registry: &TypeRegistry,
     ) -> Box<dyn Reflect> {
+        let type_info = type_registry
+            .get_with_type_path(expected_type.unwrap())
+            .unwrap();
+
+        let binding = self.to_string();
+        let mut deserializer = serde_json::Deserializer::from_str(binding.as_str());
+        let deserialize = type_info
+            .data::<ReflectDeserialize>()
+            .unwrap()
+            .deserialize(&mut deserializer)
+            .unwrap();
+        return deserialize;
+
         let value = match self {
             Value::Null => Reflect::reflect_owned(Box::new(())),
             Value::Bool(bool) => Reflect::reflect_owned(Box::new(bool.to_owned())),
@@ -421,6 +436,21 @@ fn convert_struct(
         todo!()
     }
     if let TypeInfo::Map(m_info) = type_info {
+        let dyn_map = DynamicMap::default();
+
+        // let key_expected_type = expected_type
+        // let field_expected_type
+        for (name, field) in jesoon_object {
+            let type_info = type_registry.get_with_type_path(todo!()).unwrap();
+
+            let reflect_deserialize = type_info.data::<ReflectDeserialize>().unwrap();
+
+            // reflect_deserialize.deserialize(serde_json::Deserializer::from_str(s));
+
+            log::trace!("{}   {}: {}", expected_type.unwrap(), name, field);
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
+
         todo!()
     }
     if let TypeInfo::Enum(e_info) = type_info {

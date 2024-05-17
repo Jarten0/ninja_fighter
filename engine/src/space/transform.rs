@@ -1,11 +1,11 @@
 use bevy_ecs::prelude::*;
 use bevy_reflect::Reflect;
 use log::trace;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use super::{Position, Rotation, Scale, Vector2, Velocity};
 
-#[derive(Debug, Component, Default, Clone, Copy, Reflect, Serialize)]
+#[derive(Debug, Component, Default, Clone, Copy, Reflect, Serialize, Deserialize)]
 #[reflect(Component)]
 pub struct TransformSettings {
     pub auto_update: bool,

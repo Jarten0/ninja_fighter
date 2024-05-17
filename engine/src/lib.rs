@@ -89,6 +89,7 @@ pub struct EngineConfig {
     pub run_debug_schedules: bool,
 }
 
+#[derive(Debug)]
 pub enum EngineConfigError {
     NoScenePaths,
     InvalidScenePath(&'static str),
@@ -115,6 +116,7 @@ impl ToString for EngineConfigError {
     }
 }
 
+#[derive(Debug)]
 pub enum SomeError {
     Scene(crate::scene::SceneError),
     Ggez(ggez::GameError),
@@ -273,6 +275,8 @@ pub fn register_component<
         + bevy_reflect::GetTypeRegistration
         + bevy_reflect::FromReflect
         + bevy_reflect::TypePath
+        + serde::Serialize
+        + for<'a> serde::Deserialize<'a>
         + Default
         + TestSuperTrait
         + FromWorld,
@@ -287,6 +291,8 @@ pub fn register_component<
     );
     type_registry.register_type_data::<T, ReflectFromWorld>();
     type_registry.register_type_data::<T, scene::ReflectTestSuperTrait>();
+    type_registry.register_type_data::<T, ReflectSerialize>();
+    type_registry.register_type_data::<T, ReflectDeserialize>();
     world.init_component::<T>(); // Registers the component id
     world.register_component_as::<dyn TestSuperTrait, T>(); // TestSuperTrait is used in world queries for iterating over types dynamically
 }

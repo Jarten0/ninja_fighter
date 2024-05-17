@@ -180,6 +180,12 @@ impl Scene {
         self.assets.get(id)
     }
 
+    pub fn iter_assets(
+        &self,
+    ) -> std::collections::hash_map::Iter<'_, SceneAssetID, Asset<Box<dyn Reflect>>> {
+        self.assets.iter()
+    }
+
     /// Stores a reflectable asset inside of the scene.
     ///
     /// If you want an asset to be stored somewhere else, use the corresponding function.
@@ -327,14 +333,21 @@ pub fn load_scene(
 
     trace!("File found");
 
-    let deserialize = serde_json::from_str::<SerializedSceneData>(&buf)
-        .map_err(|err| error::SceneError::LoadFailure(err.to_string()))?;
+    let deserialize = serde_json::from_str::<SerializedSceneData>(&buf).map_err(|err| {
+        error::SceneError::LoadFailure(
+            "SerializedSceneData failed to deserialize: ".to_string() + err.to_string().as_str(),
+        )
+    })?;
+
     let scene_entity = deserialize.initialize(world, registry)?;
 
-    world
-        .get_mut::<Scene>(scene_entity)
-        .ok_or(SceneError::NoSceneComponent)?
-        .save_data_path = Some(path);
+    trace!(
+        "Loaded scene {} successfully",
+        path.to_str()
+            .expect("expected the path to be valid unicode")
+    );
+
+    world.get_mut::<Scene>(scene_entity).unwrap().save_data_path = Some(path);
 
     Ok(scene_entity)
 }

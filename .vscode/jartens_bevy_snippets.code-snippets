@@ -132,5 +132,15 @@
         "description": "Creates an immutable query and iterates over each component obtained from it. (Remember that creating a query requires world mutability, regardless of how you iterate over it.)",
         "prefix": "world_query_ref",
         "scope": "rust"
+    },
+    "Serializable DrawParam field": {
+        "body": [
+"#[serde(serialize_with = \"engine::render::serialize_draw_param\")]",
+"#[serde(deserialize_with = \"engine::render::deserialize_draw_param\")]",
+"${0:draw_param}: ggez::graphics::DrawParam,",
+        ],
+        "description": "Creates a new field that uses the engine's implementation of Serialize and Deserialize for DrawParam",
+        "prefix": "drawparamser",
+        "scope": "rust"
     }
 }

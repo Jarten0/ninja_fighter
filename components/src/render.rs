@@ -113,11 +113,14 @@ fn draw_image(
     canvas.draw(image, draw_param)
 }
 
-#[derive(Component, Reflect, Default, Clone)]
+#[derive(Component, Reflect, Default, Clone, Serialize, Deserialize)]
 #[reflect(Component)]
 pub struct Renderer {
+    #[serde(serialize_with = "engine::render::serialize_draw_param")]
+    #[serde(deserialize_with = "engine::render::deserialize_draw_param")]
     #[reflect(ignore)]
-    pub draw_param: DrawParam,
+    pub draw_param: ggez::graphics::DrawParam,
+    #[serde(skip)]
     #[reflect(ignore)]
     pub image: Option<RenderType>,
     pub offset: space::Vector2,
