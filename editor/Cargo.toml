@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 bevy-trait-query.workspace = true
 bevy_ecs.workspace = true
-bevy_reflect.workspace = true
+bevy_reflect = { workspace = true, features = ["documentation"] }
 bevy_utils = "0.13.2"
 components = { version = "0.1.0", path = "../components" }
 convert_case = "0.6.0"

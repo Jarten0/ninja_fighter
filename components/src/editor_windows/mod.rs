@@ -311,26 +311,7 @@ fn convex_vertices_ui(mesh: &mut ConvexMesh, ui: &mut egui::Ui) {
                         ui.input(|i| i.pointer.interact_pos()),
                         response.dnd_hover_payload::<usize>(),
                     ) {
-                        // let rect = response.rect;
-
-                        // Preview insertion:
-                        // let stroke = egui::Stroke::new(1.0, Color32::WHITE);
-                        // let insert_row_idx = if *hovered_payload == item_location {
-                        //     // We are dragged onto ourselves
-                        //     ui.painter().hline(rect.x_range(), rect.center().y, stroke);
-                        //     row_idx
-                        // } else if pointer.y < rect.center().y {
-                        //     // Above us
-                        //     ui.painter().hline(rect.x_range(), rect.top(), stroke);
-                        //     row_idx
-                        // } else {
-                        //     // Below us
-                        //     ui.painter().hline(rect.x_range(), rect.bottom(), stroke);
-                        //     row_idx + 1
-                        // };
-
                         if let Some(dragged_payload) = response.dnd_release_payload() {
-                            // The user dropped onto this item.
                             from = Some(dragged_payload);
                             to = Some(vertex_index);
                         }
