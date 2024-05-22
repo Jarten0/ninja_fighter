@@ -40,11 +40,14 @@ impl EditorTab for EntityHeirarchyTab {
 
         let query = &mut window_state.world_mut().query::<&SceneData>();
 
-        for entity in window_state.entities.clone() {
+        for (index, entity) in window_state.entities.clone().into_iter().enumerate() {
             let name = match query.get(window_state.world_ref(), entity) {
                 Ok(ok) => &ok.entity_name,
                 Err(err) => {
                     log::error!("{}", err.to_string());
+                    window_state.entities.remove(index);
+                    window_state.components.remove(&entity);
+
                     continue;
                 }
             };

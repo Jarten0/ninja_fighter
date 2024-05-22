@@ -57,7 +57,7 @@ pub trait ToReflect {
 #[derive(Debug)]
 pub struct SerializedSceneData {
     pub name: String,
-    pub entity_data: DataHashmap,
+    pub entity_data: HashMap<String, HashMap<String, String>>,
     pub asset_data: HashMap<String, serde_json::Value>,
 }
 
@@ -122,64 +122,18 @@ impl SerializedSceneData {
                     )),
                 )?;
 
+                let reflect_deserialize = component_registration
+                    .data::<ReflectDeserialize>()
+                    .ok_or(SceneError::NoSerializationImplementation(format!(
+                    "The {} component is missing deserialization type data in the type registry",
+                    component_path
+                )))?;
+
                 let type_info = component_registration.type_info();
 
-                if let TypeInfo::Struct(_s_info) = type_info {
-                    let mut component_patch = DynamicStruct::default();
-
-                    component_patch.set_represented_type(Some(type_info));
-
-                    for (field_name, value) in component_data {
-                        let expected_type_path = _s_info.field(&field_name).unwrap().type_path();
-
-                        component_patch.insert_boxed(
-                            field_name,
-                            value.to_reflect(Some(expected_type_path), type_registry),
-                        );
-                    }
-
-                    reflect_component.apply_or_insert(&mut entity, &component_patch, type_registry);
-
-                    continue;
-                }
-                if let TypeInfo::TupleStruct(ts_info) = type_info {
-                    let mut component_patch = DynamicTupleStruct::default();
-
-                    component_patch.set_represented_type(Some(type_info));
-
-                    if ts_info.field_len() == 1 {
-                        let value = convert_newtype_tuple_struct(
-                            &component_data,
-                            Some(ts_info.type_path()),
-                            type_registry,
-                        );
-
-                        component_patch.insert_boxed(match value {
-                            bevy_reflect::ReflectOwned::Struct(e) => e.into_reflect(),
-                            bevy_reflect::ReflectOwned::TupleStruct(ts) => ts.into_reflect(),
-                            bevy_reflect::ReflectOwned::Tuple(t) => t.into_reflect(),
-                            bevy_reflect::ReflectOwned::List(l) => l.into_reflect(),
-                            bevy_reflect::ReflectOwned::Array(a) => a.into_reflect(),
-                            bevy_reflect::ReflectOwned::Map(m) => m.into_reflect(),
-                            bevy_reflect::ReflectOwned::Enum(en) => en.into_reflect(),
-                            bevy_reflect::ReflectOwned::Value(e) => e,
-                        });
-                        continue;
-                    }
-                    for (index, value) in component_data {
-                        let index = index.parse::<usize>().unwrap();
-
-                        let expected_type_path = ts_info.field_at(index).unwrap().type_path();
-
-                        component_patch.insert_boxed(
-                            value.to_reflect(Some(expected_type_path), type_registry),
-                        );
-                    }
-                    reflect_component.apply_or_insert(&mut entity, &component_patch, type_registry);
-                    continue;
-                } //TODO: Implement more structure types
-
-                unimplemented!() //You used an unimplemented structure type
+                let mut deserializer = serde_json::Deserializer::from_str(component_data.as_str());
+                let value = reflect_deserialize.deserialize(&mut deserializer).unwrap();
+                deserializer.end().unwrap();
             }
             entities.push(entity.id());
         }
