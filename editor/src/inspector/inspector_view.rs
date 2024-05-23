@@ -1,8 +1,8 @@
-use bevy_ecs::component::ComponentId;
+use bevy_ecs::component::{ComponentId, ComponentInfo};
 use bevy_ecs::identifier::error;
 use bevy_ecs::reflect::{ReflectComponent, ReflectFromWorld};
 use bevy_ecs::world::{EntityMut, EntityWorldMut, Mut, World};
-use bevy_reflect::{Array, DynamicTypePath, Enum, List, Struct, Tuple, TupleStruct};
+use bevy_reflect::{Array, DynamicTypePath, Enum, List, Struct, Tuple, TupleStruct, TypeData};
 use bevy_reflect::{DynamicStruct, DynamicTupleStruct};
 use bevy_reflect::{Reflect, ReflectKind, ReflectMut};
 use bevy_reflect::{TypeInfo, TypeRegistration, TypeRegistry};
@@ -13,7 +13,7 @@ use engine::editor::InspectableAsField;
 use engine::editor::*;
 use engine::scene::SceneManager;
 use log::*;
-use std::any::Any;
+use std::any::{Any, TypeId};
 
 #[derive(Debug, Default)]
 pub struct InspectorTab {
@@ -37,7 +37,7 @@ impl super::EditorTab for InspectorTab {
     }
 }
 
-pub(super) fn draw_inspector(
+pub(super) fn draw_inspector<'a>(
     tab: &mut InspectorTab,
     state: &mut WindowState,
     ui: &mut egui::Ui,
@@ -67,7 +67,7 @@ pub(super) fn draw_inspector(
         .resource_scope(|world, res: Mut<SceneManager>| {
             // qualified since bevy_reflect::List import is auto implemented for Vec
             for component_id in <[ComponentId]>::iter(&component_ids) {
-                let Some(component_info) = world.components().get_info(*component_id) else {
+                let Some(component_info) = World::components(&world).get_info(*component_id) else {
                     error!(
                         "Could not find component {:?} on {}",
                         component_id, entity.1
@@ -75,19 +75,28 @@ pub(super) fn draw_inspector(
                     return;
                 };
 
-                let component_type_id = component_info.clone().type_id().unwrap();
+                pub fn get_type_id_from<'a>(component_info: &ComponentInfo) -> TypeId {
+                    TypeId::of::<ComponentInfo>();
+                    ComponentInfo::type_id(&component_info).unwrap()
+                }
 
-                let type_registration = res
-                    .type_registry
-                    .get(component_type_id)
-                    .expect("expected a type registration for component");
+                pub fn as_any(component_info: &ComponentInfo) -> &dyn Any {
+                    component_info
+                }
 
-                let Some(mut get_entity_mut) = world.get_entity_mut(entity.0) else {
+                as_any(component_info).type_id();
+
+                let component_type_id: TypeId =
+                    component_info.type_id().into_iter().next().unwrap();
+
+                let Some(mut get_entity_mut) = World::get_entity_mut(world, entity.0) else {
                     error!("Could not find entity in world");
                     return;
                 };
 
-                let Some(mut ptr) = get_entity_mut.get_mut_by_id(*component_id) else {
+                let Some(mut ptr) =
+                    EntityWorldMut::get_mut_by_id(&mut get_entity_mut, *component_id)
+                else {
                     error!("Could not get untyped component from ComponentID.");
                     return;
                 };
@@ -95,10 +104,14 @@ pub(super) fn draw_inspector(
                 let reflected = unsafe {
                     let val = ptr.as_mut();
 
-                    type_registration
+                    let reflect_from_ptr = res
+                        .type_registry
+                        .get(component_type_id)
+                        .expect("expected a type registration for component")
                         .data::<bevy_reflect::ReflectFromPtr>()
-                        .unwrap()
-                        .as_reflect_mut(val)
+                        .unwrap();
+
+                    bevy_reflect::ReflectFromPtr::as_reflect_mut(&reflect_from_ptr, val)
                 };
 
                 assert_eq!(reflected.as_reflect().type_id(), component_type_id);
@@ -118,6 +131,10 @@ pub(super) fn draw_inspector(
                         .to_case(convert_case::Case::Title),
                 };
 
+                let type_registration = res
+                    .type_registry
+                    .get(todo!())
+                    .expect("expected a type registration for component");
                 if let ReflectMut::Struct(s) = reflected.reflect_mut() {
                     if s.field_len() == 0 {
                         if let Some(inspectable) = type_registration.data::<InspectableAsField>() {
@@ -360,38 +377,39 @@ fn reflect_tuple_struct_ui(
     let Some(some) = tuplestruct.get_represented_type_info().cloned() else {
         error!(
             "Could not get type info for {}",
-            tuplestruct.reflect_type_path()
+            tuplestruct.get_represented_type_info().unwrap().type_path()
         );
         return;
     };
     let TypeInfo::TupleStruct(tuple_struct_info) = some else {
         error!(
             "Invalid type info for {}, this is not a struct",
-            tuplestruct.reflect_type_path()
+            tuplestruct.get_represented_type_info().unwrap().type_path()
         );
         return;
     };
 
     for unnamed_field in tuple_struct_info.iter() {
-        let field_mut = tuplestruct.field_mut(unnamed_field.index());
-
-        let Some(field) = field_mut else {
-            error!("Invalid field data: Field at {} exists in type data, but not in the reflected struct.", unnamed_field.index());
+        let index = unnamed_field.index();
+        let Some(field) = TupleStruct::field_mut(tuplestruct, index) else {
+            error!("Invalid field data: Field at {} exists in type data, but not in the reflected struct.", index);
             continue;
         };
 
-        let Some(type_data) =
-            type_registry.get_type_data::<InspectableAsField>(field.as_reflect().type_id())
-        else {
-            error!(
-                "Could not find inspector data for type [{}] for field at index [{}]",
-                field.reflect_type_path(),
-                unnamed_field.index()
-            );
-            continue;
-        };
+        // let Some(type_data) = type_registry
+        //     .get_with_type_path(field.get_represented_type_info().unwrap().type_path())
+        //     .unwrap()
+        //     .data::<InspectableAsField>()
+        // else {
+        //     error!(
+        //         "Could not find inspector data for type [{}] for field at index [{}]",
+        //         field.reflect_type_path(),
+        //         index
+        //     );
+        //     continue;
+        // };
 
-        reflect_field_ui(ui, field, type_registry, debug_mode)
+        reflect_field_ui(ui, field, type_registry, debug_mode);
     }
 }
 
@@ -491,14 +509,20 @@ fn reflect_enum_ui(
     ComboBox::new("Enum", "Not supported").show_ui(ui, |ui| {});
 }
 
-fn reflect_value_ui(
-    type_registry: &TypeRegistry,
-    value: &mut dyn Reflect,
-    ui: &mut egui::Ui,
+fn reflect_value_ui<'value, 'reg, 'ui>(
+    type_registry: &'reg TypeRegistry,
+    value: &'value mut dyn Reflect,
+    ui: &'ui mut egui::Ui,
     debug_mode: bool,
 ) {
+    let reflect_type_path = value
+        .get_represented_type_info()
+        .unwrap()
+        .type_path()
+        .to_string();
+
     let Some(type_data) = type_registry
-        .get_with_type_path(value.reflect_type_path())
+        .get_with_type_path(reflect_type_path.as_str())
         .unwrap()
         .data::<InspectableAsField>()
     else {
