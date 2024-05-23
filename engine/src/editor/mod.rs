@@ -15,6 +15,7 @@ use egui::{Ui, Widget};
 use egui_dock::SurfaceIndex;
 use ggez::graphics;
 use std::any::Any;
+use std::any::TypeId;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::ops::{Deref, DerefMut};
@@ -189,6 +190,7 @@ where
     Self: Send,
 {
     pub entities: Vec<Entity>,
+    /// String represents the type path of the component.
     pub components: HashMap<Entity, Vec<ComponentId>>,
     pub tab_info: TabInfo,
     pub z: graphics::ZIndex,
@@ -198,6 +200,7 @@ where
     ///
     /// `String` = scene name
     pub focused_entity: Option<(Entity, String)>,
+    /// String represents the type path of the component.
     pub focused_component: Option<ComponentId>,
     pub component_modules: HashMap<String, Vec<((String, String), bevy_reflect::TypeRegistration)>>,
     pub debug_mode: bool,
@@ -326,7 +329,7 @@ impl egui_dock::TabViewer for WindowState {
 
             let v = v
                 .iter()
-                .map(|component| self.world_mut().components().get_id(*component).unwrap())
+                .map(|component_id| self.world_mut().components().get_id(*component_id).unwrap())
                 .collect();
 
             self.components.insert(focused_entity.0, v);

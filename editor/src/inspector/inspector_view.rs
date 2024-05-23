@@ -1,8 +1,11 @@
+use bevy_ecs::change_detection::MutUntyped;
 use bevy_ecs::component::{ComponentId, ComponentInfo};
 use bevy_ecs::identifier::error;
 use bevy_ecs::reflect::{ReflectComponent, ReflectFromWorld};
 use bevy_ecs::world::{EntityMut, EntityWorldMut, Mut, World};
-use bevy_reflect::{Array, DynamicTypePath, Enum, List, Struct, Tuple, TupleStruct, TypeData};
+use bevy_reflect::{
+    Array, DynamicTypePath, Enum, List, ReflectFromPtr, Struct, Tuple, TupleStruct, TypeData,
+};
 use bevy_reflect::{DynamicStruct, DynamicTupleStruct};
 use bevy_reflect::{Reflect, ReflectKind, ReflectMut};
 use bevy_reflect::{TypeInfo, TypeRegistration, TypeRegistry};
@@ -55,7 +58,7 @@ pub(super) fn draw_inspector<'a>(
 
     ui.label("Inspecting ".to_owned() + &entity.1);
 
-    let Some(component_ids) = state.components.get(&entity.0).cloned() else {
+    let Some(component_paths) = state.components.get(&entity.0).cloned() else {
         ui.label("(Components Unavailable)".to_owned());
 
         error!("Could not find component data for {}", &entity.1);
@@ -66,59 +69,46 @@ pub(super) fn draw_inspector<'a>(
         .world_mut()
         .resource_scope(|world, res: Mut<SceneManager>| {
             // qualified since bevy_reflect::List import is auto implemented for Vec
-            for component_id in <[ComponentId]>::iter(&component_ids) {
-                let Some(component_info) = World::components(&world).get_info(*component_id) else {
-                    error!(
-                        "Could not find component {:?} on {}",
-                        component_id, entity.1
-                    );
+            for component_id in <[ComponentId]>::iter(&component_paths) {
+                let Some(registration) = res.type_registry.get(
+                    world
+                        .components()
+                        .get_info(*component_id)
+                        .unwrap()
+                        .type_id()
+                        .expect("a component that correlates to a rust type"),
+                ) else {
+                    error!("Could not get type registration of {:?}", component_id);
                     return;
                 };
 
-                pub fn get_type_id_from<'a>(component_info: &ComponentInfo) -> TypeId {
-                    TypeId::of::<ComponentInfo>();
-                    ComponentInfo::type_id(&component_info).unwrap()
-                }
+                let component_str = registration.type_info().type_path().to_string();
+                let component_path = &component_str;
 
-                pub fn as_any(component_info: &ComponentInfo) -> &dyn Any {
-                    component_info
-                }
+                let reflect_from_ptr = res
+                    .type_registry
+                    .get_with_type_path(component_path)
+                    .expect("expected a type registration for component")
+                    .data::<bevy_reflect::ReflectFromPtr>()
+                    .unwrap();
 
-                as_any(component_info).type_id();
-
-                let component_type_id: TypeId =
-                    component_info.type_id().into_iter().next().unwrap();
-
-                let Some(mut get_entity_mut) = World::get_entity_mut(world, entity.0) else {
+                let Some(mut get_entity_mut) = world.get_entity_mut(entity.0) else {
                     error!("Could not find entity in world");
                     return;
                 };
 
-                let Some(mut ptr) =
-                    EntityWorldMut::get_mut_by_id(&mut get_entity_mut, *component_id)
-                else {
+                let Some(mut ptr) = get_entity_mut.get_mut_by_id(*component_id) else {
                     error!("Could not get untyped component from ComponentID.");
                     return;
                 };
 
-                let reflected = unsafe {
-                    let val = ptr.as_mut();
+                let reflected = unsafe { reflect_from_ptr.as_reflect_mut(ptr.as_mut()) };
 
-                    let reflect_from_ptr = res
-                        .type_registry
-                        .get(component_type_id)
-                        .expect("expected a type registration for component")
-                        .data::<bevy_reflect::ReflectFromPtr>()
-                        .unwrap();
-
-                    bevy_reflect::ReflectFromPtr::as_reflect_mut(&reflect_from_ptr, val)
-                };
-
-                assert_eq!(reflected.as_reflect().type_id(), component_type_id);
+                // assert_eq!(reflected.as_reflect().type_id(), type_id);
                 // SAFETY: ptr is of type type_id as required in safety contract, type_id was checked above
                 // also, I'm totally taking "inspiration" from `bevy-inspector-egui`. Go check it out, it's awesome :D
 
-                let type_path = reflected.reflect_type_path().to_owned();
+                let type_path = reflected.as_reflect().reflect_type_path().to_owned();
 
                 let display_path = match debug_mode {
                     true => type_path,
@@ -133,7 +123,7 @@ pub(super) fn draw_inspector<'a>(
 
                 let type_registration = res
                     .type_registry
-                    .get(todo!())
+                    .get_with_type_path(component_path)
                     .expect("expected a type registration for component");
                 if let ReflectMut::Struct(s) = reflected.reflect_mut() {
                     if s.field_len() == 0 {
@@ -158,9 +148,9 @@ pub(super) fn draw_inspector<'a>(
                         })
                         .header_response
                         .context_menu(|ui| {
-                            if ui.selectable_label(true, "Remove component").clicked() {
+                            if ui.selectable_label(false, "Remove component").clicked() {
                                 current_response =
-                                    Some(TabResponse::RemoveComponent(entity.0, *component_id))
+                                    Some(TabResponse::RemoveComponent(entity.0, todo!()))
                             }
                         });
                     }
@@ -197,10 +187,8 @@ pub(super) fn draw_inspector<'a>(
             for module in modules {
                 let response = ui.collapsing(module.0.clone(), |ui| {
                     for (component, type_) in module.1 {
-                        if let Some(c_id) = world.components().get_id(type_.type_id()) {
-                            if component_ids.contains(&c_id) {
-                                continue;
-                            }
+                        if component_paths.contains(&world.components().get_id(type_.type_id()).unwrap()) {
+                            continue;
                         }
 
                         let display_path = match debug_mode {
@@ -279,10 +267,10 @@ pub(super) fn draw_inspector<'a>(
     current_response
 }
 
-fn reflect_field_ui(
-    ui: &mut egui::Ui,
-    field: &mut dyn Reflect,
-    type_registry: &TypeRegistry,
+fn reflect_field_ui<'ui, 'field, 'registry>(
+    ui: &'ui mut egui::Ui,
+    field: &'field mut dyn Reflect,
+    type_registry: &'registry TypeRegistry,
     debug_mode: bool,
 ) {
     match field.reflect_mut() {

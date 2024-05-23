@@ -1,1 +1,19 @@
-{"name":"testscene","entity_data":{"New entity":{"components::protag::Protag":"null"}},"asset_data":{}}
+{
+    "name": "testscene",
+    "entity_data": {
+        "New entity": {
+            "engine::space::scl::Scale": "{\n  \"x\": 1.0,\n  \"y\": 1.0\n}",
+            "components::collider::mesh_renderer::MeshRenderer": "{\n  \"draw_param\": {\n    \"src\": {\n      \"x\": 0.0,\n      \"y\": 0.0,\n      \"w\": 1.0,\n      \"h\": 1.0\n    },\n    \"color\": {\n      \"r\": 1.0,\n      \"g\": 1.0,\n      \"b\": 1.0,\n      \"a\": 1.0\n    },\n    \"z\": 0\n  }\n}",
+            "engine::space::rtt::Rotation": "0.0",
+            "components::render::Renderer": "{\n  \"draw_param\": {\n    \"src\": {\n      \"x\": 0.0,\n      \"y\": 0.0,\n      \"w\": 20.0,\n      \"h\": 20.0\n    },\n    \"color\": {\n      \"r\": 0.0,\n      \"g\": 0.0,\n      \"b\": 1.0,\n      \"a\": 1.0\n    },\n    \"z\": 0\n  },\n  \"offset\": {\n    \"x\": 0.0,\n    \"y\": 0.0\n  }\n}",
+            "components::collider::gravity_settings::GravitySettings": "{\n  \"force\": {\n    \"x\": 0.0,\n    \"y\": 0.0\n  },\n  \"force_cap\": 0.0,\n  \"terminal_force\": {\n    \"x\": 0.0,\n    \"y\": 0.0\n  }\n}",
+            "components::protag::Protag": "null",
+            "components::protag::ProtagController": "{\n  \"acc\": 10.8,\n  \"decel\": 0.2,\n  \"jump_power\": 17.8,\n  \"speed_cap\": 11.2,\n  \"fall_acc\": 1.0,\n  \"max_fall_speed\": 19.1\n}",
+            "engine::space::vel::Velocity": "{\n  \"x\": -1.9448245e-15,\n  \"y\": -14.799999\n}",
+            "engine::space::transform::TransformSettings": "{\n  \"auto_update\": true\n}",
+            "engine::space::pos::Position": "{\n  \"x\": 485.40448,\n  \"y\": 851.80005\n}",
+            "components::collider::Collider": "{\n  \"meshes\": {}\n}"
+        }
+    },
+    "asset_data": {}
+}
