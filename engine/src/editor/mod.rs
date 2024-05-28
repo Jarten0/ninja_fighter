@@ -189,13 +189,14 @@ where
     Self: Sync,
     Self: Send,
 {
-    pub entities: Vec<Entity>,
+    pub entities_in_current_scene: Vec<Entity>,
     /// String represents the type path of the component.
     pub components: HashMap<Entity, Vec<ComponentId>>,
     pub tab_info: TabInfo,
     pub z: graphics::ZIndex,
     pub tab_responses: Vec<(TabResponse, String, egui::Id)>,
 
+    global: HashMap<TypeId, Box<dyn Reflect>>,
     /// (`ID`, `Name`)
     ///
     /// `String` = scene name
@@ -207,6 +208,23 @@ where
 }
 
 impl WindowState {
+    /// Stores any kind of data that any tab may use. `T` is used to identify which item is being stored.
+    pub fn set<T: Any>(&mut self, item: Box<dyn Reflect>) -> Option<Box<dyn Reflect>> {
+        self.global.insert(TypeId::of::<T>(), item)
+    }
+
+    pub fn tab<T: Any>(&self) -> Option<&dyn Reflect> {
+        self.global
+            .get(&TypeId::of::<T>())
+            .map(|boxed_reflect| boxed_reflect.as_ref())
+    }
+
+    pub fn tab_mut<T: Any>(&mut self) -> Option<&mut dyn Reflect> {
+        self.global
+            .get_mut(&TypeId::of::<T>())
+            .map(|boxed_reflect| boxed_reflect.as_mut())
+    }
+
     /// Requires access to InspectorWindow to get world access.
     ///
     /// Only works under specific circumstances. Will panic when world access is unavailable.
@@ -287,7 +305,7 @@ impl WindowState {
         }
 
         Self {
-            entities,
+            entities_in_current_scene: entities,
             components,
             tab_responses: Vec::new(),
 
@@ -298,6 +316,7 @@ impl WindowState {
             debug_mode: false,
             tab_info: TabInfo::default(),
             z: 1000,
+            global: HashMap::new(),
         }
     }
 }

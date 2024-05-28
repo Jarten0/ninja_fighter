@@ -1,5 +1,6 @@
 use bevy_ecs::world::{Mut, World};
 use engine::scene::{Scene, SceneManager};
+use engine::GgezInterface;
 use log::trace;
 
 use super::{EditorTab, TabResponse, WindowState};
@@ -92,7 +93,17 @@ impl EditorTab for SceneEditorTab {
                 if ui.selectable_label(false, "Load scene").clicked() {
                     self.reset();
 
-                    let path = std::env::current_dir().unwrap();
+                    let scenes_folder = world
+                        .resource::<GgezInterface>()
+                        .get_engine_config()
+                        .scenes_folder
+                        .clone();
+
+                    let path = if let Some(folder) = scenes_folder {
+                        folder.into()
+                    } else {
+                        std::env::current_dir().expect("no errors from currentdir")
+                    };
 
                     let file_dialog = rfd::FileDialog::new()
                         .add_filter("json", &["json"])

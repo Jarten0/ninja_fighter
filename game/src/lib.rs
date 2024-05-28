@@ -3,7 +3,7 @@ use components::*;
 use engine::{schedule::ScheduleTag, EngineConfig};
 use log::*;
 
-pub static INITIAL_SCENE: &str = "game/assets/scenes/woahah new scene .json";
+pub static INITIAL_SCENE: &str = "game/assets/scenes/Theo Matthew Game.json";
 pub static SCENE_FOLDER: &str = "game/assets/scenes/";
 
 pub static ENGINE_CONFIG: EngineConfig = EngineConfig {

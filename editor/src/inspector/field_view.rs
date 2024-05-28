@@ -43,7 +43,7 @@ impl super::EditorTab for FieldInspectTab {
             } else {
                 ui.label("No focused entity");
 
-                for entity in &window_state.entities {
+                for entity in &window_state.entities_in_current_scene {
                     let name = &window_state
                         .world_ref()
                         .get::<SceneData>(*entity)

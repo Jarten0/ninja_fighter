@@ -28,6 +28,7 @@ pub mod collider;
 pub mod editor_windows;
 pub mod protag;
 pub mod render;
+pub mod theo_matthew_game;
 
 pub fn init_components(world: &mut World) -> () {
     world.insert_resource(MeshEditor::default());
@@ -35,6 +36,9 @@ pub fn init_components(world: &mut World) -> () {
     world.resource_scope(|world: &mut World, mut manager: Mut<SceneManager>| {
         let type_registry = &mut manager.type_registry;
         register_component::<render::Renderer>(world, type_registry);
+        register_custom_inspection::<render::Renderer>(world, type_registry);
+
+        register_component::<theo_matthew_game::TextRenderer>(world, type_registry);
         register_custom_inspection::<render::Renderer>(world, type_registry);
 
         register_component::<collider::Collider>(world, type_registry);

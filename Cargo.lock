@@ -1307,6 +1307,7 @@ dependencies = [
  "inquire",
  "log",
  "rfd",
+ "serde",
  "serde_json",
 ]
 
