@@ -4,13 +4,6 @@ use serde::{de::Visitor, Deserialize, Serialize};
 
 pub mod render_type;
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Test {
-    #[serde(serialize_with = "crate::render::serialize_draw_param")]
-    #[serde(deserialize_with = "crate::render::deserialize_draw_param")]
-    field: DrawParam,
-}
-
 pub fn serialize_draw_param<S>(value: &DrawParam, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: serde::Serializer,

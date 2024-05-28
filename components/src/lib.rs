@@ -39,7 +39,7 @@ pub fn init_components(world: &mut World) -> () {
         register_custom_inspection::<render::Renderer>(world, type_registry);
 
         register_component::<theo_matthew_game::TextRenderer>(world, type_registry);
-        register_custom_inspection::<render::Renderer>(world, type_registry);
+        register_custom_inspection::<theo_matthew_game::TextRenderer>(world, type_registry);
 
         register_component::<collider::Collider>(world, type_registry);
         register_component::<collider::mesh_renderer::MeshRenderer>(world, type_registry);

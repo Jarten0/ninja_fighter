@@ -132,8 +132,26 @@ impl SerializedSceneData {
                 let type_info = component_registration.type_info();
 
                 let mut deserializer = serde_json::Deserializer::from_str(component_data.as_str());
-                let value = reflect_deserialize.deserialize(&mut deserializer).unwrap();
+
+                let value = match reflect_deserialize.deserialize(&mut deserializer) {
+                    Ok(ok) => ok,
+                    Err(err) => {
+                        log::error!(
+                            "Could not deserialize {} [{}]",
+                            component_path,
+                            err.to_string()
+                        );
+                        continue;
+                    }
+                };
                 deserializer.end().unwrap();
+
+                type_registry
+                    .get_with_type_path((*value).reflect_type_path())
+                    .unwrap()
+                    .data::<ReflectComponent>()
+                    .unwrap()
+                    .apply_or_insert(&mut entity, &*value, type_registry);
             }
             entities.push(entity.id());
         }
