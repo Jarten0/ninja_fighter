@@ -1,11 +1,46 @@
 {
-    "name": "Theo Matthew Game",
-    "entity_data": {
-        "Text Render Object": {
-            "components::protag::ProtagController": "{\n  \"acc\": 0.0,\n  \"decel\": 0.0,\n  \"jump_power\": 0.0,\n  \"speed_cap\": 0.0,\n  \"fall_acc\": 0.0,\n  \"max_fall_speed\": 0.0\n}",
-            "components::protag::Protag": "null",
-            "components::theo_matthew_game::TextRenderer": "{\n  \"draw_param\": {\n    \"src\": {\n      \"x\": 0.0,\n      \"y\": 0.0,\n      \"w\": 1.0,\n      \"h\": 1.0\n    },\n    \"color\": {\n      \"r\": 1.0,\n      \"g\": 1.0,\n      \"b\": 1.0,\n      \"a\": 1.0\n    },\n    \"z\": 0\n  }\n}"
+  "name": "Theo Matthew Game",
+  "entity_data": {
+    "Text Render Object": {
+      "components::theo_matthew_game::TextRenderer": {
+        "draw_param": {
+          "color": {
+            "a": 1.0,
+            "b": 1.0,
+            "g": 1.0,
+            "r": 1.0
+          },
+          "src": {
+            "h": 1.0,
+            "w": 1.0,
+            "x": 0.0,
+            "y": 0.0
+          },
+          "z": 0
+        },
+        "text_object": {
+          "fragments": [
+            [
+              "Text yay",
+              {
+                "a": 1.0,
+                "b": 1.0,
+                "g": 1.0,
+                "r": 1.0
+              }
+            ]
+          ]
         }
-    },
-    "asset_data": {}
+      },
+      "components::protag::ProtagController": {
+        "acc": 3.799999952316284,
+        "decel": 5.550000190734863,
+        "fall_acc": 4.0,
+        "jump_power": 3.799999952316284,
+        "max_fall_speed": 6.5,
+        "speed_cap": 4.400000095367432
+      }
+    }
+  },
+  "asset_data": {}
 }

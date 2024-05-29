@@ -18,6 +18,8 @@ impl log::Log for Logger {
         if crate_name == "wgpu_core" {
             return false;
         }
+        // dbg!(crate_name);
+
         ["engine", "game", "editor", "components"].contains(&crate_name)
     }
 

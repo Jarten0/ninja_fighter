@@ -21,7 +21,7 @@ pub fn deserialize_draw_param<'de, D>(deserializer: D) -> Result<DrawParam, D::E
 where
     D: serde::Deserializer<'de>,
 {
-    deserializer.deserialize_struct("DrawParam", &["src", "color", "z"], DrawParamVisitor)
+    deserializer.deserialize_struct("DrawParam", &["color", "src", "z"], DrawParamVisitor)
 }
 
 pub(crate) struct DrawParamVisitor;
@@ -31,5 +31,34 @@ impl<'de> Visitor<'de> for DrawParamVisitor {
 
     fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(formatter, "a DrawParam struct")
+    }
+
+    fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+    where
+        A: serde::de::MapAccess<'de>,
+    {
+        let mut color = None;
+        let mut src = None;
+        let mut z = None;
+
+        loop {
+            if let Some(key) = map.next_key::<String>()? {
+                match key.as_str() {
+                    "color" => color = Some(map.next_value::<ggez::graphics::Color>()?),
+                    "src" => src = Some(map.next_value::<ggez::graphics::Rect>()?),
+                    "z" => z = Some(map.next_value::<i32>()?),
+                    _ => continue,
+                }
+            } else {
+                break;
+            }
+        }
+
+        Ok(DrawParam {
+            src: src.expect("expected a src field in the map"),
+            color: color.expect("expected a color field in the map"),
+            transform: ggez::graphics::Transform::default(),
+            z: z.expect("expected a z field in the map"),
+        })
     }
 }

@@ -1,10 +1,12 @@
+use core::panic;
+
 use bevy_ecs::component::Component;
 use bevy_ecs::reflect::ReflectComponent;
 use bevy_ecs::system::{IntoSystem, Query, ResMut};
 use bevy_reflect::Reflect;
 use engine::editor::FieldWidget;
 use engine::GgezInterface;
-use ggez::graphics;
+use ggez::graphics::{self, TextFragment};
 use serde::de::Visitor;
 use serde::{Deserialize, Serialize};
 
@@ -13,7 +15,7 @@ use crate::render::draw_param_ui;
 #[derive(Default, Component, Reflect, Serialize, Deserialize)]
 #[reflect(Component)]
 pub struct TextRenderer {
-    #[reflect(ignore)]
+    #[reflect(ignore)] //invisible reflection bug AAAAAAAAAAAAAAAAAAAAAAAAAA
     #[serde(serialize_with = "crate::theo_matthew_game::serialize_ggez_text")]
     #[serde(deserialize_with = "crate::theo_matthew_game::deserialize_ggez_text")]
     pub text_object: ggez::graphics::Text,
@@ -33,17 +35,6 @@ impl FieldWidget for TextRenderer {
 
             ui.collapsing("Fragment Options", |ui| {
                 text_fragment_color_ui(fragment, ui);
-
-                // if let None = fragment.scale {
-                //     fragment.scale = Some(Px)
-                // }
-                // ui.add(egui::DragValue::new(fragment.scale.))
-
-                // if let None = fragment.font {
-                //     fragment.font = Some("Font Name".to_owned())
-                // }
-                // let font_string = fragment.font.unwrap();
-                // ui.text_edit_singleline(fragment.font)
 
                 draw_param_ui(ui, &mut field_value.draw_param)
             });
@@ -120,14 +111,13 @@ where
     use serde::ser::SerializeStruct;
     let mut s = serializer.serialize_struct("Text Renderer", 1)?;
 
-    s.serialize_field(
-        "fragments",
-        &value
-            .fragments()
-            .iter()
-            .map(|fragment| (&fragment.text, &fragment.color))
-            .collect::<Vec<(&String, &Option<graphics::Color>)>>(),
-    );
+    let mut serialized_fragments: Vec<(&String, &Option<graphics::Color>)> = value
+        .fragments()
+        .iter()
+        .map(|fragment: &TextFragment| (&fragment.text, &fragment.color))
+        .collect::<Vec<(&String, &Option<graphics::Color>)>>();
+
+    s.serialize_field("fragments", &serialized_fragments);
 
     s.end()
 }
@@ -148,11 +138,37 @@ impl<'de> Visitor<'de> for TextVisitor {
         write!(formatter, "a ggez::graphics::Text struct")
     }
 
-    fn visit_map<A>(self, map: A) -> Result<Self::Value, A::Error>
+    fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
     where
         A: serde::de::MapAccess<'de>,
     {
-        TryInto::<()>::try_into(map);
-        panic!();
+        let mut fragments = None;
+
+        if let Some((key, value)) =
+            map.next_entry::<String, Vec<(String, Option<graphics::Color>)>>()?
+        {
+            match key.as_str() {
+                "fragments" => fragments = Some(value),
+                _ => panic!("Unknown key {}", key),
+            }
+        }
+        let mut renderer = graphics::Text::default();
+
+        for (text, color) in fragments.expect("expected a fragment sequence") {
+            let fragment = ggez::graphics::TextFragment::new(text).color(match color {
+                Some(some) => {
+                    log::info!("found color");
+                    some
+                }
+                None => {
+                    log::info!("did not found color :(");
+                    graphics::Color::WHITE
+                }
+            });
+
+            renderer.add(fragment);
+        }
+
+        Ok(renderer)
     }
 }

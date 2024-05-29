@@ -57,7 +57,7 @@ pub trait ToReflect {
 #[derive(Debug)]
 pub struct SerializedSceneData {
     pub name: String,
-    pub entity_data: HashMap<String, HashMap<String, String>>,
+    pub entity_data: HashMap<String, HashMap<String, serde_json::Value>>,
     pub asset_data: HashMap<String, serde_json::Value>,
 }
 
@@ -131,19 +131,26 @@ impl SerializedSceneData {
 
                 let type_info = component_registration.type_info();
 
-                let mut deserializer = serde_json::Deserializer::from_str(component_data.as_str());
+                let value = &component_data.to_string();
+
+                let mut deserializer = serde_json::Deserializer::from_str(value.as_str());
 
                 let value = match reflect_deserialize.deserialize(&mut deserializer) {
                     Ok(ok) => ok,
                     Err(err) => {
                         log::error!(
-                            "Could not deserialize {} [{}]",
+                            // your deserialization implementation returned an error, so it was omitted.
+                            "Could not deserialize {} [{}] \nvalue: {}",
                             component_path,
-                            err.to_string()
+                            err.to_string(),
+                            value
                         );
                         continue;
                     }
                 };
+
+                dbg!(&value);
+
                 deserializer.end().unwrap();
 
                 type_registry
@@ -152,6 +159,12 @@ impl SerializedSceneData {
                     .data::<ReflectComponent>()
                     .unwrap()
                     .apply_or_insert(&mut entity, &*value, type_registry);
+
+                trace!(
+                    "Inserted {} into {} successfully.",
+                    component_path,
+                    entity.get::<SceneData>().unwrap().entity_name
+                )
             }
             entities.push(entity.id());
         }
