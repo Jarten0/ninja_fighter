@@ -1,5 +1,6 @@
 use crate::assets::SerializableAsset;
 use crate::assets::SerializedAsset;
+use crate::render::DowncastInsert;
 use crate::scene::object_id::ComponentInstanceID;
 use crate::scene::IDCounter;
 
@@ -18,6 +19,7 @@ use bevy_reflect::DynamicTupleStruct;
 use bevy_reflect::List;
 use bevy_reflect::Reflect;
 use bevy_reflect::ReflectDeserialize;
+use bevy_reflect::ReflectMut;
 use bevy_reflect::ReflectOwned;
 use bevy_reflect::Struct;
 use bevy_reflect::TypeInfo;
@@ -131,11 +133,11 @@ impl SerializedSceneData {
 
                 let type_info = component_registration.type_info();
 
-                let value = &component_data.to_string();
+                let value = component_data.to_string();
 
-                let mut deserializer = serde_json::Deserializer::from_str(value.as_str());
+                let mut json = serde_json::Deserializer::from_str(value.as_str());
 
-                let value = match reflect_deserialize.deserialize(&mut deserializer) {
+                let value = match reflect_deserialize.deserialize(&mut json) {
                     Ok(ok) => ok,
                     Err(err) => {
                         log::error!(
@@ -149,16 +151,14 @@ impl SerializedSceneData {
                     }
                 };
 
-                dbg!(&value);
-
-                deserializer.end().unwrap();
+                json.end().unwrap();
 
                 type_registry
                     .get_with_type_path((*value).reflect_type_path())
                     .unwrap()
-                    .data::<ReflectComponent>()
+                    .data::<DowncastInsert>()
                     .unwrap()
-                    .apply_or_insert(&mut entity, &*value, type_registry);
+                    .downcast_insert(&mut entity, value);
 
                 trace!(
                     "Inserted {} into {} successfully.",

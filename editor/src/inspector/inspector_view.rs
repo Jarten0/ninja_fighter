@@ -128,12 +128,14 @@ pub(super) fn draw_inspector<'a>(
                 if let ReflectMut::Struct(s) = reflected.reflect_mut() {
                     if s.field_len() == 0 {
                         if let Some(inspectable) = type_registration.data::<InspectableAsField>() {
-                            inspectable.show(ui, s.as_reflect_mut());
+                            ui.collapsing(display_path.clone(), |ui| {
+                                inspectable.show(ui, s.as_reflect_mut())
+                            });
                             if !debug_mode {
                                 continue;
                             }
                         };
-                        ui.label(display_path.clone());
+                        ui.selectable_label(false, display_path.clone());
                     } else {
                         ui.collapsing(display_path.clone(), |ui| {
                             if let Some(inspectable) =

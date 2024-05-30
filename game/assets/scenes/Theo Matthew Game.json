@@ -1,7 +1,7 @@
 {
   "name": "Theo Matthew Game",
   "entity_data": {
-    "Text Render Object": {
+    "New entity": {
       "components::theo_matthew_game::TextRenderer": {
         "draw_param": {
           "color": {
@@ -21,24 +21,26 @@
         "text_object": {
           "fragments": [
             [
-              "Text yay",
+              "New text  hai :3",
               {
                 "a": 1.0,
-                "b": 1.0,
-                "g": 1.0,
+                "b": 0.3529411852359772,
+                "g": 0.3529411852359772,
                 "r": 1.0
+              }
+            ],
+            [
+              "New text fragment",
+              {
+                "a": 1.0,
+                "b": 0.9450980424880981,
+                "g": 0.7490196228027344,
+                "r": 0.4156862795352936
               }
             ]
           ]
-        }
-      },
-      "components::protag::ProtagController": {
-        "acc": 3.799999952316284,
-        "decel": 5.550000190734863,
-        "fall_acc": 4.0,
-        "jump_power": 3.799999952316284,
-        "max_fall_speed": 6.5,
-        "speed_cap": 4.400000095367432
+        },
+        "unreflected_value": 0
       }
     }
   },

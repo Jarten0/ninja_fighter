@@ -24,7 +24,7 @@ pub mod editor;
 
 use std::any::TypeId;
 
-use bevy_ecs::reflect::ReflectFromWorld;
+use bevy_ecs::reflect::{ReflectComponent, ReflectFromWorld};
 use bevy_ecs::world::{FromWorld, Mut};
 use bevy_reflect::{ReflectDeserialize, ReflectSerialize};
 use bevy_trait_query::RegisterExt as _;
@@ -34,11 +34,13 @@ pub use engine::GgezInterface;
 pub use input::input_cli_editor;
 pub use input::{ActionData, Input, Key};
 pub use logging::LogData;
+use render::draw_param_ui;
 pub use render::render_type::RenderType;
 pub use root::GameRoot;
 use scene::{SceneManager, TestSuperTrait};
 
 use crate::editor::InspectableAsField;
+use crate::render::DowncastInsert;
 
 /// A list of settings that the engine needs in order to operate exactly as you want it to.
 ///
@@ -290,6 +292,7 @@ pub fn register_component<
         type_registry.get_type_info(TypeId::of::<T>())
     );
     type_registry.register_type_data::<T, ReflectFromWorld>();
+    type_registry.register_type_data::<T, DowncastInsert>();
     type_registry.register_type_data::<T, scene::ReflectTestSuperTrait>();
     type_registry.register_type_data::<T, ReflectSerialize>();
     type_registry.register_type_data::<T, ReflectDeserialize>();
@@ -316,7 +319,10 @@ pub fn register_custom_inspection<
 }
 
 #[cfg(feature = "editor_features")]
-pub fn register_custom_serialize<
+pub fn register_custom_serialize<T>(
+    world: &mut bevy_ecs::prelude::World,
+    type_registry: &mut bevy_reflect::TypeRegistry,
+) where
     T: bevy_ecs::component::Component
         + bevy_reflect::Reflect
         + bevy_reflect::GetTypeRegistration
@@ -326,9 +332,6 @@ pub fn register_custom_serialize<
         + TestSuperTrait
         + FromWorld
         + scene::CustomSerialization,
->(
-    world: &mut bevy_ecs::prelude::World,
-    type_registry: &mut bevy_reflect::TypeRegistry,
-) {
+{
     type_registry.register_type_data::<T, scene::CustomSerializationData>();
 }

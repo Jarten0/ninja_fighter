@@ -10,34 +10,43 @@ use ggez::graphics::{self, TextFragment};
 use serde::de::Visitor;
 use serde::{Deserialize, Serialize};
 
-use crate::render::draw_param_ui;
+use engine::render::draw_param_ui;
 
 #[derive(Default, Component, Reflect, Serialize, Deserialize)]
 #[reflect(Component)]
 pub struct TextRenderer {
-    #[reflect(ignore)] //invisible reflection bug AAAAAAAAAAAAAAAAAAAAAAAAAA
     #[serde(serialize_with = "crate::theo_matthew_game::serialize_ggez_text")]
     #[serde(deserialize_with = "crate::theo_matthew_game::deserialize_ggez_text")]
+    #[reflect(ignore)]
     pub text_object: ggez::graphics::Text,
 
-    #[reflect(ignore)]
     #[serde(serialize_with = "engine::render::serialize_draw_param")]
     #[serde(deserialize_with = "engine::render::deserialize_draw_param")]
+    #[reflect(ignore)]
     draw_param: ggez::graphics::DrawParam,
+
+    unreflected_value: i32,
 }
 
 impl FieldWidget for TextRenderer {
     fn ui(value: &mut dyn Reflect, ui: &mut egui::Ui) {
         let field_value = value.downcast_mut::<Self>().unwrap(); //you can use this if your type implements reflect
 
-        for fragment in field_value.text_object.fragments_mut() {
+        for (index, fragment) in field_value
+            .text_object
+            .fragments_mut()
+            .iter_mut()
+            .enumerate()
+        {
             ui.text_edit_multiline(&mut fragment.text);
 
-            ui.collapsing("Fragment Options", |ui| {
-                text_fragment_color_ui(fragment, ui);
+            egui::CollapsingHeader::new("Fragment Options")
+                .id_source(("Fragment Options", index))
+                .show(ui, |ui| {
+                    text_fragment_color_ui(fragment, ui);
 
-                draw_param_ui(ui, &mut field_value.draw_param)
-            });
+                    draw_param_ui(ui, &mut field_value.draw_param);
+                });
         }
 
         if ui.button("Add text fragmet").clicked() {
@@ -47,6 +56,10 @@ impl FieldWidget for TextRenderer {
         if ui.button("Clear text fragments").clicked() {
             field_value.text_object.clear();
         }
+
+        ui.add(egui::DragValue::new(&mut field_value.unreflected_value));
+
+        draw_param_ui(ui, &mut field_value.draw_param);
     }
 }
 
