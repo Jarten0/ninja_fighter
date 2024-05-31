@@ -19,6 +19,7 @@ use crate::SomeError;
 use bevy_ecs::world::*;
 use ggez::event::{self, EventHandler};
 use ggez::graphics::{self, Color};
+use ggez::GameError;
 use ggez::{Context, GameResult};
 use log::debug;
 use log::*;
@@ -381,9 +382,22 @@ impl EventHandler for GameRoot {
         &mut self,
         _ctx: &mut Context,
         _origin: event::ErrorOrigin,
-        _e: ggez::GameError,
+        error: ggez::GameError,
     ) -> bool {
-        eprintln!(r#"Implement error handler :\ {}"#, _e);
+        let vec = &mut self.world.resource_mut::<GgezInterface>().error_log;
+
+        vec.push(error);
+
+        if let GameError::FontSelectError(font_name) = vec.last().unwrap() {
+            log::error!("Could not find font {}", font_name);
+
+            return false;
+        }
+
+        eprintln!(
+            r#"Missing implementation of error handler for {}"#,
+            vec.last().unwrap()
+        );
         true
     }
 }

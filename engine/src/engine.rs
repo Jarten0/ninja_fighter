@@ -21,6 +21,8 @@ where
 {
     current_canvas: Option<Canvas>,
 
+    pub error_log: Vec<ggez::GameError>,
+
     pub(crate) context_ptr: *mut ggez::Context,
 
     /// Whether debug functionality should be enabled or not.
@@ -43,6 +45,7 @@ impl GgezInterface {
             debug_mode: false,
             freeze_mode: FreezeType::NONE,
             engine_config,
+            error_log: Vec::new(),
         }
     }
     /// Returns a reference to the current canvas [`ggez`] will operate on.

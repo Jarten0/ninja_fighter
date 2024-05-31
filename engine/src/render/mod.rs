@@ -74,25 +74,6 @@ impl<'de> Visitor<'de> for DrawParamVisitor {
 #[cfg(feature = "editor_features")]
 pub fn draw_param_ui(ui: &mut egui::Ui, draw_param: &mut DrawParam) {
     ui.collapsing("Draw Param", |ui| {
-        ui.collapsing("src", |ui| {
-            ui.add(egui::DragValue::new(&mut draw_param.src.x));
-            ui.add(egui::DragValue::new(&mut draw_param.src.y));
-            ui.add(egui::DragValue::new(&mut draw_param.src.w));
-            ui.add(egui::DragValue::new(&mut draw_param.src.h));
-        });
-
-        let rgba = draw_param.color.to_rgba();
-        let color_label = ui.label("Color");
-        let mut color32 = egui::Color32::from_rgba_unmultiplied(rgba.0, rgba.1, rgba.2, rgba.3);
-        ui.color_edit_button_srgba(&mut color32)
-            .labelled_by(color_label.id);
-        draw_param.color(ggez::graphics::Color::from_rgba(
-            color32.r(),
-            color32.g(),
-            color32.b(),
-            color32.a(),
-        ));
-
         ui.collapsing("Transform", |ui| match &mut draw_param.transform {
             ggez::graphics::Transform::Values {
                 dest,
@@ -108,11 +89,39 @@ pub fn draw_param_ui(ui: &mut egui::Ui, draw_param: &mut DrawParam) {
             ggez::graphics::Transform::Matrix(matrix) => {
                 ui.label("transform is matrix, which is currently unsupported");
             }
-        });
+        }).header_response.on_hover_text("Where the object will be rendered on the screen.
+Rendering code should not edit this, instead creatinng a new DrawParam with a new dest to move an object
+accordingly to factors outside of the renderer itself, such as compensation for the camera.");
+
+        ui.collapsing("src", |ui| {
+            ui.add(egui::DragValue::new(&mut draw_param.src.x));
+            ui.add(egui::DragValue::new(&mut draw_param.src.y));
+            ui.add(egui::DragValue::new(&mut draw_param.src.w));
+            ui.add(egui::DragValue::new(&mut draw_param.src.h));
+        })
+        .header_response
+        .on_hover_text(
+            "A portion of the drawable to clip, as a fraction of the whole image.
+Defaults to the whole image ([0.0, 0.0] to [1.0, 1.0]) if omitted.",
+        );
 
         let z_label = ui.label("z");
         ui.add(egui::DragValue::new(&mut draw_param.z))
-            .labelled_by(z_label.id);
+            .labelled_by(z_label.id).on_hover_text("The layer in which the object will be rendered according to the canvas.");
+
+        let color_tooltip = "A color picker for setting the color of this drawparam.
+        Note that this may go unused by rendering code.";
+        let rgba = draw_param.color.to_rgba();
+        let color_label = ui.label("Color").on_hover_text(color_tooltip);
+        let mut color32 = egui::Color32::from_rgba_unmultiplied(rgba.0, rgba.1, rgba.2, rgba.3);
+        ui.color_edit_button_srgba(&mut color32)
+            .labelled_by(color_label.id).on_hover_text(color_tooltip);
+        *draw_param = draw_param.color(ggez::graphics::Color::from_rgba(
+            color32.r(),
+            color32.g(),
+            color32.b(),
+            color32.a(),
+        ));
     });
 }
 

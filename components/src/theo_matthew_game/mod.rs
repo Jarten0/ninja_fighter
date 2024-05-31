@@ -6,7 +6,8 @@ use bevy_ecs::system::{IntoSystem, Query, ResMut};
 use bevy_reflect::Reflect;
 use engine::editor::FieldWidget;
 use engine::GgezInterface;
-use ggez::graphics::{self, TextFragment};
+use ggez::graphics::{self, PxScale, TextFragment};
+use ggez::GameError;
 use serde::de::Visitor;
 use serde::{Deserialize, Serialize};
 
@@ -25,50 +26,96 @@ pub struct TextRenderer {
     #[reflect(ignore)]
     draw_param: ggez::graphics::DrawParam,
 
-    unreflected_value: i32,
+    #[serde(skip_serializing)]
+    #[serde(skip_deserializing)]
+    #[reflect(ignore)]
+    fragment_text_buffer: String,
 }
 
 impl FieldWidget for TextRenderer {
     fn ui(value: &mut dyn Reflect, ui: &mut egui::Ui) {
         let field_value = value.downcast_mut::<Self>().unwrap(); //you can use this if your type implements reflect
 
-        for (index, fragment) in field_value
-            .text_object
-            .fragments_mut()
-            .iter_mut()
-            .enumerate()
-        {
-            ui.text_edit_multiline(&mut fragment.text);
+        ui.collapsing("Text Fragments", |ui| {
+            for (index, fragment) in field_value
+                .text_object
+                .fragments_mut()
+                .iter_mut()
+                .enumerate()
+            {
+                ui.text_edit_multiline(&mut fragment.text);
 
-            egui::CollapsingHeader::new("Fragment Options")
-                .id_source(("Fragment Options", index))
-                .show(ui, |ui| {
-                    text_fragment_color_ui(fragment, ui);
+                egui::CollapsingHeader::new("Fragment Options")
+                    .id_source(("Fragment Options", index))
+                    .show(ui, |ui| {
+                        text_fragment_ui(&mut field_value.fragment_text_buffer, fragment, ui);
+                    });
+            }
 
-                    draw_param_ui(ui, &mut field_value.draw_param);
-                });
-        }
+            if ui.button("Add text fragmet").clicked() {
+                field_value.text_object.add("New text fragment");
+            }
 
-        if ui.button("Add text fragmet").clicked() {
-            field_value.text_object.add("New text fragment");
-        }
-
-        if ui.button("Clear text fragments").clicked() {
-            field_value.text_object.clear();
-        }
-
-        ui.add(egui::DragValue::new(&mut field_value.unreflected_value));
+            if ui.button("Clear text fragments").clicked() {
+                field_value.text_object.clear();
+            }
+        });
 
         draw_param_ui(ui, &mut field_value.draw_param);
     }
 }
 
-fn text_fragment_color_ui(fragment: &mut graphics::TextFragment, ui: &mut egui::Ui) {
-    if let None = fragment.color {
-        *fragment = fragment.clone().color(graphics::Color::WHITE);
-    }
+fn text_fragment_ui(
+    font_text_buffer: &mut String,
+    fragment: &mut graphics::TextFragment,
+    ui: &mut egui::Ui,
+) {
+    fragment_color_ui(fragment, ui);
 
-    let mut converter = ColorConverter::from_ggez(fragment.color.unwrap());
+    fragment_scale_ui(fragment, ui);
+
+    // let response = &egui::TextEdit::singleline(font_text_buffer)
+    //     .show(ui)
+    //     .response;
+
+    // if response.gained_focus() {
+    //     *font_text_buffer = match &fragment.font {
+    //         Some(some) => some.to_owned(),
+    //         None => "".to_string(),
+    //     }
+    // }
+
+    // if response.lost_focus() {
+    //     *fragment = fragment.clone().font(font_text_buffer.clone());
+    // }
+}
+
+fn fragment_scale_ui(fragment: &mut TextFragment, ui: &mut egui::Ui) {
+    //scale ui
+    let Some(scale) = &mut fragment.scale else {
+        if ui.button("Give unique scale").clicked() {
+            *fragment = fragment.clone().scale(20.0);
+        }
+        return;
+    };
+
+    ui.horizontal(|ui| {
+        ui.label("Scale");
+        ui.add(egui::DragValue::new(&mut scale.x));
+        ui.add(egui::DragValue::new(&mut scale.y));
+    });
+}
+
+fn fragment_color_ui(fragment: &mut TextFragment, ui: &mut egui::Ui) {
+    //color ui
+    let Some(color) = fragment.color else {
+        if ui.button("Give unique color").clicked() {
+            *fragment = fragment.clone().color(graphics::Color::WHITE);
+        }
+        return;
+    };
+
+    let mut converter = ColorConverter::from_ggez(color);
 
     ui.color_edit_button_srgba(&mut converter.egui_color);
 
@@ -108,7 +155,25 @@ impl ColorConverter {
     }
 }
 
-pub fn render_text_renderers(query: Query<&TextRenderer>, mut engine: ResMut<GgezInterface>) {
+static DEFAULT_FONT: &str = "segoesc.ttf";
+pub fn render_text_renderers(
+    mut query: Query<&mut TextRenderer>,
+    mut engine: ResMut<GgezInterface>,
+) {
+    if let Some(error) = engine.error_log.last() {
+        if let GameError::FontSelectError(font_name) = error {
+            for mut renderer in query.iter_mut() {
+                renderer.text_object.set_font(DEFAULT_FONT);
+                renderer
+                    .text_object
+                    .fragments_mut()
+                    .iter_mut()
+                    .map(|fragment| fragment.font = None);
+            }
+            engine.error_log.pop();
+        }
+    }
+
     for renderer in query.iter() {
         engine
             .get_canvas_mut()
@@ -124,11 +189,22 @@ where
     use serde::ser::SerializeStruct;
     let mut s = serializer.serialize_struct("Text Renderer", 1)?;
 
-    let mut serialized_fragments: Vec<(&String, &Option<graphics::Color>)> = value
+    let mut serialized_fragments = value
         .fragments()
         .iter()
-        .map(|fragment: &TextFragment| (&fragment.text, &fragment.color))
-        .collect::<Vec<(&String, &Option<graphics::Color>)>>();
+        .map(|fragment: &TextFragment| {
+            let scale = match fragment.scale {
+                Some(scale) => Some((scale.x, scale.y)),
+                None => None,
+            };
+            (&fragment.text, &fragment.color, scale, &fragment.font)
+        })
+        .collect::<Vec<(
+            &String,
+            &Option<graphics::Color>,
+            Option<(f32, f32)>,
+            &Option<String>,
+        )>>();
 
     s.serialize_field("fragments", &serialized_fragments);
 
@@ -157,9 +233,12 @@ impl<'de> Visitor<'de> for TextVisitor {
     {
         let mut fragments = None;
 
-        if let Some((key, value)) =
-            map.next_entry::<String, Vec<(String, Option<graphics::Color>)>>()?
-        {
+        if let Some((key, value)) = map.next_entry::<String, Vec<(
+            String,
+            Option<graphics::Color>,
+            Option<(f32, f32)>,
+            Option<String>,
+        )>>()? {
             match key.as_str() {
                 "fragments" => fragments = Some(value),
                 _ => panic!("Unknown key {}", key),
@@ -167,21 +246,43 @@ impl<'de> Visitor<'de> for TextVisitor {
         }
         let mut renderer = graphics::Text::default();
 
-        for (text, color) in fragments.expect("expected a fragment sequence") {
-            let fragment = ggez::graphics::TextFragment::new(text).color(match color {
-                Some(some) => {
-                    log::info!("found color");
-                    some
-                }
-                None => {
-                    log::info!("did not found color :(");
-                    graphics::Color::WHITE
-                }
-            });
-
-            renderer.add(fragment);
+        for (text, color, scale, font) in fragments.expect("expected a fragment sequence") {
+            renderer.add(create_fragment(text, color, scale, font));
         }
 
         Ok(renderer)
     }
+}
+
+fn create_fragment(
+    text: String,
+    color: Option<graphics::Color>,
+    scale: Option<(f32, f32)>,
+    font: Option<String>,
+) -> TextFragment {
+    let mut fragment = ggez::graphics::TextFragment::new(text);
+
+    fragment = (|| {
+        let Some(color) = color else {
+            return fragment;
+        };
+        fragment.color(color)
+    })();
+
+    fragment = (|| {
+        let Some(some) = scale else { return fragment };
+
+        fragment.scale(PxScale {
+            x: some.0,
+            y: some.1,
+        })
+    })();
+
+    fragment = (|| {
+        let Some(font) = font else { return fragment };
+
+        fragment.font(font)
+    })();
+
+    fragment
 }
