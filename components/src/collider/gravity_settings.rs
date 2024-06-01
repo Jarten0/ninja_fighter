@@ -1,11 +1,8 @@
-use std::ops::DerefMut;
-
 use bevy_ecs::component::Component;
 use bevy_ecs::reflect::ReflectComponent;
 use bevy_ecs::system::Query;
 use bevy_reflect::Reflect;
 use engine::space::{self, Position, Velocity};
-use nalgebra::ComplexField;
 use serde::{Deserialize, Serialize};
 
 /// A group of settings for controlling gravitational force for an entity.

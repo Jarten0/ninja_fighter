@@ -1,7 +1,5 @@
 pub mod render_type;
 
-use std::ops::Deref;
-
 use bevy_ecs::component::Component;
 use bevy_ecs::prelude::*;
 use bevy_ecs::system::Query;
@@ -17,7 +15,7 @@ use ggez::graphics::{self as ggraphics, *};
 use engine::space;
 use engine::GgezInterface;
 use ggraphics::Canvas;
-use log::trace;
+
 use serde::Deserialize;
 use serde::Serialize;
 

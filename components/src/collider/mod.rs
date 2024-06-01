@@ -5,18 +5,16 @@ pub mod mesh_editor;
 pub mod mesh_renderer;
 mod traits;
 
-use bevy_ecs::reflect::{self, ReflectComponent, ReflectFromWorld};
 pub use box_collider::BoxCollider;
 pub use convex_mesh::ConvexMesh;
-
-use engine::assets::SceneAssetID;
-use engine::scene::{ObjectID, Scene};
-use ggez::graphics::{self, Drawable};
 pub use gravity_settings::GravitySettings;
 
 use bevy_ecs::component::Component;
+use bevy_ecs::reflect::{ReflectComponent, ReflectFromWorld};
 use bevy_ecs::system::Query;
-use bevy_reflect::{FromReflect, Reflect, ReflectSerialize};
+use bevy_reflect::{Reflect, ReflectSerialize};
+use engine::assets::SceneAssetID;
+use engine::scene::Scene;
 use engine::space::Position;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

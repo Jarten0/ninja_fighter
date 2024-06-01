@@ -1,7 +1,6 @@
-use std::collections::HashMap;
-
+use super::traits::RenderableMesh;
+use super::{Collider, SuperMesh};
 use bevy_ecs::component::Component;
-
 use bevy_ecs::reflect::ReflectComponent;
 use bevy_ecs::system::{Query, Res, ResMut};
 use bevy_reflect::Reflect;
@@ -9,52 +8,7 @@ use engine::scene::ObjectID;
 use engine::{Camera, GgezInterface};
 use ggez::graphics::{self, *};
 use serde::{Deserialize, Serialize};
-
-use super::traits::RenderableMesh;
-use super::{convex_mesh, Collider, SuperMesh};
-
-// TODO: Rewrite functionality when meshes are stored in global resources
-// pub fn update(
-//     query: Query<(&mut MeshRenderer, &Collider)>,
-//     engine: Res<GgezInterface>,
-//     input: Res<engine::Input>,
-//     editor: Res<MeshEditor>,
-// ) {
-//     for (mut renderer, collider) in query.iter_mut() {
-//         // Each draw vertex *must* be at the same coordinates as the mesh's corresponding vertex
-//         for index in 0..renderer.debug_vertecies.len() {
-//             renderer.debug_vertecies[index].position =
-//                 (*collider.get_vertex(index).unwrap().clone()).into();
-//         }
-//
-//         collider.build_indices();
-//
-//         // update draw vertices
-//
-//         let vertices = collider.vertices.to_owned();
-//         for (index, vtx) in renderer.debug_vertecies.iter_mut().enumerate().into_iter() {
-//             let vertex = vertices.get(index).unwrap();
-//             vtx.position = [vertex.x, vertex.y];
-//             vtx.color = Color::RED.into();
-//         }
-//
-//         if let Some(index) = renderer.focused_vertex {
-//             renderer.debug_vertecies.get_mut(index).unwrap().color = Color::GREEN.into();
-//         }
-//
-//         renderer.draw_mesh = Some(Mesh::from_data(
-//             &engine.get_context().gfx,
-//             MeshData {
-//                 vertices: &renderer.debug_vertecies,
-//                 indices: &renderer.indices,
-//             },
-//         ));
-//
-//         if input.get_action("debuglog").unwrap().is_just_pressed() {
-//             dbg!(collider);
-//         }
-//     }
-// }
+use std::collections::HashMap;
 
 // TODO: Rewrite functionality same as above
 /// Draws collider vertecies/edges if debug is enabled
@@ -70,19 +24,13 @@ pub fn draw(
         // dont worry about it for now, just take those initial parameters
         let final_param = initial_param.clone();
 
-        for (mesh_id, mesh) in &collider.meshes {
+        for (_mesh_id, mesh) in &collider.meshes {
             let drawable = match mesh {
                 super::MeshType::Convex(convex_mesh) => {
                     convex_mesh.into_graphics_mesh(&engine.get_context().gfx)
                 }
             };
 
-            // if let Some(ovrd) = renderer.get_override(*mesh_id) {
-            //     engine
-            //         .get_canvas_mut()
-            //         .expect("ColliderMesh should only be called in a draw schedule")
-            //         .draw(&drawable, ovrd.draw_param.unwrap());
-            // } else {
             engine
                 .get_canvas_mut()
                 .expect("ColliderMesh should only be called in a draw schedule")

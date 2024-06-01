@@ -3643,6 +3643,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "theo_matthew_game"
+version = "0.1.0"
+dependencies = [
+ "bevy_ecs",
+ "components",
+ "editor",
+ "engine",
+ "ggez",
+ "log",
+]
+
+[[package]]
 name = "thiserror"
 version = "1.0.57"
 source = "registry+https://github.com/rust-lang/crates.io-index"

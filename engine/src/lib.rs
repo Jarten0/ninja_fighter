@@ -50,7 +50,7 @@ pub struct EngineConfig {
     /// Set a list of file paths that lead to serialized [`Scene`](crate::scene::Scene)'s. The first one will be loaded on startup if given,
     /// and others will automatically be added to the list of immediately accessable scenes.  
     // TODO: Update when I redo the scene loading system to replace JSON with ron and when this gets replaced with a file path leading to a file containing a list of scenes.
-    pub scene_paths: &'static [&'static str],
+    pub external_scene_paths: &'static [&'static str],
     /// A path to a given directory that stores scenes to automatically load, and where new scenes are stored.
     ///
     /// If given an empty or invalid string, the engine will instead manually prompt the user to where a scene
@@ -118,6 +118,7 @@ impl ToString for EngineConfigError {
     }
 }
 
+/// General error type that is a sum of many different types.
 #[derive(Debug)]
 pub enum SomeError {
     Scene(crate::scene::SceneError),

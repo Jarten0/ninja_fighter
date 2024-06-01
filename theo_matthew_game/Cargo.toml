@@ -1,0 +1,25 @@
+[package]
+name = "theo_matthew_game"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+engine = { version = "0.1.0", path = "../engine", features = [
+    "editor_features",
+] }
+ggez.workspace = true
+bevy_ecs.workspace = true
+components = { version = "0.1.0", path = "../components" }
+log = "0.4.21"
+editor = { version = "0.1.0", path = "../editor" }
+
+
+[[bin]]
+name = "matthewgame"
+path = "src/bin/release_build.rs"
+
+[[bin]]
+name = "mgeditor"
+path = "src/bin/editor.rs"

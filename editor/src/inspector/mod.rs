@@ -40,7 +40,7 @@ where
 }
 
 impl EditorGUI {
-    pub(crate) fn new(ctx: &mut ggez::Context, world: &mut World) -> Self {
+    pub fn new(ctx: &mut ggez::Context, world: &mut World) -> Self {
         Self {
             gui: ggegui::Gui::new(ctx),
             dock_state: DockState::new(vec![]),

@@ -7,7 +7,7 @@ pub static INITIAL_SCENE: &str = "game/assets/scenes/Theo Matthew Game.json";
 pub static SCENE_FOLDER: &str = "game/assets/scenes/";
 
 pub static ENGINE_CONFIG: EngineConfig = EngineConfig {
-    scene_paths: &[INITIAL_SCENE],
+    external_scene_paths: &[INITIAL_SCENE],
     scenes_folder: Some(SCENE_FOLDER),
     world_init: init_components_and_resources,
     ticks_per_second: 60,

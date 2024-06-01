@@ -112,7 +112,7 @@ impl GameRoot {
         root.world
             .resource_scope::<SceneManager, Result<(), SomeError>>(|world, mut res| {
                 let path_str = config
-                    .scene_paths
+                    .external_scene_paths
                     .get(0)
                     .ok_or(SomeError::EngineConfig(EngineConfigError::NoScenePaths))?;
 
@@ -133,18 +133,24 @@ impl GameRoot {
                     }
                 };
 
+                trace!("Loaded default scene from EngineConfig");
+
                 Ok(())
             })?;
 
-        trace!("Loaded default scene from EngineConfig");
-
-        root.world.run_schedule(ScheduleTag::Init);
-
-        if config.run_debug_schedules {
-            root.world.run_schedule(ScheduleTag::DebugInit);
+        if let Err(err) = root.world.try_run_schedule(ScheduleTag::Init) {
+            log::info!("No Init schedule found.");
+        } else {
+            trace!("Ran Init schedule.");
         }
 
-        trace!("Ran init schedule!");
+        if config.run_debug_schedules {
+            if let Err(err) = root.world.try_run_schedule(ScheduleTag::DebugInit) {
+                log::info!("No DebugInit schedule found.")
+            } else {
+                trace!("Ran DebugInit schedule.");
+            }
+        }
 
         Ok(root)
     }

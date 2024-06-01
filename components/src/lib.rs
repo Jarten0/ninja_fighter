@@ -1,4 +1,4 @@
-#![allow(unused)]
+// #![allow(unused)]
 
 //! Home to all game logic and custom built scripts.
 //!
@@ -10,20 +10,14 @@
 //! so that the end user can hand off that small but bothersome responsibility of looking through the crate to find every component.
 //! It can also be inlined later for removing any unused components if initialization performance is critical.
 
-use std::any::Any;
-use std::collections::HashMap;
-
 use bevy_ecs::prelude::*;
-use bevy_reflect::{Reflect, ReflectSerialize, TypeRegistration, TypeRegistry};
-use collider::mesh_editor::MeshEditor;
+use bevy_reflect::ReflectSerialize;
 use collider::MeshType;
 use engine::assets::SceneAssetID;
 use engine::{register_component, scene::SceneManager};
-use engine::{
-    register_custom_inspection, register_custom_serialize, register_enum, register_primitive_value,
-};
+use engine::{register_custom_inspection, register_enum};
+use std::collections::HashMap;
 
-// #[allow(unused)]
 pub mod collider;
 pub mod editor_windows;
 pub mod protag;
@@ -31,8 +25,6 @@ pub mod render;
 pub mod theo_matthew_game;
 
 pub fn init_components(world: &mut World) -> () {
-    world.insert_resource(MeshEditor::default());
-
     world.resource_scope(|world: &mut World, mut manager: Mut<SceneManager>| {
         let type_registry = &mut manager.type_registry;
         register_component::<render::Renderer>(world, type_registry);
@@ -56,5 +48,3 @@ pub fn init_components(world: &mut World) -> () {
         type_registry.register_type_data::<HashMap<SceneAssetID, MeshType>, ReflectSerialize>();
     });
 }
-
-fn register_for_generic_types<T>(type_registry: &mut TypeRegistry) {}

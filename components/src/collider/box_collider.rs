@@ -1,8 +1,5 @@
-use std::collections::HashMap;
-
 use crate::collider::convex_mesh::ConvexMesh;
 use crate::collider::mesh_renderer::MeshRenderer;
-use crate::collider::traits::SuperMesh;
 use crate::collider::{Collider, MeshType};
 use bevy_ecs::bundle::Bundle;
 use engine::scene::Scene;

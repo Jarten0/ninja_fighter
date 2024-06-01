@@ -2,7 +2,7 @@
 [workspace]
 resolver = "2"
 
-members = ["game", "engine", "components", "editor", "playground"]
+members = ["game", "engine", "components", "editor", "playground", "theo_matthew_game"]
 
 
 [profile]
