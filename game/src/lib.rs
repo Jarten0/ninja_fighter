@@ -72,7 +72,7 @@ pub fn frame_schedule() -> Schedule {
             // insert draw systems here
             render::draw,
             components::collider::mesh_renderer::draw,
-            components::theo_matthew_game::render_text_renderers,
+            components::text_renderer::render_text_renderers,
             // components::collider::mesh_editor::draw_editor_interface,
         )
             .chain(),

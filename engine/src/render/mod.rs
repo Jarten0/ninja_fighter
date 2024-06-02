@@ -111,17 +111,19 @@ Defaults to the whole image ([0.0, 0.0] to [1.0, 1.0]) if omitted.",
 
         let color_tooltip = "A color picker for setting the color of this drawparam.
         Note that this may go unused by rendering code.";
-        let rgba = draw_param.color.to_rgba();
+        
+        
         let color_label = ui.label("Color").on_hover_text(color_tooltip);
-        let mut color32 = egui::Color32::from_rgba_unmultiplied(rgba.0, rgba.1, rgba.2, rgba.3);
-        ui.color_edit_button_srgba(&mut color32)
-            .labelled_by(color_label.id).on_hover_text(color_tooltip);
-        *draw_param = draw_param.color(ggez::graphics::Color::from_rgba(
-            color32.r(),
-            color32.g(),
-            color32.b(),
-            color32.a(),
-        ));
+
+        let color = draw_param.color;
+        
+        let mut rgba = egui::Rgba::from_rgba_unmultiplied(color.r, color.g, color.b, color.a);
+        egui::color_picker::color_edit_button_rgba(ui, &mut rgba, egui::color_picker::Alpha::Opaque);
+        draw_param.color = rgba.to_array().into();
+
+        
+        
+        
     });
 }
 

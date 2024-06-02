@@ -11,7 +11,7 @@ use engine::{space, Input};
 use ggez::graphics::{self, Color, DrawParam, Image, Rect};
 use serde::{Deserialize, Serialize};
 
-pub fn init(mut commands: Commands, _engine: Res<GgezInterface>) {
+pub fn init(_commands: Commands, _engine: Res<GgezInterface>) {
     // commands.spawn(ProtagBundle::new(&engine));
     // commands
     //     .spawn(BoxCollider::new((100.0, 100.0).into()))

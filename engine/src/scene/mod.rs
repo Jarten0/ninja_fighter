@@ -8,16 +8,6 @@ mod serialized_scene;
 #[cfg(test)]
 mod test;
 
-use std::any::TypeId;
-
-use bevy_ecs::reflect::ReflectFromWorld;
-use bevy_ecs::world::FromWorld;
-use bevy_ecs::{component::Component, world::Mut};
-use bevy_reflect::{FromReflect, GetTypeRegistration, Reflect, TypePath};
-use bevy_trait_query::RegisterExt;
-
-use crate::editor::{FieldWidget, InspectableAsField};
-use crate::space::{self, Vector2};
 pub use component::Scene;
 pub use component::{
     add_entity_to_scene, create_serializable_scene_data, load_scene, new_scene, save_scene,

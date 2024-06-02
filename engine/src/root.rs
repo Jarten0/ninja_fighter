@@ -129,7 +129,7 @@ impl GameRoot {
                     #[cfg(not(feature = "editor_features"))]
                     {
                         log::error!("Load failed! {}", err.to_string());
-                        return Err(err);
+                        return Err(SomeError::Scene(err));
                     }
                 };
 
@@ -144,6 +144,7 @@ impl GameRoot {
             trace!("Ran Init schedule.");
         }
 
+        #[cfg(feature = "editor_features")]
         if config.run_debug_schedules {
             if let Err(err) = root.world.try_run_schedule(ScheduleTag::DebugInit) {
                 log::info!("No DebugInit schedule found.")

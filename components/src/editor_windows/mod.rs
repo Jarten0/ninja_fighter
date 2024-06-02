@@ -1,18 +1,15 @@
 use bevy_ecs::entity::Entity;
 use engine::assets::SceneAssetID;
-use engine::scene::{ObjectID, Scene, SceneData, SceneManager};
+use engine::scene::{Scene, SceneData, SceneManager};
 use engine::space::Vertex;
 use engine::GgezInterface;
 use ggez::graphics::{self, DrawParam, Drawable};
-use log::trace;
 
-use crate::collider::mesh_renderer::MeshOverride;
 use crate::collider::{Collider, ConvexMesh, MeshType};
 
 #[derive(Debug, Default)]
 pub struct MeshEditorTab {
     focus_state: MeshEditorFocusState,
-    entity_list: Option<Vec<Entity>>,
     vertex_mesh: Option<graphics::Mesh>,
 }
 
@@ -127,7 +124,7 @@ impl engine::editor::EditorTab for MeshEditorTab {
                 entity_name,
                 creating_asset_name,
             } => {
-                let Ok(mut collider) = window_state
+                let Ok(collider) = window_state
                     .world_mut()
                     .query::<&mut Collider>()
                     .get_mut(window_state.world_mut(), *entity)
@@ -242,7 +239,7 @@ impl engine::editor::EditorTab for MeshEditorTab {
     fn draw(&self, window_state: &engine::editor::WindowState, engine: &mut GgezInterface) {
         let MeshEditorFocusState::Mesh {
             entity,
-            entity_name,
+            entity_name: _,
             mesh_id,
         } = &self.focus_state
         else {
@@ -290,7 +287,7 @@ fn convex_vertices_ui(mesh: &mut ConvexMesh, ui: &mut egui::Ui) {
     let mut from = None;
     let mut to = None;
     for (vertex_index, vertex) in mesh.vertices.iter_mut().enumerate() {
-        let response = ui.horizontal(|ui| {
+        ui.horizontal(|ui| {
             let response =
                 ui.dnd_drop_zone::<usize>(egui::Frame::default().inner_margin(8.0), |ui| {
                     let response = ui
@@ -300,14 +297,14 @@ fn convex_vertices_ui(mesh: &mut ConvexMesh, ui: &mut egui::Ui) {
                                 mesh.mesh_id,
                                 vertex_index,
                             )),
-                            (vertex_index),
+                            vertex_index,
                             |ui| {
                                 ui.label(vertex_index.to_string());
                             },
                         )
                         .response;
 
-                    if let (Some(pointer), Some(hovered_payload)) = (
+                    if let (Some(_pointer), Some(_hovered_payload)) = (
                         ui.input(|i| i.pointer.interact_pos()),
                         response.dnd_hover_payload::<usize>(),
                     ) {
@@ -324,7 +321,7 @@ fn convex_vertices_ui(mesh: &mut ConvexMesh, ui: &mut egui::Ui) {
             response
         });
     }
-    if let (Some(from), Some(mut to)) = (from, to) {
+    if let (Some(from), Some(to)) = (from, to) {
         mesh.vertices.swap(*from, to);
     }
 }

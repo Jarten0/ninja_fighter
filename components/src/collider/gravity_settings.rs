@@ -1,8 +1,7 @@
 use bevy_ecs::component::Component;
 use bevy_ecs::reflect::ReflectComponent;
-use bevy_ecs::system::Query;
 use bevy_reflect::Reflect;
-use engine::space::{self, Position, Velocity};
+use engine::space;
 use serde::{Deserialize, Serialize};
 
 /// A group of settings for controlling gravitational force for an entity.
@@ -32,29 +31,29 @@ impl Default for GravitySettings {
     }
 }
 
-pub fn update_gravity_velocity(
-    mut query: Query<(
-        &GravitySettings,
-        Option<&mut Velocity>,
-        Option<&mut Position>,
-    )>,
-) {
-    for (gravity, velocity, position) in query.iter_mut() {
-        if let Some(mut velocity) = velocity {
-            let gravity_vec = gravity.force.normalized();
+// pub fn update_gravity_velocity(
+//     mut query: Query<(
+//         &GravitySettings,
+//         Option<&mut Velocity>,
+//         Option<&mut Position>,
+//     )>,
+// ) {
+//     for (gravity, velocity, position) in query.iter_mut() {
+//         if let Some(mut velocity) = velocity {
+//             let gravity_vec = gravity.force.normalized();
 
-            if velocity.x > gravity.force.x {
-                let translation = gravity.force
-                    - ((**velocity) - (gravity.force.normalized() * gravity.force_cap));
+//             if velocity.x > gravity.force.x {
+//                 let translation = gravity.force
+//                     - ((**velocity) - (gravity.force.normalized() * gravity.force_cap));
 
-                velocity.translate(&translation);
-            }
+//                 velocity.translate(&translation);
+//             }
 
-            velocity.translate(&gravity.force);
-        } else {
-            if let Some(mut position) = position {
-                position.translate(&gravity.force);
-            }
-        }
-    }
-}
+//             velocity.translate(&gravity.force);
+//         } else {
+//             if let Some(mut position) = position {
+//                 position.translate(&gravity.force);
+//             }
+//         }
+//     }
+// }

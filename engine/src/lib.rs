@@ -29,16 +29,20 @@ use bevy_ecs::world::{FromWorld, Mut};
 use bevy_reflect::{ReflectDeserialize, ReflectSerialize};
 use bevy_trait_query::RegisterExt as _;
 pub use camera::Camera;
+#[cfg(feature = "editor_features")]
 use editor::FieldWidget;
 pub use engine::GgezInterface;
 pub use input::input_cli_editor;
 pub use input::{ActionData, Input, Key};
 pub use logging::LogData;
+#[cfg(feature = "editor_features")]
 use render::draw_param_ui;
 pub use render::render_type::RenderType;
 pub use root::GameRoot;
-use scene::{SceneManager, TestSuperTrait};
+use scene::SceneManager;
+use scene::TestSuperTrait;
 
+#[cfg(feature = "editor_features")]
 use crate::editor::InspectableAsField;
 use crate::render::DowncastInsert;
 
@@ -175,7 +179,7 @@ pub fn register_scene_types(world: &mut bevy_ecs::world::World) {
 }
 
 /// Registers the value into the type registry with inspector type data
-// #[cfg(features = "editor_features")]
+#[cfg(features = "editor_features")]
 pub fn register_primitive_value<T>(type_registry: &mut bevy_reflect::TypeRegistry)
 where
     T: bevy_reflect::Reflect
@@ -195,6 +199,27 @@ where
     );
     type_registry.register_type_data::<T, ReflectFromWorld>();
     type_registry.register_type_data::<T, InspectableAsField>();
+    type_registry.register_type_data::<T, ReflectSerialize>();
+    type_registry.register_type_data::<T, ReflectDeserialize>();
+}
+#[cfg(not(features = "editor_features"))]
+pub fn register_primitive_value<T>(type_registry: &mut bevy_reflect::TypeRegistry)
+where
+    T: bevy_reflect::Reflect
+        + bevy_reflect::GetTypeRegistration
+        + bevy_reflect::FromReflect
+        + bevy_reflect::TypePath
+        + Default
+        + FromWorld
+        + serde::Serialize
+        + for<'b> serde::Deserialize<'b>,
+{
+    type_registry.register::<T>();
+    log::trace!(
+        "Registered value type {:?}\n",
+        type_registry.get_type_info(std::any::TypeId::of::<T>())
+    );
+    type_registry.register_type_data::<T, ReflectFromWorld>();
     type_registry.register_type_data::<T, ReflectSerialize>();
     type_registry.register_type_data::<T, ReflectDeserialize>();
 }

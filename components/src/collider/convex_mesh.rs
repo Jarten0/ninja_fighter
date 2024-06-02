@@ -313,9 +313,9 @@ impl Serialize for SerializedDrawMesh {
         )?;
         serialize_struct.serialize_field("indices", &self.indicies)?;
 
-        todo!();
+        serialize_struct.end()?;
 
-        serialize_struct.end()
+        todo!();
     }
 }
 

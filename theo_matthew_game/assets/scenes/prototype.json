@@ -1,5 +1,43 @@
 {
   "name": "prototype",
-  "entity_data": {},
+  "entity_data": {
+    "New entity": {
+      "components::text_renderer::TextRenderer": {
+        "draw_param": {
+          "color": {
+            "a": 1.0,
+            "b": 1.0,
+            "g": 1.0,
+            "r": 1.0
+          },
+          "src": {
+            "h": 1.0,
+            "w": 1.0,
+            "x": 0.0,
+            "y": 0.0
+          },
+          "z": 0
+        },
+        "text_object": {
+          "fragments": [
+            [
+              ":)",
+              {
+                "a": 1.0,
+                "b": 1.0,
+                "g": 1.0,
+                "r": 1.0
+              },
+              [
+                20.0,
+                20.0
+              ],
+              null
+            ]
+          ]
+        }
+      }
+    }
+  },
   "asset_data": {}
 }

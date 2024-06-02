@@ -7,6 +7,7 @@ use ggez::graphics::Vertex as DrawVertex;
 use serde::Deserialize;
 use serde::Serialize;
 
+#[cfg(feature = "editor_features")]
 use crate::editor::FieldWidget;
 
 use super::Vector2;
@@ -14,6 +15,7 @@ use super::Vector2;
 #[derive(Debug, Default, Clone, Copy, Serialize, Deserialize, Reflect)]
 pub struct Vertex(Vector2);
 
+#[cfg(feature = "editor_features")]
 impl FieldWidget for Vertex {
     fn ui(value: &mut dyn Reflect, ui: &mut egui::Ui) {
         let value = value.downcast_mut::<Self>().unwrap(); //you can use this if your type implements reflect

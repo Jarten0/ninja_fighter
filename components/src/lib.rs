@@ -1,5 +1,3 @@
-// #![allow(unused)]
-
 //! Home to all game logic and custom built scripts.
 //!
 //! Any component files can be added and removed without worry.
@@ -9,6 +7,7 @@
 //! When developing any component library, it's reccomended to have a wildcard-like function that initializes every component in a library
 //! so that the end user can hand off that small but bothersome responsibility of looking through the crate to find every component.
 //! It can also be inlined later for removing any unused components if initialization performance is critical.
+#![allow(unused)]
 
 use bevy_ecs::prelude::*;
 use bevy_reflect::ReflectSerialize;
@@ -19,10 +18,11 @@ use engine::{register_custom_inspection, register_enum};
 use std::collections::HashMap;
 
 pub mod collider;
+#[cfg(feature = "editor_features")]
 pub mod editor_windows;
 pub mod protag;
 pub mod render;
-pub mod theo_matthew_game;
+pub mod text_renderer;
 
 pub fn init_components(world: &mut World) -> () {
     world.resource_scope(|world: &mut World, mut manager: Mut<SceneManager>| {
@@ -30,8 +30,8 @@ pub fn init_components(world: &mut World) -> () {
         register_component::<render::Renderer>(world, type_registry);
         register_custom_inspection::<render::Renderer>(world, type_registry);
 
-        register_component::<theo_matthew_game::TextRenderer>(world, type_registry);
-        register_custom_inspection::<theo_matthew_game::TextRenderer>(world, type_registry);
+        register_component::<text_renderer::TextRenderer>(world, type_registry);
+        register_custom_inspection::<text_renderer::TextRenderer>(world, type_registry);
 
         register_component::<collider::Collider>(world, type_registry);
         register_component::<collider::mesh_renderer::MeshRenderer>(world, type_registry);

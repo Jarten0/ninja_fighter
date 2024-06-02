@@ -6,9 +6,7 @@ use bevy_ecs::system::Query;
 use bevy_ecs::system::Res;
 use bevy_ecs::system::ResMut;
 use bevy_reflect::Reflect;
-use bevy_reflect::Struct;
 use engine::editor::FieldWidget;
-use engine::scene::CustomSerialization;
 use engine::Camera;
 use ggez::graphics::{self as ggraphics, *};
 
@@ -191,26 +189,5 @@ impl Renderer {
     pub fn set(&mut self, draw_param: DrawParam, offset: space::Vector2) {
         self.draw_param = draw_param;
         self.offset = offset;
-    }
-}
-
-impl CustomSerialization for Renderer {
-    fn serialize_data(
-        type_data: &engine::scene::CustomSerializationData,
-        value: &dyn Reflect,
-    ) -> serde_json::Map<String, serde_json::Value> {
-        let value = value.downcast_ref::<Self>().unwrap();
-
-        let mut map = serde_json::Map::new();
-
-        let draw_param = value.field("draw_param").unwrap();
-        let mut draw_param_map = serde_json::Map::new();
-        draw_param_map.insert("src".to_owned(), "test".into());
-        map.insert(
-            "draw_param".to_owned(),
-            serde_json::Value::Object(draw_param_map),
-        );
-
-        map
     }
 }

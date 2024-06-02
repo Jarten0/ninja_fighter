@@ -2,7 +2,7 @@ use core::panic;
 
 use bevy_ecs::component::Component;
 use bevy_ecs::reflect::ReflectComponent;
-use bevy_ecs::system::{IntoSystem, Query, ResMut};
+use bevy_ecs::system::{Query, ResMut};
 use bevy_reflect::Reflect;
 use engine::editor::FieldWidget;
 use engine::GgezInterface;
@@ -16,8 +16,8 @@ use engine::render::draw_param_ui;
 #[derive(Default, Component, Reflect, Serialize, Deserialize)]
 #[reflect(Component)]
 pub struct TextRenderer {
-    #[serde(serialize_with = "crate::theo_matthew_game::serialize_ggez_text")]
-    #[serde(deserialize_with = "crate::theo_matthew_game::deserialize_ggez_text")]
+    #[serde(serialize_with = "crate::text_renderer::serialize_ggez_text")]
+    #[serde(deserialize_with = "crate::text_renderer::deserialize_ggez_text")]
     #[reflect(ignore)]
     pub text_object: ggez::graphics::Text,
 
@@ -66,7 +66,7 @@ impl FieldWidget for TextRenderer {
 }
 
 fn text_fragment_ui(
-    font_text_buffer: &mut String,
+    _font_text_buffer: &mut String,
     fragment: &mut graphics::TextFragment,
     ui: &mut egui::Ui,
 ) {
@@ -161,14 +161,14 @@ pub fn render_text_renderers(
     mut engine: ResMut<GgezInterface>,
 ) {
     if let Some(error) = engine.error_log.last() {
-        if let GameError::FontSelectError(font_name) = error {
+        if let GameError::FontSelectError(_) = error {
             for mut renderer in query.iter_mut() {
                 renderer.text_object.set_font(DEFAULT_FONT);
                 renderer
                     .text_object
                     .fragments_mut()
                     .iter_mut()
-                    .map(|fragment| fragment.font = None);
+                    .for_each(|fragment| fragment.font = None);
             }
             engine.error_log.pop();
         }
@@ -189,7 +189,7 @@ where
     use serde::ser::SerializeStruct;
     let mut s = serializer.serialize_struct("Text Renderer", 1)?;
 
-    let mut serialized_fragments = value
+    let serialized_fragments = value
         .fragments()
         .iter()
         .map(|fragment: &TextFragment| {
@@ -206,7 +206,7 @@ where
             &Option<String>,
         )>>();
 
-    s.serialize_field("fragments", &serialized_fragments);
+    s.serialize_field("fragments", &serialized_fragments)?;
 
     s.end()
 }

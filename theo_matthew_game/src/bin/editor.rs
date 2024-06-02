@@ -11,6 +11,14 @@ static ENGINE_CONFIG: engine::EngineConfig = engine::EngineConfig {
 fn main() {
     let (mut context, event_loop) =
         ggez::ContextBuilder::new("theo_matthew_game", "Jarten0 + Thermulus")
+            .window_setup(ggez::conf::WindowSetup {
+                title: String::from("Theo Matthew Game"),
+                samples: ggez::conf::NumSamples::One,
+                vsync: false,
+                icon: String::new(),
+                srgb: true,
+            })
+            .window_mode(ggez::conf::WindowMode::default().maximized(true))
             .build()
             .expect("could not build context?!");
 
