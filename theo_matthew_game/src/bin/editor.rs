@@ -1,5 +1,5 @@
 static ENGINE_CONFIG: engine::EngineConfig = engine::EngineConfig {
-    external_scene_paths: &[""],
+    external_scene_paths: &["theo_matthew_game/assets/scenes/prototype.json"],
     scenes_folder: Some("theo_matthew_game/assets/scenes"),
     world_init: theo_matthew_game::init_world,
     ticks_per_second: 60,

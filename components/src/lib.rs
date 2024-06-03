@@ -24,7 +24,25 @@ pub mod protag;
 pub mod render;
 pub mod text_renderer;
 
-pub fn init_components(world: &mut World) -> () {
+pub mod schedules {
+    /// Systems that update game logic
+    pub mod tick {
+        pub use crate::collider::collider_update;
+        pub use crate::protag::protag_init;
+        pub use crate::protag::protag_update;
+        pub use crate::render::renderer_update;
+    }
+
+    /// Systems that draw to the screen
+    pub mod frame {
+        pub use crate::collider::mesh_renderer::mesh_renderer_draw;
+        pub use crate::render::renderer_draw;
+        pub use crate::text_renderer::render_text_renderers;
+    }
+}
+
+/// Adds all of the components to the type registry.
+pub fn initialize_component_types(world: &mut World) -> () {
     world.resource_scope(|world: &mut World, mut manager: Mut<SceneManager>| {
         let type_registry = &mut manager.type_registry;
         register_component::<render::Renderer>(world, type_registry);

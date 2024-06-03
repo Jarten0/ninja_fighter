@@ -11,7 +11,7 @@ use engine::{space, Input};
 use ggez::graphics::{self, Color, DrawParam, Image, Rect};
 use serde::{Deserialize, Serialize};
 
-pub fn init(_commands: Commands, _engine: Res<GgezInterface>) {
+pub fn protag_init(_commands: Commands, _engine: Res<GgezInterface>) {
     // commands.spawn(ProtagBundle::new(&engine));
     // commands
     //     .spawn(BoxCollider::new((100.0, 100.0).into()))
@@ -46,7 +46,7 @@ pub struct ProtagController {
     pub max_fall_speed: f32,
 }
 
-pub fn update(
+pub fn protag_update(
     mut query: Query<(&mut Position, &mut Velocity, &ProtagController)>,
     input: Res<Input>,
 

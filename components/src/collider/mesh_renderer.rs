@@ -12,7 +12,7 @@ use std::collections::HashMap;
 
 // TODO: Rewrite functionality same as above
 /// Draws collider vertecies/edges if debug is enabled
-pub fn draw(
+pub fn mesh_renderer_draw(
     query: Query<(&MeshRenderer, &Collider)>,
     mut engine: ResMut<GgezInterface>,
     _camera: Res<Camera>,

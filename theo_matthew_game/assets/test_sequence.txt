@@ -1,0 +1,42 @@
+File Metadata
+
+--- //begin parsing events
+
+SEQUENCE_ONE
+    You wake up in a room, $[modifier]yada yada
+    More lines of dialouge $[other]with modifiers!$
+
+    lines
+
+    more lines
+    Oh but here's an option!
+        *SEQUENCE_TWO. This leads to a new sequence, but "SEQUENCE_TWO. " is ommitted.
+        *SEQUENCE_DEAD[death_flag = arrows]. You can have more than two options, and even pass flags to each sequence.
+        *SEQUENCE_ONE. Or just have a recursive path that maybe leads back to where you started.
+        *This one doesn't have a path, and continues the sequence
+    
+    This line will show up only if the fourth is picked
+
+
+
+    #cool_item==3.2
+        This is where you can write new statements
+            *And add options
+
+SEQUENE_TWO
+    All sequences are to be UPPERCASE_SNAKE, as to be distinct.
+    In sequences, you can store data whenever using this.
+    (keypad:bool = true)
+    (cool_item:f=3.2)
+    This will create a new "variable" that can be accessed wherever in the document.
+
+SEQUENCE_DEAD[death_flag: string]
+    (if death flag is arrows):
+        You just write the specific death text here
+        (death_log:string="you died to arrows") assign variables too
+
+
+    And then be more general and unspecific here,
+    Where this will show up regardless of how you died
+
+

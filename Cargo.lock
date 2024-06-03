@@ -3647,11 +3647,13 @@ name = "theo_matthew_game"
 version = "0.1.0"
 dependencies = [
  "bevy_ecs",
+ "bevy_reflect",
  "components",
  "editor",
  "engine",
  "ggez",
  "log",
+ "serde",
 ]
 
 [[package]]

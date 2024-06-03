@@ -52,15 +52,25 @@
     },
     "reflect_component": {
         "body": [
-            "#[derive(Debug, Default, Clone, Component, Reflect)]",
+            "#[derive(Debug, Default, Component, Reflect, Serialize, Deserialize)]",
             "#[reflect(Component)]",
             "pub struct $1 {",
             "    $0",
             "}"
         ],
         "description": "Creates a new component with reflect capabilities.",
-        "prefix": "rcomponent",
+        "prefix": "reflect_component",
         "scope": "rust"
+    },
+    "serialize_ignore_attributes": {
+        "body": [
+"#[reflect(ignore)]",
+"#[serde(skip_serializing)]",
+"#[serde(skip_deserializing)]",
+        ],
+        "description": "Adds some helper attributes to whatever fields you write",
+        "prefix": "ignore",
+        "scope": "rust",
     },
     "useful imports": {
         "body": [

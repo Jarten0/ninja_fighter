@@ -81,7 +81,7 @@ impl Collider {
     }
 }
 
-pub fn update(mut query: Query<(&mut Collider, &Position)>) {
+pub fn collider_update(mut query: Query<(&mut Collider, &Position)>) {
     for (mut collider, _position) in query.iter_mut() {
         for _mesh in &mut collider.meshes {}
     }

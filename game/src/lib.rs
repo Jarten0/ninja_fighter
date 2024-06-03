@@ -17,7 +17,7 @@ pub static ENGINE_CONFIG: EngineConfig = EngineConfig {
 };
 
 pub fn init_components_and_resources(world: &mut bevy_ecs::world::World) {
-    components::init_components(world);
+    components::initialize_component_types(world);
     trace!("Registered component types");
 
     world.add_schedule(tick_schedule());
@@ -36,9 +36,9 @@ pub fn tick_schedule() -> Schedule {
         .add_systems(
             (
                 // components::collider::mesh_editor::update_editor,
-                protag::update,
+                protag::protag_update,
                 engine::space::update,
-                collider::update,
+                collider::collider_update,
             )
                 .chain(),
         );
@@ -53,8 +53,8 @@ pub fn freeze_tick_schedule() -> Schedule {
         .set_build_settings(TICK_SETTINGS.clone())
         .set_executor_kind(ExecutorKind::MultiThreaded)
         .add_systems((
-            collider::update,
-            protag::update,
+            collider::collider_update,
+            protag::protag_update,
             // components::collider::mesh_editor::update_editor,
         ));
 
@@ -70,8 +70,8 @@ pub fn frame_schedule() -> Schedule {
     draw_sched.add_systems(
         (
             // insert draw systems here
-            render::draw,
-            components::collider::mesh_renderer::draw,
+            render::renderer_draw,
+            components::collider::mesh_renderer::mesh_renderer_draw,
             components::text_renderer::render_text_renderers,
             // components::collider::mesh_editor::draw_editor_interface,
         )
@@ -90,7 +90,7 @@ pub fn init_schedule() -> Schedule {
 
     init_sched
         // .add_systems(debug::init)
-        .add_systems(protag::init);
+        .add_systems(protag::protag_init);
 
     init_sched
 }

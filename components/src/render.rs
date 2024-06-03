@@ -31,7 +31,7 @@ type TransformComponentTuple<'a> = (
     &'a TransformSettings,
 );
 
-pub fn update(mut query: Query<(&mut Renderer, TransformComponentTuple)>) {
+pub fn renderer_update(mut query: Query<(&mut Renderer, TransformComponentTuple)>) {
     for (mut renderer, transform) in &mut query {
         let draw_transform: ggez::graphics::Transform = Transform {
             position: dbg!(transform.0.to_owned()),
@@ -50,7 +50,7 @@ pub fn update(mut query: Query<(&mut Renderer, TransformComponentTuple)>) {
     }
 }
 
-pub fn draw(
+pub fn renderer_draw(
     query: Query<(&Renderer, TransformComponentTuple)>,
     mut main_canvas: ResMut<GgezInterface>,
     camera: Res<Camera>,
