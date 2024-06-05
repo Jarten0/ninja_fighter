@@ -99,8 +99,7 @@ impl SerializedSceneData {
             let bundle = SceneData {
                 entity_name,
                 scene_id: Some(scene.scene_id),
-                component_paths,
-                component_ids,
+
                 hide_in_inspector: true,
             };
 

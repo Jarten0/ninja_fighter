@@ -396,7 +396,7 @@ pub fn add_entity_to_scene<'a>(
 ) -> Result<(), SceneError> {
     // Very specific way this following code is blocked, since we need a list of entity names that DOESN'T include the entity currently being added
     let mut entity_names: Vec<String> = Vec::new();
-    for (component, entity) in world.query::<(&mut SceneData, Entity)>().iter(world) {
+    for (component, entity) in world.query::<(&SceneData, Entity)>().iter(world) {
         if !world
             .get::<Scene>(scene_entity)
             .ok_or(SceneError::NoSceneComponent)?
@@ -446,8 +446,7 @@ pub fn add_entity_to_scene<'a>(
             .insert(object_data::SceneData {
                 entity_name: object_name,
                 scene_id: Some(scene_id),
-                component_paths,
-                component_ids,
+
                 hide_in_inspector: true,
             });
     }

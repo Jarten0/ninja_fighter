@@ -4,10 +4,12 @@ use std::path::{Path, PathBuf};
 use bevy_ecs::component::Component;
 use bevy_ecs::reflect::ReflectComponent;
 use bevy_ecs::schedule::{IntoSystemConfigs, Schedule};
+use bevy_ecs::system::Commands;
 use bevy_ecs::world::World;
 use bevy_reflect::Reflect;
 use components::schedules::{frame, tick};
 
+use engine::scene::SceneData;
 use serde::{Deserialize, Serialize};
 
 pub fn init_world(world: &mut World) {
@@ -47,27 +49,36 @@ pub struct TextDocumentFeeder {
     #[serde(skip_serializing)]
     #[serde(skip_deserializing)]
     pub document: Option<File>,
-    pub sequences: Vec<>
+}
+
+pub fn create_document_reader(mut commands: Commands) {
+    let spawn = commands.spawn(TextDocumentFeeder { document: None });
+
+    spawn.insert(SceneData)
 }
 
 impl TextDocumentFeeder {
-    pub fn start_parsing_file(&mut self, path: &Path) {
+    pub fn start_parsing_file(&mut self, path: &Path) -> Option<()> {
         self.document = File::options().open(path).ok();
+
+        let tokenizer = tokenizers::Tokenizer::from_file(path).unwrap();
+
+        dbg!(tokenizer.to_string(false));
+        //  File::options().open(path).ok()?
+
+        todo!()
     }
 
-    pub fn get_next_sequence(&mut self){
+    pub fn get_next_sequence(&mut self) {
         todo!()
     }
 }
 
 pub struct TextSequence {
     name: String,
-    lines
 }
 
 #[derive(Debug, Serialize, Deserialize, Reflect)]
 pub struct Line {
     raw_text: String,
 }
-
-

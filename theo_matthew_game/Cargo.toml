@@ -16,6 +16,7 @@ log = "0.4.21"
 editor = { version = "0.1.0", path = "../editor" }
 serde.workspace = true
 bevy_reflect.workspace = true
+tokenizers = "0.19.1"
 
 
 [[bin]]
